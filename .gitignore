@@ -1,0 +1,12 @@
+.env
+backend/.env
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.pkl
+raw_story_bundles.json
+elite_candidates.pkl
+backend/.cache/
+backend/*.db
+frontend/node_modules/
+frontend/dist/
