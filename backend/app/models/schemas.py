@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from typing import Annotated, Literal, Union
+
+from pydantic import BaseModel, Field
 
 
 class StoryMetadata(BaseModel):
@@ -50,3 +52,69 @@ class PipelineRunResponse(BaseModel):
     story_count: int
     cached: bool
     stories: list[StorySummary]
+
+
+class ContextBeat(BaseModel):
+    beat_id: str
+    type: Literal["context"]
+    order: int
+    title: str
+    body: str
+    source_refs: list[str] = []
+
+
+class DilemmaBeat(BaseModel):
+    beat_id: str
+    type: Literal["dilemma"]
+    order: int
+    title: str
+    body: str
+    source_refs: list[str] = []
+
+
+class ViewpointBeat(BaseModel):
+    beat_id: str
+    type: Literal["viewpoint"]
+    order: int
+    title: str
+    body: str
+    author: str
+    author_role: str
+    source_refs: list[str] = []
+
+
+class CheckpointBeat(BaseModel):
+    beat_id: str
+    type: Literal["checkpoint"]
+    order: int
+    question: str
+    format: Literal["reflection"] = "reflection"
+    must_precede_decision: bool = True
+
+
+class DecisionBeat(BaseModel):
+    beat_id: str
+    type: Literal["decision"]
+    order: int
+    title: str
+    body: str
+    source_refs: list[str] = []
+
+
+class LessonsBeat(BaseModel):
+    beat_id: str
+    type: Literal["lessons"]
+    order: int
+    title: str
+    lessons: list[str]
+
+
+Beat = Annotated[
+    Union[ContextBeat, DilemmaBeat, ViewpointBeat, CheckpointBeat, DecisionBeat, LessonsBeat],
+    Field(discriminator="type"),
+]
+
+
+class WorkspaceContent(BaseModel):
+    story_id: str
+    beats: list[Beat]
