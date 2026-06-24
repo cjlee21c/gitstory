@@ -1,0 +1,154 @@
+:root {
+  --text: #2a2a2a;
+  --text-muted: #6b6b6b;
+  --bg: #ffffff;
+  --border: #e0e0e0;
+  --accent: #5b3bd6;
+  --accent-bg: rgba(91, 59, 214, 0.08);
+
+  font: 17px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.page {
+  padding: 48px 24px;
+}
+
+.page-narrow {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.error {
+  color: #b3261e;
+}
+
+h1 {
+  font-size: 32px;
+  margin: 0 0 16px;
+}
+
+h2 {
+  font-size: 22px;
+  margin: 0 0 12px;
+}
+
+form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+input,
+textarea {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex: 1;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+button {
+  font: inherit;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+.card-clickable:hover {
+  border-color: var(--accent);
+}
+
+.labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--accent-bg);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.beat {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.beat-viewpoint .byline {
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.beat-viewpoint .role {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.beat-checkpoint {
+  background: var(--accent-bg);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.reflection-saved {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.beat-decision .badge {
+  display: inline-block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
