@@ -1,9 +1,9 @@
 import json
-import re
 
 from pydantic import ValidationError
 
 from app.llm.client import WORKSPACE_GEN_MODEL, client
+from app.llm.json_utils import extract_json
 from app.models.schemas import WorkspaceContent
 
 MAX_ATTEMPTS = 3
@@ -64,14 +64,6 @@ def _build_raw_data(bundle: dict) -> str:
     return json.dumps(compact, indent=2, ensure_ascii=False)
 
 
-def _extract_json(text: str) -> dict:
-    text = text.strip()
-    fenced = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
-    if fenced:
-        text = fenced.group(1)
-    return json.loads(text)
-
-
 def _validate_checkpoint_precedes_decision(workspace: WorkspaceContent) -> None:
     checkpoint_orders = [b.order for b in workspace.beats if b.type == "checkpoint"]
     decision_orders = [b.order for b in workspace.beats if b.type == "decision"]
@@ -98,7 +90,7 @@ def generate_workspace(bundle: dict) -> WorkspaceContent:
         )
         raw_text = response.content[0].text
         try:
-            data = _extract_json(raw_text)
+            data = extract_json(raw_text)
             workspace = WorkspaceContent.model_validate(data)
             _validate_checkpoint_precedes_decision(workspace)
             return workspace

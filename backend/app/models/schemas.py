@@ -82,7 +82,6 @@ class ViewpointBeat(BaseModel):
     author_role: str
     source_refs: list[str] = []
 
-
 class CheckpointBeat(BaseModel):
     beat_id: str
     type: Literal["checkpoint"]
@@ -118,3 +117,12 @@ Beat = Annotated[
 class WorkspaceContent(BaseModel):
     story_id: str
     beats: list[Beat]
+
+
+class DiscoverRequest(BaseModel):
+    interest: str
+
+
+class RepoRecommendation(BaseModel):
+    repo: str
+    summary: str
