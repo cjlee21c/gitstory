@@ -7,7 +7,8 @@ from app.llm.json_utils import extract_json
 from app.models.schemas import WorkspaceContent
 
 MAX_ATTEMPTS = 3
-COMMENT_BODY_LIMIT = 3000
+COMMENT_BODY_LIMIT = 500
+DISCUSSION_COMMENT_CAP = 15
 
 PROMPT_TEMPLATE = """You are turning a real, closed-source-free software engineering discussion into educational content for students learning architectural decision-making. You are given the raw discussion data below for story_id "{story_id}".
 
@@ -51,13 +52,23 @@ def _truncate(text: str, limit: int = COMMENT_BODY_LIMIT) -> str:
     return text[:limit] + "... [truncated]"
 
 
+def _sample_comments(comments: list, cap: int = DISCUSSION_COMMENT_CAP) -> list:
+    if len(comments) <= cap:
+        return comments
+    # Take spread across the discussion arc: start, middle, end
+    step = (len(comments) - 1) / (cap - 1)
+    indices = sorted({round(i * step) for i in range(cap)})
+    return [comments[i] for i in indices]
+
+
 def _build_raw_data(bundle: dict) -> str:
+    sampled = _sample_comments(bundle["discussion_timeline"])
     compact = {
         "metadata": bundle["metadata"],
         "pr_metadata": bundle["pr_metadata"],
         "issue_payload": {"body": _truncate(bundle["issue_payload"]["body"])},
         "discussion_timeline": [
-            {**entry, "body": _truncate(entry["body"])} for entry in bundle["discussion_timeline"]
+            {**entry, "body": _truncate(entry["body"])} for entry in sampled
         ],
         "commit_history": bundle["commit_history"],
     }
@@ -84,7 +95,7 @@ def generate_workspace(bundle: dict) -> WorkspaceContent:
         message = prompt if attempt == 0 else prompt + RETRY_SUFFIX.format(error=last_error)
         response = client.messages.create(
             model=WORKSPACE_GEN_MODEL,
-            max_tokens=4096,
+            max_tokens=1800,
             temperature=0,
             messages=[{"role": "user", "content": message}],
         )
