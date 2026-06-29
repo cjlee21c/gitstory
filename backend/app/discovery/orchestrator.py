@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from app.config import GITHUB_TOKEN
 from app.github_client import GitHubClient
 from app.llm.interest_parser import extract_search_keywords
@@ -6,6 +8,7 @@ from app.storage import cache
 
 MAX_RESULTS = 5
 SEARCH_PER_PAGE = 10
+MAX_WORKERS = 4
 
 
 def _normalize(interest: str) -> str:
@@ -23,9 +26,12 @@ def discover_repos(interest: str, force: bool = False) -> list[dict]:
 
     github = GitHubClient(GITHUB_TOKEN)
     seen = {}
-    for keyword in keywords:
-        for item in github.search_repositories(keyword, per_page=SEARCH_PER_PAGE):
-            seen.setdefault(item["full_name"], item)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        for items in executor.map(
+            lambda kw: github.search_repositories(kw, per_page=SEARCH_PER_PAGE), keywords
+        ):
+            for item in items:
+                seen.setdefault(item["full_name"], item)
 
     results = summarize_candidates(interest, list(seen.values()), max_results=MAX_RESULTS)
     cache.set(cache_key, results)
