@@ -3,10 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { getWorkspace } from "../api/client";
 import type { WorkspaceContent } from "../api/types";
 import { BeatRenderer } from "../components/workspace/BeatRenderer";
+import { useStudent } from "../context/StudentContext";
 
 export function WorkspacePage() {
   const [params] = useSearchParams();
   const storyId = params.get("story") ?? "";
+  const { studentId } = useStudent();
 
   const [workspace, setWorkspace] = useState<WorkspaceContent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,17 +33,30 @@ export function WorkspacePage() {
   }
   if (error) return <p className="page error">{error}</p>;
   if (!workspace) {
-    return <p className="page">Generating the workspace for {storyId}... this can take up to a minute the first time.</p>;
+    return (
+      <p className="page">
+        Generating the workspace for {storyId}... this can take up to a minute
+        the first time.
+      </p>
+    );
   }
 
   const checkpoint = workspace.beats.find((b) => b.type === "checkpoint");
   const checkpointOrder = checkpoint?.order ?? Infinity;
-  const visibleBeats = workspace.beats.filter((b) => revealed || b.order <= checkpointOrder);
+  const visibleBeats = workspace.beats.filter(
+    (b) => revealed || b.order <= checkpointOrder
+  );
 
   return (
     <div className="page page-narrow workspace">
       {visibleBeats.map((beat) => (
-        <BeatRenderer key={beat.beat_id} beat={beat} onCheckpointSubmit={() => setRevealed(true)} />
+        <BeatRenderer
+          key={beat.beat_id}
+          beat={beat}
+          storyId={storyId}
+          studentId={studentId}
+          onCheckpointSubmit={() => setRevealed(true)}
+        />
       ))}
     </div>
   );

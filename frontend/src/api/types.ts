@@ -76,3 +76,13 @@ export interface WorkspaceContent {
   story_id: string;
   beats: Beat[];
 }
+
+export interface LibraryEntry {
+  repo: string;
+  stories: StorySummary[];
+}
+
+export interface AnswerRequest {
+  student_id: string;
+  reflection: string;
+}

@@ -1,4 +1,6 @@
 import type {
+  AnswerRequest,
+  LibraryEntry,
   PipelineRunResponse,
   RepoRecommendation,
   StorySummary,
@@ -40,4 +42,15 @@ export function listStories(repo: string): Promise<StorySummary[]> {
 
 export function getWorkspace(storyId: string): Promise<WorkspaceContent> {
   return request(`/stories/${encodeStoryId(storyId)}/workspace`);
+}
+
+export function getLibrary(): Promise<LibraryEntry[]> {
+  return request("/library");
+}
+
+export function saveAnswer(storyId: string, body: AnswerRequest): Promise<{ status: string }> {
+  return request(`/stories/${encodeStoryId(storyId)}/answers`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

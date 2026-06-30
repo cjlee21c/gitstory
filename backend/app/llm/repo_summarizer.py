@@ -1,5 +1,4 @@
 import json
-
 from app.llm.client import WORKSPACE_GEN_MODEL, client
 from app.llm.json_utils import extract_json
 

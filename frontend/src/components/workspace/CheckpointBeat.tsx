@@ -1,18 +1,22 @@
 import { useState } from "react";
+import { saveAnswer } from "../../api/client";
 import type { CheckpointBeat as CheckpointBeatType } from "../../api/types";
 
 interface Props {
   beat: CheckpointBeatType;
+  storyId: string;
+  studentId: string;
   onSubmit: () => void;
 }
 
-export function CheckpointBeat({ beat, onSubmit }: Props) {
+export function CheckpointBeat({ beat, storyId, studentId, onSubmit }: Props) {
   const [reflection, setReflection] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    saveAnswer(storyId, { student_id: studentId, reflection }).catch(() => {});
     onSubmit();
   }
 

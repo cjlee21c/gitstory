@@ -8,10 +8,12 @@ import { ViewpointBeat } from "./ViewpointBeat";
 
 interface Props {
   beat: Beat;
+  storyId: string;
+  studentId: string;
   onCheckpointSubmit: () => void;
 }
 
-export function BeatRenderer({ beat, onCheckpointSubmit }: Props) {
+export function BeatRenderer({ beat, storyId, studentId, onCheckpointSubmit }: Props) {
   switch (beat.type) {
     case "context":
       return <ContextBeat beat={beat} />;
@@ -20,7 +22,14 @@ export function BeatRenderer({ beat, onCheckpointSubmit }: Props) {
     case "viewpoint":
       return <ViewpointBeat beat={beat} />;
     case "checkpoint":
-      return <CheckpointBeat beat={beat} onSubmit={onCheckpointSubmit} />;
+      return (
+        <CheckpointBeat
+          beat={beat}
+          storyId={storyId}
+          studentId={studentId}
+          onSubmit={onCheckpointSubmit}
+        />
+      );
     case "decision":
       return <DecisionBeat beat={beat} />;
     case "lessons":
