@@ -43,7 +43,7 @@ def summarize_candidates(interest: str, candidates: list[dict], max_results: int
     prompt = SUMMARY_PROMPT_TEMPLATE.format(
         interest=interest,
         max_results=max_results,
-        candidates=json.dumps(_compact(candidates), indent=2),
+        candidates=json.dumps(_compact(candidates), separators=(",", ":")),
     )
     response = client.messages.create(
         model=WORKSPACE_GEN_MODEL,
@@ -51,5 +51,7 @@ def summarize_candidates(interest: str, candidates: list[dict], max_results: int
         temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
+    usage = response.usage
+    print(f"  [Summarize candidates] {usage.input_tokens} in / {usage.output_tokens} out tokens")
     results = extract_json(response.content[0].text)
     return [r for r in results if isinstance(r, dict) and "repo" in r and "summary" in r][:max_results]

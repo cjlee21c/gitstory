@@ -72,7 +72,9 @@ def _build_raw_data(bundle: dict) -> str:
         ],
         "commit_history": bundle["commit_history"],
     }
-    return json.dumps(compact, indent=2, ensure_ascii=False)
+    # Compact separators (no indent whitespace) to cut input tokens — the model
+    # doesn't need pretty-printed JSON.
+    return json.dumps(compact, separators=(",", ":"), ensure_ascii=False)
 
 
 def _validate_checkpoint_precedes_decision(workspace: WorkspaceContent) -> None:
@@ -95,9 +97,14 @@ def generate_workspace(bundle: dict) -> WorkspaceContent:
         message = prompt if attempt == 0 else prompt + RETRY_SUFFIX.format(error=last_error)
         response = client.messages.create(
             model=WORKSPACE_GEN_MODEL,
-            max_tokens=1800,
+            max_tokens=4000,
             temperature=0,
             messages=[{"role": "user", "content": message}],
+        )
+        usage = response.usage
+        print(
+            f"  [Workspace {story_id}] attempt {attempt + 1}: "
+            f"{usage.input_tokens} in / {usage.output_tokens} out tokens"
         )
         raw_text = response.content[0].text
         try:
