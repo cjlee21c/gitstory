@@ -1,4 +1,4 @@
-import type { Beat } from "../../api/types";
+import type { Beat, ViewpointOption } from "../../api/types";
 import { CheckpointBeat } from "./CheckpointBeat";
 import { ContextBeat } from "./ContextBeat";
 import { DecisionBeat } from "./DecisionBeat";
@@ -10,10 +10,11 @@ interface Props {
   beat: Beat;
   storyId: string;
   studentId: string;
+  viewpointOptions: ViewpointOption[];
   onCheckpointSubmit: () => void;
 }
 
-export function BeatRenderer({ beat, storyId, studentId, onCheckpointSubmit }: Props) {
+export function BeatRenderer({ beat, storyId, studentId, viewpointOptions, onCheckpointSubmit }: Props) {
   switch (beat.type) {
     case "context":
       return <ContextBeat beat={beat} />;
@@ -27,6 +28,7 @@ export function BeatRenderer({ beat, storyId, studentId, onCheckpointSubmit }: P
           beat={beat}
           storyId={storyId}
           studentId={studentId}
+          options={viewpointOptions}
           onSubmit={onCheckpointSubmit}
         />
       );

@@ -3,12 +3,15 @@ import type { LessonsBeat as LessonsBeatType } from "../../api/types";
 export function LessonsBeat({ beat }: { beat: LessonsBeatType }) {
   return (
     <section className="beat beat-lessons">
-      <h2>{beat.title}</h2>
-      <ul>
+      <h1>{beat.title}</h1>
+      <ol className="lessons-list">
         {beat.lessons.map((lesson, i) => (
-          <li key={i}>{lesson}</li>
+          <li key={i}>
+            <span className="lesson-number">{String(i + 1).padStart(2, "0")}</span>
+            <span>{lesson}</span>
+          </li>
         ))}
-      </ul>
+      </ol>
     </section>
   );
 }

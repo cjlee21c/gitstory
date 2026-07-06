@@ -22,6 +22,7 @@ def _path_for(story_id: str, student_id: str) -> Path:
 class AnswerRequest(BaseModel):
     student_id: str
     reflection: str
+    selected_option: str | None = None
 
 
 @router.post("/stories/{story_id:path}/answers", status_code=200)
@@ -36,6 +37,7 @@ def save_answer(story_id: str, body: AnswerRequest):
     payload = {
         "student_id": body.student_id,
         "story_id": story_id,
+        "selected_option": body.selected_option,
         "reflection": body.reflection,
         "submitted_at": datetime.now(timezone.utc).isoformat(),
     }

@@ -85,4 +85,10 @@ export interface LibraryEntry {
 export interface AnswerRequest {
   student_id: string;
   reflection: string;
+  selected_option?: string;
+}
+
+export interface ViewpointOption {
+  author: string;
+  title: string;
 }
