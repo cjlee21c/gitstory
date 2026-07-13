@@ -1,5 +1,6 @@
 import type {
   AnswerRequest,
+  DiscoverFilters,
   LibraryEntry,
   PipelineRunResponse,
   RepoRecommendation,
@@ -25,10 +26,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export function discoverRepos(interest: string): Promise<RepoRecommendation[]> {
+export function discoverRepos(filters: DiscoverFilters): Promise<RepoRecommendation[]> {
   return request("/discover", {
     method: "POST",
-    body: JSON.stringify({ interest }),
+    body: JSON.stringify(filters),
   });
 }
 
@@ -36,8 +37,9 @@ export function runPipeline(repo: string, force = false): Promise<PipelineRunRes
   return request(`/repos/${repo}/pipeline?force=${force}`, { method: "POST" });
 }
 
-export function listStories(repo: string): Promise<StorySummary[]> {
-  return request(`/repos/${repo}/stories`);
+export function listStories(repo: string, qualities: string[] = []): Promise<StorySummary[]> {
+  const query = qualities.length ? `?qualities=${encodeURIComponent(qualities.join(","))}` : "";
+  return request(`/repos/${repo}/stories${query}`);
 }
 
 export function getWorkspace(storyId: string): Promise<WorkspaceContent> {

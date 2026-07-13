@@ -3,10 +3,19 @@ export interface RepoRecommendation {
   summary: string;
 }
 
+export interface DiscoverFilters {
+  domain: string;
+  sizes: string[];
+  stars: string | null;
+  contributors: string | null;
+  keyword: string | null;
+}
+
 export interface StorySummary {
   story_id: string;
   title: string;
   labels: string[];
+  qualities: string[];
 }
 
 export interface PipelineRunResponse {

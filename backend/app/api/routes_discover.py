@@ -8,4 +8,4 @@ router = APIRouter(tags=["discover"])
 
 @router.post("/discover", response_model=list[RepoRecommendation])
 def discover(request: DiscoverRequest):
-    return discover_repos(request.interest)
+    return discover_repos(request)

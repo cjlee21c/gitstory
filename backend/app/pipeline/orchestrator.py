@@ -5,7 +5,11 @@ from app.pipeline.pass1_screening import pass_1_mechanical_screening
 from app.pipeline.pass2_enrichment import pass_2_deep_enrichment
 from app.storage import cache
 
-STORY_CAP = 4
+# Safety ceiling only — the per-response story cap now lives in the stories
+# API (routes_repos.STORY_CAP), applied after quality filtering at read time.
+# Pass 2 is LLM-free, so enriching all elites keeps the cache reusable across
+# any quality selection without re-running the pipeline.
+ENRICH_CEILING = 20
 
 
 def run_pipeline(repo: str, force: bool = False):
@@ -31,6 +35,6 @@ def run_pipeline(repo: str, force: bool = False):
         elite_p1_5 = pass_1_5_semantic_gate(candidates_p1)
         cache.set(pass1_5_key, elite_p1_5)
 
-    bundles = pass_2_deep_enrichment(repo, elite_p1_5[:STORY_CAP], github)
+    bundles = pass_2_deep_enrichment(repo, elite_p1_5[:ENRICH_CEILING], github)
     cache.set(pass2_key, bundles)
     return bundles

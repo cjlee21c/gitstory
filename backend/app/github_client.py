@@ -1,3 +1,4 @@
+import re
 import time
 from datetime import datetime, timedelta
 
@@ -43,11 +44,46 @@ class GitHubClient:
         url = f"https://api.github.com/repos/{repo}/{endpoint}"
         return self._request(url, params=params, max_retries=max_retries)
 
-    def search_repositories(self, query: str, min_stars: int = 500, per_page: int = 10):
+    def search_repositories(
+        self,
+        query: str,
+        min_stars: int = 500,
+        per_page: int = 10,
+        extra_qualifiers: list[str] | None = None,
+    ):
         active_since = (datetime.utcnow() - timedelta(days=180)).strftime("%Y-%m-%d")
-        full_query = f"{query} stars:>={min_stars} pushed:>={active_since}"
+        qualifiers = list(extra_qualifiers or [])
+        # The default popularity floor only applies when the caller didn't
+        # pick a stars range themselves (e.g. the "< 100 stars" bucket).
+        if not any(q.startswith("stars:") for q in qualifiers):
+            qualifiers.append(f"stars:>={min_stars}")
+        qualifiers.append(f"pushed:>={active_since}")
+        full_query = " ".join([query, *qualifiers])
         result = self._request(
             "https://api.github.com/search/repositories",
             params={"q": full_query, "sort": "stars", "order": "desc", "per_page": per_page},
         )
         return result.get("items", [])
+
+    def get_contributor_count(self, repo: str) -> int | None:
+        """Cheap contributor count: request one contributor per page and read
+        the total from the Link header's last-page number. Returns None when
+        GitHub can't answer (network error, or 403 "list too large") so
+        callers can fail open instead of dropping the repo."""
+        url = f"https://api.github.com/repos/{repo}/contributors"
+        try:
+            response = requests.get(
+                url,
+                headers=self._headers(),
+                params={"per_page": 1, "anonymous": "true"},
+            )
+            if response.status_code != 200:
+                return None
+            link = response.headers.get("Link", "")
+            match = re.search(r'[?&]page=(\d+)>; rel="last"', link)
+            if match:
+                return int(match.group(1))
+            # No Link header means everything fit on one page (0 or 1).
+            return len(response.json())
+        except requests.exceptions.RequestException:
+            return None

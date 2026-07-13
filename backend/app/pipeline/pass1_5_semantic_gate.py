@@ -1,22 +1,65 @@
+import json
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+from app.filters import QUALITY_ATTRIBUTES, QUALITY_DEFINITIONS
 from app.llm.client import SEMANTIC_GATE_MODEL, client
+from app.llm.json_utils import extract_json
+
+_QUALITY_DEFINITIONS_TEXT = "\n".join(
+    f"- {name}: {definition}" for name, definition in QUALITY_DEFINITIONS.items()
+)
 
 GATE_PROMPT_TEMPLATE = (
-    "Does this open-source discussion contain technical friction, architectural trade-offs, "
-    "or design conflicts? Respond strictly with Yes or No.\n\n"
+    "You are screening an open-source issue discussion.\n\n"
+    "Answer two things:\n"
+    "1. is_story: does the discussion contain technical friction, architectural "
+    "trade-offs, or design conflicts worth studying?\n"
+    "2. qualities: which software quality attributes are central to the discussion "
+    "(empty list if none clearly apply):\n"
+    f"{_QUALITY_DEFINITIONS_TEXT}\n\n"
     "Context:\n{context}"
 )
 
 MAX_WORKERS = 8
+# Generous ceiling: the JSON is ~40 tokens, but output_tokens == max_tokens
+# means silent truncation (see the workspace-generator retry bug), so leave room.
+GATE_MAX_TOKENS = 300
+
+# Enum generated from QUALITY_ATTRIBUTES so labels can never drift from the
+# read-time filter in routes_repos.
+GATE_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "is_story": {"type": "boolean"},
+        "qualities": {
+            "type": "array",
+            "items": {"type": "string", "enum": QUALITY_ATTRIBUTES},
+        },
+    },
+    "required": ["is_story", "qualities"],
+    "additionalProperties": False,
+}
+
+
+def _parse_gate_response(text: str) -> dict:
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    try:
+        return extract_json(text)
+    except Exception:
+        # Last resort: salvage the yes/no signal, drop the labels.
+        return {"is_story": "true" in text.lower(), "qualities": []}
 
 
 def _gate_candidate(candidate):
-    """Runs one Haiku call to judge a single candidate. Independent across
-    candidates, so callers can run many of these concurrently. Returns the
-    surviving candidate (or None) plus a (input_tokens, output_tokens) tuple
-    so the caller can tally token usage without shared mutable state."""
+    """Runs one Haiku call to judge and quality-label a single candidate.
+    Independent across candidates, so callers can run many of these
+    concurrently. Returns the surviving candidate (or None) plus a
+    (input_tokens, output_tokens) tuple so the caller can tally token usage
+    without shared mutable state."""
     issue = candidate["issue"]
     comments_snippet = "\n".join(
         f"{c.get('user', {}).get('login', 'unknown')} ({c.get('author_association', 'NONE')}): {c.get('body', '')[:200]}"
@@ -30,14 +73,19 @@ def _gate_candidate(candidate):
     try:
         response = client.messages.create(
             model=SEMANTIC_GATE_MODEL,
-            max_tokens=10,
+            max_tokens=GATE_MAX_TOKENS,
             temperature=0,
+            output_config={"format": {"type": "json_schema", "schema": GATE_OUTPUT_SCHEMA}},
             messages=[{"role": "user", "content": prompt}],
         )
         usage = (response.usage.input_tokens, response.usage.output_tokens)
-        decision = response.content[0].text.strip()
-        if "Yes" in decision:
-            print(f"  [Elite] #{issue['number']}: {issue['title'][:50]}")
+        if response.usage.output_tokens >= GATE_MAX_TOKENS:
+            print(f"  [Truncation warning] #{issue['number']} hit max_tokens={GATE_MAX_TOKENS}")
+        decision = _parse_gate_response(response.content[0].text)
+        if decision.get("is_story"):
+            qualities = [q for q in decision.get("qualities", []) if q in QUALITY_ATTRIBUTES]
+            candidate["qualities"] = qualities
+            print(f"  [Elite] #{issue['number']} {qualities}: {issue['title'][:50]}")
             return candidate, usage
         print(f"  [Skip] #{issue['number']} lacks technical drama")
         return None, usage
@@ -47,7 +95,7 @@ def _gate_candidate(candidate):
 
 
 def pass_1_5_semantic_gate(qualified_candidates):
-    print("\nInitiating Pass 1.5: Semantic Pre-Screening Gate...")
+    print("\nInitiating Pass 1.5: Semantic Gate + Quality Labeling...")
     start = time.time()
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from app.api.routes_repos import STORY_CAP
 from app.models.schemas import StorySummary
 from app.storage.cache import CACHE_DIR
 
@@ -13,6 +14,7 @@ def _to_summary(bundle: dict) -> StorySummary:
         story_id=bundle["story_id"],
         title=bundle["metadata"]["title"],
         labels=bundle["metadata"]["labels"],
+        qualities=bundle["metadata"].get("qualities", []),
     )
 
 
@@ -33,7 +35,9 @@ def get_library():
         try:
             bundles = json.loads(path.read_text(encoding="utf-8"))
             repo = _repo_from_cache_key(path.name)
-            stories = [_to_summary(b) for b in bundles]
+            # Same read-time cap as the stories API — pass2 caches now hold
+            # every enriched elite, not just the top few.
+            stories = [_to_summary(b) for b in bundles[:STORY_CAP]]
             results.append({"repo": repo, "stories": stories})
         except Exception:
             continue

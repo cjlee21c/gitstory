@@ -40,6 +40,7 @@ def _enrich_candidate(repo: str, github: GitHubClient, candidate: dict):
         "metadata": {
             "title": issue["title"],
             "labels": [l["name"] for l in issue.get("labels", [])],
+            "qualities": candidate.get("qualities", []),
         },
         "pr_metadata": candidate["pr_meta"],
         "issue_payload": {"body": issue.get("body", "")},

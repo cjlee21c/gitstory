@@ -73,6 +73,107 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
   border-radius: 4px;
   padding: 2px 8px;
 }
+.label-quality {
+  color: white;
+  background: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Search filters (Stage 1) ── */
+.filter-form { flex-direction: column; align-items: stretch; }
+.filter-form select {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+  background: white;
+}
+.filter-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.filter-row .field { flex: 1; min-width: 160px; }
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.checkbox-option input[type="checkbox"] { flex: 0 0 auto; width: auto; }
+.checkbox-option h3 { margin: 0; }
+
+/* ── Repo multi-select + Stage 2 panel ── */
+.card-selected { border-color: var(--accent); background: var(--accent-bg); }
+.card-disabled { opacity: 0.5; cursor: default; }
+.card-disabled:hover { border-color: var(--border); }
+
+.select-bar {
+  position: sticky;
+  bottom: 0;
+  margin-top: 24px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.select-bar-section { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.select-bar-label { font-weight: 600; font-size: 14px; }
+
+.chip {
+  background: white;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+.chip:hover:not(:disabled) { border-color: var(--accent); }
+.chip-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.status-item { font-size: 14px; }
+.status-running { color: var(--text-muted); }
+.status-done { color: var(--mint-dark); font-weight: 600; }
+.status-error { color: #b3261e; font-weight: 600; }
+
+/* ── Story catalog (multi-repo) ── */
+.repo-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple-deep);
+  background: var(--purple-light);
+  border-radius: 99px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #78350f;
+  margin-bottom: 16px;
+}
+.notice-dismiss {
+  background: transparent;
+  color: #78350f;
+  border: 1px solid #f59e0b;
+  padding: 4px 10px;
+  font-size: 13px;
+}
 
 /* ── Workspace shell layout ── */
 .workspace-shell {

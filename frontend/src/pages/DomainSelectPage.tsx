@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStudent } from "../context/StudentContext";
+import { CONTRIBUTORS, DOMAINS, SIZES, STARS } from "../filters";
 
 export function DomainSelectPage() {
   const { studentId, setStudentId } = useStudent();
   const [nameInput, setNameInput] = useState(studentId);
-  const [interest, setInterest] = useState("");
+  const [domain, setDomain] = useState("");
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [stars, setStars] = useState("");
+  const [contributors, setContributors] = useState("");
+  const [keyword, setKeyword] = useState("");
   const navigate = useNavigate();
 
   function saveAndGo(path: string) {
@@ -15,12 +20,20 @@ export function DomainSelectPage() {
     navigate(path);
   }
 
+  function toggleSize(id: string) {
+    setSizes((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
+  }
+
   function handleDiscover(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = interest.trim();
-    if (!trimmed || !nameInput.trim()) return;
+    if (!domain || !nameInput.trim()) return;
     setStudentId(nameInput.trim());
-    navigate(`/discover?interest=${encodeURIComponent(trimmed)}`);
+    const params = new URLSearchParams({ domain });
+    if (sizes.length) params.set("sizes", sizes.join(","));
+    if (stars) params.set("stars", stars);
+    if (contributors) params.set("contributors", contributors);
+    if (keyword.trim()) params.set("keyword", keyword.trim());
+    navigate(`/discover?${params.toString()}`);
   }
 
   return (
@@ -51,15 +64,77 @@ export function DomainSelectPage() {
 
       <hr />
 
-      <h2>Discover by Interest</h2>
-      <p>What kind of software engineering are you interested in?</p>
-      <form onSubmit={handleDiscover}>
-        <input
-          value={interest}
-          onChange={(e) => setInterest(e.target.value)}
-          placeholder="e.g. game engines, distributed databases, compilers..."
-        />
-        <button type="submit" disabled={!nameInput.trim() || !interest.trim()}>
+      <h2>Find Repositories</h2>
+      <p>Pick a domain and narrow the search with the filters below.</p>
+      <form className="filter-form" onSubmit={handleDiscover}>
+        <div className="field">
+          <label htmlFor="domain">Domain</label>
+          <select id="domain" value={domain} onChange={(e) => setDomain(e.target.value)}>
+            <option value="">Select a domain...</option>
+            {DOMAINS.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Repository size</label>
+          <div className="filter-row">
+            {SIZES.map((s) => (
+              <label key={s.id} className="checkbox-option">
+                <input
+                  type="checkbox"
+                  checked={sizes.includes(s.id)}
+                  onChange={() => toggleSize(s.id)}
+                />
+                {s.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="filter-row">
+          <div className="field">
+            <label htmlFor="stars">Stars</label>
+            <select id="stars" value={stars} onChange={(e) => setStars(e.target.value)}>
+              <option value="">Any</option>
+              {STARS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="contributors">Contributors</label>
+            <select
+              id="contributors"
+              value={contributors}
+              onChange={(e) => setContributors(e.target.value)}
+            >
+              <option value="">Any</option>
+              {CONTRIBUTORS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="keyword">Keyword (optional)</label>
+          <input
+            id="keyword"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder='e.g. "chess engine", "trading bot"...'
+          />
+        </div>
+
+        <button type="submit" disabled={!nameInput.trim() || !domain}>
           Find repos
         </button>
       </form>

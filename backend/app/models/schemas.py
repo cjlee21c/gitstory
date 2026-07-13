@@ -2,10 +2,20 @@ from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from app.filters import CONTRIBUTOR_BUCKETS, DOMAINS, SIZE_BUCKETS, STAR_BUCKETS
+
+# Literal types generated from filters.py so an unknown filter id from the
+# frontend fails validation with a 422 instead of silently passing through.
+DomainId = Literal[tuple(DOMAINS)]  # type: ignore[valid-type]
+SizeId = Literal[tuple(SIZE_BUCKETS)]  # type: ignore[valid-type]
+StarId = Literal[tuple(STAR_BUCKETS)]  # type: ignore[valid-type]
+ContribId = Literal[tuple(CONTRIBUTOR_BUCKETS)]  # type: ignore[valid-type]
+
 
 class StoryMetadata(BaseModel):
     title: str
     labels: list[str]
+    qualities: list[str] = []
 
 
 class PRMetadata(BaseModel):
@@ -45,6 +55,7 @@ class StorySummary(BaseModel):
     story_id: str
     title: str
     labels: list[str]
+    qualities: list[str] = []
 
 
 class PipelineRunResponse(BaseModel):
@@ -120,7 +131,11 @@ class WorkspaceContent(BaseModel):
 
 
 class DiscoverRequest(BaseModel):
-    interest: str
+    domain: DomainId
+    sizes: list[SizeId] = []
+    stars: StarId | None = None
+    contributors: ContribId | None = None
+    keyword: str | None = None
 
 
 class RepoRecommendation(BaseModel):
