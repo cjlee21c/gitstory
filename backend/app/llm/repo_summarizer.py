@@ -1,6 +1,7 @@
 import json
-from app.llm.client import WORKSPACE_GEN_MODEL, client
+from app.llm.client import SEMANTIC_GATE_MODEL, client
 from app.llm.json_utils import extract_json
+from app.llm.usage import log_usage
 
 SUMMARY_PROMPT_TEMPLATE = """A student is interested in: "{interest}"
 
@@ -9,8 +10,8 @@ Below are real GitHub repositories matching that interest, with basic stats. Sel
 decisions — prioritize repos with a track record of substantive engineering discussion and \
 design tradeoffs, not just popularity, and not pure tutorials/awesome-lists/toy projects.
 
-For each selected repo, write a 2-3 sentence summary in plain language (no code, no syntax) \
-explaining what makes it architecturally interesting for this interest.
+For each selected repo, write a 1-2 sentence summary in plain language (no code, no syntax) \
+explaining what makes it architecturally interesting for this interest. Keep it tight.
 
 Respond with ONLY a JSON array, no commentary:
 [
@@ -46,12 +47,13 @@ def summarize_candidates(interest: str, candidates: list[dict], max_results: int
         candidates=json.dumps(_compact(candidates), separators=(",", ":")),
     )
     response = client.messages.create(
-        model=WORKSPACE_GEN_MODEL,
+        model=SEMANTIC_GATE_MODEL,
         max_tokens=1024,
         temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
     usage = response.usage
     print(f"  [Summarize candidates] {usage.input_tokens} in / {usage.output_tokens} out tokens")
+    log_usage("discover:summarize", SEMANTIC_GATE_MODEL, usage.input_tokens, usage.output_tokens)
     results = extract_json(response.content[0].text)
     return [r for r in results if isinstance(r, dict) and "repo" in r and "summary" in r][:max_results]

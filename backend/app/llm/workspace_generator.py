@@ -4,6 +4,7 @@ from pydantic import ValidationError
 
 from app.llm.client import WORKSPACE_GEN_MODEL, client
 from app.llm.json_utils import extract_json
+from app.llm.usage import log_usage
 from app.models.schemas import WorkspaceContent
 
 MAX_ATTEMPTS = 3
@@ -105,6 +106,10 @@ def generate_workspace(bundle: dict) -> WorkspaceContent:
         print(
             f"  [Workspace {story_id}] attempt {attempt + 1}: "
             f"{usage.input_tokens} in / {usage.output_tokens} out tokens"
+        )
+        log_usage(
+            f"workspace:{story_id}", WORKSPACE_GEN_MODEL,
+            usage.input_tokens, usage.output_tokens, attempt=attempt + 1,
         )
         raw_text = response.content[0].text
         try:

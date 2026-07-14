@@ -1,5 +1,6 @@
 from app.llm.client import SEMANTIC_GATE_MODEL, client
 from app.llm.json_utils import extract_json
+from app.llm.usage import log_usage
 
 KEYWORD_PROMPT_TEMPLATE = (
     'A student described their interest as: "{interest}"\n\n'
@@ -27,6 +28,7 @@ def _run_keyword_prompt(prompt: str) -> list[str]:
         temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
+    log_usage("keyword", SEMANTIC_GATE_MODEL, response.usage.input_tokens, response.usage.output_tokens)
     keywords = extract_json(response.content[0].text)
     return [k.strip() for k in keywords if isinstance(k, str) and k.strip()][:4]
 

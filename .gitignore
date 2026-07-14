@@ -10,3 +10,4 @@ backend/.cache/
 backend/*.db
 frontend/node_modules/
 frontend/dist/
+backend/logs/

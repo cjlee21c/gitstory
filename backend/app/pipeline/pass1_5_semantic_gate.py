@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from app.filters import QUALITY_ATTRIBUTES, QUALITY_DEFINITIONS
 from app.llm.client import SEMANTIC_GATE_MODEL, client
 from app.llm.json_utils import extract_json
+from app.llm.usage import log_usage
 
 _QUALITY_DEFINITIONS_TEXT = "\n".join(
     f"- {name}: {definition}" for name, definition in QUALITY_DEFINITIONS.items()
@@ -79,6 +80,7 @@ def _gate_candidate(candidate):
             messages=[{"role": "user", "content": prompt}],
         )
         usage = (response.usage.input_tokens, response.usage.output_tokens)
+        log_usage(f"gate:#{issue['number']}", SEMANTIC_GATE_MODEL, usage[0], usage[1])
         if response.usage.output_tokens >= GATE_MAX_TOKENS:
             print(f"  [Truncation warning] #{issue['number']} hit max_tokens={GATE_MAX_TOKENS}")
         decision = _parse_gate_response(response.content[0].text)
