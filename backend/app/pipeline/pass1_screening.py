@@ -3,9 +3,12 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.github_client import GitHubClient
 
-MIN_COMMENTS = 8
-MAX_CHANGED_FILES = 5
-MIN_AUTHORS = 3
+# Mechanical screening thresholds (layer 2). Loosened so smaller / less busy
+# repos still surface stories — the Pass 1.5 semantic gate remains the quality
+# backstop that drops issues without real technical friction.
+MIN_COMMENTS = 5       # was 8
+MAX_CHANGED_FILES = 10  # was 5
+MIN_AUTHORS = 2        # was 3
 MAX_WORKERS = 8
 
 
