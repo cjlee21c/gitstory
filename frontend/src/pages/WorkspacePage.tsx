@@ -29,6 +29,9 @@ export function WorkspacePage() {
   const { studentId } = useStudent();
   const navigate = useNavigate();
   const contentRef = useRef<HTMLDivElement>(null);
+  // Guards against StrictMode's double-effect firing two workspace fetches for
+  // the same story — the first (uncached) generation is expensive Sonnet work.
+  const fetchedFor = useRef<string | null>(null);
 
   const [workspace, setWorkspace] = useState<WorkspaceContent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +40,8 @@ export function WorkspacePage() {
 
   useEffect(() => {
     if (!storyId) return;
+    if (fetchedFor.current === storyId) return;
+    fetchedFor.current = storyId;
     setWorkspace(null);
     setError(null);
     setCurrentStep(0);
