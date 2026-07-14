@@ -137,6 +137,19 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
   color: var(--accent);
   font-weight: 600;
 }
+.chip:disabled { cursor: default; }
+.chip-empty {
+  opacity: 0.45;
+  color: var(--text-muted);
+}
+
+.chip-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.chip-bar .chip { cursor: pointer; }
 
 .status-item { font-size: 14px; }
 .status-running { color: var(--text-muted); }

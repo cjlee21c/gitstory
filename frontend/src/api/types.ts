@@ -18,6 +18,11 @@ export interface StorySummary {
   qualities: string[];
 }
 
+export interface StoryListResponse {
+  stories: StorySummary[];
+  quality_counts: Record<string, number>;
+}
+
 export interface PipelineRunResponse {
   repo: string;
   story_count: number;

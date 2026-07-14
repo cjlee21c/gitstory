@@ -58,6 +58,14 @@ class StorySummary(BaseModel):
     qualities: list[str] = []
 
 
+class StoryListResponse(BaseModel):
+    stories: list[StorySummary]
+    # Per-quality label counts over the repo's full (unfiltered, uncapped) story
+    # set, so the UI can show which quality filters actually have content and
+    # grey out dead ones. Computed from cached labels — no extra LLM/API cost.
+    quality_counts: dict[str, int]
+
+
 class PipelineRunResponse(BaseModel):
     repo: str
     story_count: int

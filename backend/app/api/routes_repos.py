@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.filters import QUALITY_ATTRIBUTES
-from app.models.schemas import PipelineRunResponse, StorySummary
+from app.models.schemas import PipelineRunResponse, StoryListResponse, StorySummary
 from app.pipeline.orchestrator import run_pipeline
 from app.storage import cache
 
@@ -17,6 +17,18 @@ def _to_summary(bundle: dict) -> StorySummary:
         labels=bundle["metadata"]["labels"],
         qualities=bundle["metadata"].get("qualities", []),
     )
+
+
+def _quality_counts(bundles: list[dict]) -> dict[str, int]:
+    """Counts, per quality attribute, how many stories in the full (unfiltered,
+    uncapped) set carry that label. Pure tally over already-cached labels — no
+    LLM or GitHub calls."""
+    counts = {q: 0 for q in QUALITY_ATTRIBUTES}
+    for b in bundles:
+        for q in b["metadata"].get("qualities", []):
+            if q in counts:
+                counts[q] += 1
+    return counts
 
 
 def filter_bundles(bundles: list[dict], qualities: str | None) -> list[dict]:
@@ -48,7 +60,7 @@ def trigger_pipeline(repo: str, force: bool = False):
     )
 
 
-@router.get("/{repo:path}/stories", response_model=list[StorySummary])
+@router.get("/{repo:path}/stories", response_model=StoryListResponse)
 def list_stories(repo: str, qualities: str | None = None):
     bundles = cache.get(f"{repo}:pass2")
     if bundles is None:
@@ -56,4 +68,9 @@ def list_stories(repo: str, qualities: str | None = None):
             status_code=404,
             detail=f"No pipeline results for {repo}. POST /repos/{repo}/pipeline first.",
         )
-    return [_to_summary(b) for b in filter_bundles(bundles, qualities)]
+    # Counts come from the full set so they stay stable as the user toggles the
+    # quality filter; stories are the filtered + capped subset.
+    return StoryListResponse(
+        stories=[_to_summary(b) for b in filter_bundles(bundles, qualities)],
+        quality_counts=_quality_counts(bundles),
+    )

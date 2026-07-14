@@ -4,7 +4,7 @@ import type {
   LibraryEntry,
   PipelineRunResponse,
   RepoRecommendation,
-  StorySummary,
+  StoryListResponse,
   WorkspaceContent,
 } from "./types";
 
@@ -37,7 +37,7 @@ export function runPipeline(repo: string, force = false): Promise<PipelineRunRes
   return request(`/repos/${repo}/pipeline?force=${force}`, { method: "POST" });
 }
 
-export function listStories(repo: string, qualities: string[] = []): Promise<StorySummary[]> {
+export function listStories(repo: string, qualities: string[] = []): Promise<StoryListResponse> {
   const query = qualities.length ? `?qualities=${encodeURIComponent(qualities.join(","))}` : "";
   return request(`/repos/${repo}/stories${query}`);
 }

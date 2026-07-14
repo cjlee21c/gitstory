@@ -8,11 +8,12 @@ import { QUALITIES } from "../filters";
 interface RepoStories {
   repo: string;
   stories: StorySummary[] | null;
+  counts: Record<string, number> | null;
   error: string | null;
 }
 
 export function StoryCatalogPage() {
-  const [params] = useSearchParams();
+  const [params, setSearchParams] = useSearchParams();
   // "repos" is the multi-repo param; "repo" kept for old single-repo links.
   const repos =
     params.get("repos")?.split(",").filter(Boolean) ??
@@ -32,13 +33,26 @@ export function StoryCatalogPage() {
       setGroups(
         results.map((result, i) => ({
           repo: repos[i],
-          stories: result.status === "fulfilled" ? result.value : null,
+          stories: result.status === "fulfilled" ? result.value.stories : null,
+          counts: result.status === "fulfilled" ? result.value.quality_counts : null,
           error: result.status === "rejected" ? (result.reason as Error).message : null,
         })),
       ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramKey]);
+
+  // Toggling a quality just rewrites the URL param; the effect re-fetches
+  // (a free read-time, cache-hit call — no tokens).
+  function toggleQuality(id: string) {
+    const next = qualities.includes(id)
+      ? qualities.filter((q) => q !== id)
+      : [...qualities, id];
+    const p = new URLSearchParams(params);
+    if (next.length) p.set("qualities", next.join(","));
+    else p.delete("qualities");
+    setSearchParams(p);
+  }
 
   if (repos.length === 0) {
     return (
@@ -55,6 +69,15 @@ export function StoryCatalogPage() {
     .map((id) => QUALITIES.find((q) => q.id === id)?.label ?? id)
     .join(", ");
 
+  // Merge per-repo label counts so each chip shows total available stories for
+  // that quality across the selected repos.
+  const mergedCounts: Record<string, number> = {};
+  for (const g of groups) {
+    for (const [k, v] of Object.entries(g.counts ?? {})) {
+      mergedCounts[k] = (mergedCounts[k] ?? 0) + v;
+    }
+  }
+
   return (
     <div className="page">
       <h1>{repos.join(" · ")}</h1>
@@ -62,6 +85,24 @@ export function StoryCatalogPage() {
         {storyCount} engineering stories found
         {qualityLabels && ` — filtered by ${qualityLabels}`}
       </p>
+
+      <div className="chip-bar">
+        {QUALITIES.map((q) => {
+          const count = mergedCounts[q.id] ?? 0;
+          const active = qualities.includes(q.id);
+          return (
+            <button
+              key={q.id}
+              className={`chip${active ? " chip-active" : ""}${count === 0 ? " chip-empty" : ""}`}
+              onClick={() => toggleQuality(q.id)}
+              disabled={count === 0 && !active}
+              title={count === 0 ? "No stories carry this quality" : undefined}
+            >
+              {q.label} ({count})
+            </button>
+          );
+        })}
+      </div>
 
       {failedMining.length > 0 && !noticeDismissed && (
         <div className="notice">
