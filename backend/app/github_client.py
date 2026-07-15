@@ -44,6 +44,38 @@ class GitHubClient:
         url = f"https://api.github.com/repos/{repo}/{endpoint}"
         return self._request(url, params=params, max_retries=max_retries)
 
+    def graphql(self, query: str, variables: dict, max_retries: int = 3) -> dict:
+        """POST a GraphQL query. Same retry/back-off shape as _request. Returns
+        the parsed JSON (with top-level "data"/"errors"), or {} after exhausting
+        retries so callers can fail soft."""
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    "https://api.github.com/graphql",
+                    headers=self._headers(),
+                    json={"query": query, "variables": variables},
+                )
+                if response.status_code == 403:
+                    print("  Rate limit hit. Sleeping 60s...")
+                    time.sleep(60)
+                    continue
+                if response.status_code >= 500:
+                    wait_time = 2**attempt
+                    print(
+                        f"  GitHub server error ({response.status_code}). "
+                        f"Retrying in {wait_time}s... ({attempt + 1}/{max_retries})"
+                    )
+                    time.sleep(wait_time)
+                    continue
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.RequestException as e:
+                wait_time = 2**attempt
+                print(f"  Network exception: {e}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+        print(f"  GraphQL failed after {max_retries} attempts.")
+        return {}
+
     def search_repositories(
         self,
         query: str,

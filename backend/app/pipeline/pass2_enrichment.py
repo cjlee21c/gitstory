@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.github_client import GitHubClient
 
-MAX_WORKERS = 8
+MAX_WORKERS = 16  # one commits call per candidate, all independent — overlap them harder
 
 
 def _enrich_candidate(repo: str, github: GitHubClient, candidate: dict):

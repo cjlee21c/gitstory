@@ -22,7 +22,7 @@ GATE_PROMPT_TEMPLATE = (
     "Context:\n{context}"
 )
 
-MAX_WORKERS = 8
+MAX_WORKERS = 16  # per-candidate Haiku calls are independent; more overlap = less wall time
 # Generous ceiling: the JSON is ~40 tokens, but output_tokens == max_tokens
 # means silent truncation (see the workspace-generator retry bug), so leave room.
 GATE_MAX_TOKENS = 300
