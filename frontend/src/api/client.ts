@@ -46,6 +46,12 @@ export function getWorkspace(storyId: string): Promise<WorkspaceContent> {
   return request(`/stories/${encodeStoryId(storyId)}/workspace`);
 }
 
+// Part 1 (opening beats) is awaited to render; Part 2 (decision + lessons) is
+// fetched in parallel and its latency hides behind the checkpoint gate.
+export function getWorkspacePart(storyId: string, part: 1 | 2): Promise<WorkspaceContent> {
+  return request(`/stories/${encodeStoryId(storyId)}/workspace?part=${part}`);
+}
+
 export function getLibrary(): Promise<LibraryEntry[]> {
   return request("/library");
 }

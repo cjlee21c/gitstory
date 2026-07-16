@@ -2,7 +2,12 @@ import threading
 
 from fastapi import APIRouter, HTTPException
 
-from app.llm.workspace_generator import generate_workspace
+from typing import Callable
+
+from app.llm.workspace_generator import (
+    generate_workspace_part1,
+    generate_workspace_part2,
+)
 from app.models.schemas import StoryBundle, WorkspaceContent
 from app.storage import cache
 
@@ -41,9 +46,10 @@ def _get_bundle_or_404(story_id: str) -> dict:
     raise HTTPException(status_code=404, detail=f"Story {story_id} not found")
 
 
-@router.get("/{story_id:path}/workspace", response_model=WorkspaceContent)
-def get_workspace(story_id: str, force: bool = False):
-    workspace_key = f"{story_id}:workspace"
+def _get_or_generate(story_id: str, suffix: str, gen_fn: Callable[[dict], WorkspaceContent], force: bool) -> dict:
+    """Cached, lock-guarded generation for one workspace phase. Each phase caches
+    under its own key so Part 1 and Part 2 are stored (and paid for) independently."""
+    workspace_key = f"{story_id}:workspace{suffix}"
     if not force:
         cached = cache.get(workspace_key)
         if cached is not None:
@@ -51,17 +57,35 @@ def get_workspace(story_id: str, force: bool = False):
 
     with _lock_for(workspace_key):
         # Double-checked: while we waited for the lock, a concurrent request may
-        # have already generated and cached this workspace. Return that instead
-        # of paying Sonnet a second time for the same story.
+        # have already generated and cached this phase. Return that instead of
+        # paying Sonnet a second time for the same story.
         if not force:
             cached = cache.get(workspace_key)
             if cached is not None:
                 return cached
 
         bundle = _get_bundle_or_404(story_id)
-        workspace = generate_workspace(bundle)
-        cache.set(workspace_key, workspace.model_dump())
-        return workspace
+        workspace = gen_fn(bundle)
+        payload = workspace.model_dump()
+        cache.set(workspace_key, payload)
+        return payload
+
+
+@router.get("/{story_id:path}/workspace", response_model=WorkspaceContent)
+def get_workspace(story_id: str, force: bool = False, part: int | None = None):
+    # part=1 -> opening beats (context/dilemma/viewpoints/checkpoint), returned
+    # first; part=2 -> closing beats (decision/lessons), fetched in parallel but
+    # only needed after the checkpoint. No part -> full workspace (both merged).
+    if part == 1:
+        return _get_or_generate(story_id, ":p1", generate_workspace_part1, force)
+    if part == 2:
+        return _get_or_generate(story_id, ":p2", generate_workspace_part2, force)
+    if part is not None:
+        raise HTTPException(status_code=400, detail="part must be 1 or 2")
+
+    p1 = _get_or_generate(story_id, ":p1", generate_workspace_part1, force)
+    p2 = _get_or_generate(story_id, ":p2", generate_workspace_part2, force)
+    return {"story_id": story_id, "beats": [*p1["beats"], *p2["beats"]]}
 
 
 @router.get("/{story_id:path}", response_model=StoryBundle)

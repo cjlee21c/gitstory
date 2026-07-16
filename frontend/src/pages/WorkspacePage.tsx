@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getWorkspace } from "../api/client";
+import { getWorkspacePart } from "../api/client";
 import type { Beat, ViewpointBeat, ViewpointOption, WorkspaceContent } from "../api/types";
 import { BeatRenderer } from "../components/workspace/BeatRenderer";
 import { StoryProgress } from "../components/workspace/StoryProgress";
@@ -33,8 +33,13 @@ export function WorkspacePage() {
   // the same story — the first (uncached) generation is expensive Sonnet work.
   const fetchedFor = useRef<string | null>(null);
 
-  const [workspace, setWorkspace] = useState<WorkspaceContent | null>(null);
+  // Part 1 = opening beats (steps 0-3), awaited before we render. Part 2 =
+  // decision + lessons (steps 4-5), fetched in parallel; the user can't reach
+  // those steps until they pass the checkpoint, so Part 2's latency is hidden.
+  const [part1, setPart1] = useState<WorkspaceContent | null>(null);
+  const [part2, setPart2] = useState<WorkspaceContent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [part2Error, setPart2Error] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [checkpointDone, setCheckpointDone] = useState(false);
 
@@ -42,20 +47,25 @@ export function WorkspacePage() {
     if (!storyId) return;
     if (fetchedFor.current === storyId) return;
     fetchedFor.current = storyId;
-    setWorkspace(null);
+    setPart1(null);
+    setPart2(null);
     setError(null);
+    setPart2Error(null);
     setCurrentStep(0);
     setCheckpointDone(false);
-    getWorkspace(storyId)
-      .then(setWorkspace)
+    getWorkspacePart(storyId, 1)
+      .then(setPart1)
       .catch((e: Error) => setError(e.message));
+    getWorkspacePart(storyId, 2)
+      .then(setPart2)
+      .catch((e: Error) => setPart2Error(e.message));
   }, [storyId]);
 
   if (!storyId) {
     return <p className="page">No story selected. <a href="/">Go back</a></p>;
   }
   if (error) return <p className="page error">{error}</p>;
-  if (!workspace) {
+  if (!part1) {
     return (
       <p className="page">
         Generating workspace for {storyId}… this can take up to a minute the first time.
@@ -63,7 +73,9 @@ export function WorkspacePage() {
     );
   }
 
-  const groups = groupBeats(workspace.beats);
+  const beats = [...part1.beats, ...(part2?.beats ?? [])];
+  const workspace: WorkspaceContent = { story_id: storyId, beats };
+  const groups = groupBeats(beats);
   const unlockedUpTo = checkpointDone ? 5 : 3;
   const isLastStep = currentStep === 5;
   const canGoNext = !isLastStep && !(currentStep === 3 && !checkpointDone);
@@ -105,7 +117,13 @@ export function WorkspacePage() {
       <div className="workspace-content" ref={contentRef}>
         <div className="step-card">
           <p className="step-type-label">{STEP_NAMES[currentStep]}</p>
-          {currentBeats.length === 0 ? (
+          {currentBeats.length === 0 && currentStep >= 4 && part2Error ? (
+            <p className="error">{part2Error}</p>
+          ) : currentBeats.length === 0 && currentStep >= 4 && !part2 ? (
+            <p style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
+              Revealing what happened next…
+            </p>
+          ) : currentBeats.length === 0 ? (
             <p style={{ color: "var(--text-muted)", fontStyle: "italic" }}>
               No content for this step.
             </p>
