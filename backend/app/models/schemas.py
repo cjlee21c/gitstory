@@ -149,3 +149,5 @@ class DiscoverRequest(BaseModel):
 class RepoRecommendation(BaseModel):
     repo: str
     summary: str
+    stars: int | None = None
+    language: str | None = None

@@ -56,4 +56,16 @@ def summarize_candidates(interest: str, candidates: list[dict], max_results: int
     print(f"  [Summarize candidates] {usage.input_tokens} in / {usage.output_tokens} out tokens")
     log_usage("discover:summarize", SEMANTIC_GATE_MODEL, usage.input_tokens, usage.output_tokens)
     results = extract_json(response.content[0].text)
-    return [r for r in results if isinstance(r, dict) and "repo" in r and "summary" in r][:max_results]
+
+    # Join the LLM's chosen repos back to the original candidates to attach
+    # stars/language GitHub already returned (no extra API/LLM cost).
+    by_name = {c["full_name"]: c for c in candidates}
+    enriched = []
+    for r in results:
+        if not (isinstance(r, dict) and "repo" in r and "summary" in r):
+            continue
+        cand = by_name.get(r["repo"], {})
+        r["stars"] = cand.get("stargazers_count")
+        r["language"] = cand.get("language") or None
+        enriched.append(r)
+    return enriched[:max_results]

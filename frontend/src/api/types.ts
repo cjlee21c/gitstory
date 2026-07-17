@@ -1,6 +1,8 @@
 export interface RepoRecommendation {
   repo: string;
   summary: string;
+  stars?: number | null;
+  language?: string | null;
 }
 
 export interface DiscoverFilters {

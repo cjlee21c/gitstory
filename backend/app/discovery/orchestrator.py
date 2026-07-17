@@ -20,7 +20,7 @@ def _filters_cache_key(filters: DiscoverRequest) -> str:
     stars = filters.stars or "any"
     contributors = filters.contributors or "any"
     keyword = filters.keyword.strip().lower() if filters.keyword and filters.keyword.strip() else "none"
-    return f"discover:v2:{filters.domain}:s={sizes}:st={stars}:c={contributors}:kw={keyword}"
+    return f"discover:v3:{filters.domain}:s={sizes}:st={stars}:c={contributors}:kw={keyword}"
 
 
 def _search_queries(filters: DiscoverRequest) -> list[str]:
