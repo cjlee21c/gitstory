@@ -97,6 +97,7 @@ export interface LibraryEntry {
   repo: string;
   stories: StorySummary[];
   domain?: string | null;
+  description?: string | null;
 }
 
 export interface AnswerRequest {

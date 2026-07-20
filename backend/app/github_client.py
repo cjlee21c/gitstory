@@ -44,6 +44,11 @@ class GitHubClient:
         url = f"https://api.github.com/repos/{repo}/{endpoint}"
         return self._request(url, params=params, max_retries=max_retries)
 
+    def get_repo(self, repo: str) -> dict:
+        """Fetch a repo's root object (description, language, stars, topics).
+        Fail-soft to {} — no LLM, one cheap REST call."""
+        return self._request(f"https://api.github.com/repos/{repo}")
+
     def graphql(self, query: str, variables: dict, max_retries: int = 3) -> dict:
         """POST a GraphQL query. Same retry/back-off shape as _request. Returns
         the parsed JSON (with top-level "data"/"errors"), or {} after exhausting

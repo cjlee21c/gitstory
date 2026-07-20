@@ -53,6 +53,8 @@ function LibCard({ entry, onOpen }: { entry: LibraryEntry; onOpen: () => void })
         </span>
       </div>
 
+      {entry.description && <p className="lib-desc">{entry.description}</p>}
+
       {uniqueQualities.length > 0 && (
         <div className="story-tags">
           {uniqueQualities.map((q) => (

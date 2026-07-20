@@ -1,9 +1,12 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import APIRouter
 
 from app.api.routes_repos import STORY_CAP
+from app.config import GITHUB_TOKEN
+from app.github_client import GitHubClient
 from app.llm.repo_classifier import classify_repos_domains
 from app.models.schemas import StorySummary
 from app.storage import cache
@@ -15,6 +18,9 @@ router = APIRouter(tags=["library"])
 # staging home for the domain field; it ports straight into a `repos.domain`
 # column when the library moves to a database.
 DOMAIN_CACHE_KEY = "library:domains:v1"
+# Repo→GitHub description, fetched once per repo via a plain REST call (no LLM)
+# and cached. Ports into a `repos.description` column later.
+DESC_CACHE_KEY = "library:descriptions:v1"
 
 
 def _to_summary(bundle: dict) -> StorySummary:
@@ -45,12 +51,42 @@ def get_library():
             # Same read-time cap as the stories API — pass2 caches now hold
             # every enriched elite, not just the top few.
             stories = [_to_summary(b) for b in bundles[:STORY_CAP]]
-            results.append({"repo": repo, "stories": stories})
+            # Hide repos whose mining yielded no stories — nothing to read.
+            if stories:
+                results.append({"repo": repo, "stories": stories})
         except Exception:
             continue
 
     _attach_domains(results)
+    _attach_descriptions(results)
     return results
+
+
+def _attach_descriptions(results: list[dict]) -> None:
+    """Attach each repo's GitHub description (no LLM). Only repos we haven't
+    fetched before hit the API; results are cached. Failed fetches stay
+    uncached so they retry next time; a genuinely empty description caches as
+    "" so it isn't re-fetched."""
+    desc_map = cache.get(DESC_CACHE_KEY) or {}
+
+    missing = [r["repo"] for r in results if r["repo"] not in desc_map]
+    if missing:
+        github = GitHubClient(GITHUB_TOKEN)
+
+        def fetch(repo: str):
+            obj = github.get_repo(repo)
+            if obj.get("full_name"):  # got a valid response
+                return repo, (obj.get("description") or "")
+            return repo, None  # failed — don't cache, retry later
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            for repo, desc in executor.map(fetch, missing):
+                if desc is not None:
+                    desc_map[repo] = desc
+        cache.set(DESC_CACHE_KEY, desc_map)
+
+    for r in results:
+        r["description"] = desc_map.get(r["repo"]) or None
 
 
 def _attach_domains(results: list[dict]) -> None:
