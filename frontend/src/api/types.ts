@@ -96,6 +96,7 @@ export interface WorkspaceContent {
 export interface LibraryEntry {
   repo: string;
   stories: StorySummary[];
+  domain?: string | null;
 }
 
 export interface AnswerRequest {

@@ -17,6 +17,18 @@ export const DOMAINS: FilterOption[] = [
   { id: "science", label: "Science / Research" },
 ];
 
+// Display-only emoji per domain id (not part of the backend mirror).
+export const DOMAIN_ICONS: Record<string, string> = {
+  gaming: "🎮",
+  finance: "💰",
+  healthcare: "🩺",
+  education: "🎓",
+  developer_tools: "🛠️",
+  social: "💬",
+  media: "🎬",
+  science: "🔬",
+};
+
 export const SIZES: FilterOption[] = [
   { id: "small", label: "Small (< 5 MB)" },
   { id: "medium", label: "Medium (5–50 MB)" },

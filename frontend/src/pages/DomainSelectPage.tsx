@@ -1,20 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useStudent } from "../context/StudentContext";
-import { CONTRIBUTORS, DOMAINS, SIZES, STARS } from "../filters";
-
-// Emoji per domain id. Kept here (not in filters.ts) so the backend-mirrored
-// id list stays clean.
-const DOMAIN_ICONS: Record<string, string> = {
-  gaming: "🎮",
-  finance: "💰",
-  healthcare: "🩺",
-  education: "🎓",
-  developer_tools: "🛠️",
-  social: "💬",
-  media: "🎬",
-  science: "🔬",
-};
+import { CONTRIBUTORS, DOMAIN_ICONS, DOMAINS, SIZES, STARS } from "../filters";
 
 export function DomainSelectPage() {
   const { studentId, setStudentId } = useStudent();
