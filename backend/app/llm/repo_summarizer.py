@@ -24,11 +24,17 @@ CANDIDATES:
 """
 
 
+# Legit GitHub descriptions top out near 350 chars; spam/SEO repos stuff tens of
+# thousands of chars in here, which can blow the summarizer prompt past the model's
+# context limit (a 400 "prompt is too long"). Cap it well above the honest max.
+MAX_DESC_CHARS = 500
+
+
 def _compact(candidates: list[dict]) -> list[dict]:
     return [
         {
             "repo": c["full_name"],
-            "description": c.get("description") or "",
+            "description": (c.get("description") or "")[:MAX_DESC_CHARS],
             "stars": c.get("stargazers_count", 0),
             "language": c.get("language") or "",
             "open_issues": c.get("open_issues_count", 0),

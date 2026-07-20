@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.filters import CONTRIBUTOR_BUCKETS, DOMAINS, SIZE_BUCKETS, STAR_BUCKETS
 
@@ -138,12 +138,30 @@ class WorkspaceContent(BaseModel):
     beats: list[Beat]
 
 
+# A curated domain id OR a free-text custom domain the student typed. Custom
+# values are ephemeral search seeds only — repos get re-bucketed into the
+# curated 8 by classify_repos_domains() before they ever reach the library.
+CUSTOM_DOMAIN_MAX_LEN = 40
+
+
 class DiscoverRequest(BaseModel):
-    domain: DomainId
+    domain: str
     sizes: list[SizeId] = []
     stars: StarId | None = None
     contributors: ContribId | None = None
     keyword: str | None = None
+
+    @field_validator("domain")
+    @classmethod
+    def _validate_domain(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("domain must not be empty")
+        if v in DOMAINS:
+            return v
+        if len(v) > CUSTOM_DOMAIN_MAX_LEN:
+            raise ValueError(f"custom domain must be {CUSTOM_DOMAIN_MAX_LEN} characters or fewer")
+        return v
 
 
 class RepoRecommendation(BaseModel):

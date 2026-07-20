@@ -23,17 +23,34 @@ def _filters_cache_key(filters: DiscoverRequest) -> str:
     return f"discover:v3:{filters.domain}:s={sizes}:st={stars}:c={contributors}:kw={keyword}"
 
 
+def _domain_label(domain: str) -> str:
+    """Curated label for a known id, else the free-text custom domain as typed."""
+    known = DOMAINS.get(domain)
+    return known["label"] if known else domain
+
+
 def _search_queries(filters: DiscoverRequest) -> list[str]:
     keyword = (filters.keyword or "").strip()
     if keyword:
         try:
-            expanded = expand_keyword(keyword, DOMAINS[filters.domain]["label"])
+            expanded = expand_keyword(keyword, _domain_label(filters.domain))
             if expanded:
                 return expanded
         except Exception as e:
             print(f"  [Keyword expansion failed] {e} — using raw keyword")
         return [keyword]
-    return DOMAINS[filters.domain]["keywords"]
+    known = DOMAINS.get(filters.domain)
+    if known:
+        return known["keywords"]
+    # Custom domain: no curated seed keywords, so expand the typed text itself
+    # into GitHub search queries (falling back to the raw text).
+    try:
+        expanded = expand_keyword(filters.domain, filters.domain)
+        if expanded:
+            return expanded
+    except Exception as e:
+        print(f"  [Custom domain expansion failed] {e} — using raw domain")
+    return [filters.domain]
 
 
 def _contributor_filter(github: GitHubClient, candidates: list[dict], bucket: str) -> list[dict]:
@@ -86,7 +103,7 @@ def discover_repos(filters: DiscoverRequest, force: bool = False) -> list[dict]:
     if filters.contributors:
         candidates = _contributor_filter(github, candidates, filters.contributors)
 
-    domain_label = DOMAINS[filters.domain]["label"]
+    domain_label = _domain_label(filters.domain)
     keyword = (filters.keyword or "").strip()
     interest_text = f"{domain_label}: {keyword}" if keyword else domain_label
 

@@ -821,6 +821,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 .filter-input:focus { outline: none; border-color: var(--mint-dark); box-shadow: 0 0 0 3px var(--mint-soft); }
 .filter-input::placeholder { color: var(--warm-muted); }
 
+.custom-domain { margin-top: 12px; }
+.custom-domain .filter-input { max-width: 420px; }
+.custom-hint { margin: 8px 2px 0; font-size: 12.5px; line-height: 1.5; color: var(--warm-muted); }
+.custom-hint strong { color: var(--text); font-weight: 600; }
+.custom-hint em { font-style: italic; }
+
 @media (prefers-reduced-motion: reduce) {
   .name-popover, .filter-panel { animation: none; }
   .landing-card, .btn-lg { transition: none; }

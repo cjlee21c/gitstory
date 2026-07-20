@@ -9,6 +9,9 @@ export function DomainSelectPage() {
 
   // Filter state (unchanged semantics from the original page)
   const [domain, setDomain] = useState("");
+  // Custom free-text domain, mutually exclusive with the curated pills above.
+  const [otherOpen, setOtherOpen] = useState(false);
+  const [custom, setCustom] = useState("");
   const [sizes, setSizes] = useState<string[]>([]);
   const [stars, setStars] = useState("");
   const [contributors, setContributors] = useState("");
@@ -24,6 +27,25 @@ export function DomainSelectPage() {
   function toggleSize(id: string) {
     setSizes((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   }
+
+  // Selecting a curated pill collapses the custom-domain input, and vice versa —
+  // a search runs against exactly one domain.
+  function selectPill(id: string) {
+    setOtherOpen(false);
+    setCustom("");
+    setDomain((prev) => (prev === id ? "" : id));
+  }
+
+  function toggleOther() {
+    setDomain("");
+    setOtherOpen((open) => {
+      if (open) setCustom("");
+      return !open;
+    });
+  }
+
+  // The domain sent to discovery: the typed text when "Other" is open, else the pill.
+  const effectiveDomain = otherOpen ? custom.trim() : domain;
 
   function openNamePopover(pending?: () => void) {
     setNameDraft(studentId);
@@ -53,8 +75,8 @@ export function DomainSelectPage() {
   }
 
   function doDiscover() {
-    if (!domain) return;
-    const params = new URLSearchParams({ domain });
+    if (!effectiveDomain) return;
+    const params = new URLSearchParams({ domain: effectiveDomain });
     if (sizes.length) params.set("sizes", sizes.join(","));
     if (stars) params.set("stars", stars);
     if (contributors) params.set("contributors", contributors);
@@ -168,13 +190,40 @@ export function DomainSelectPage() {
                     type="button"
                     className="pill"
                     aria-pressed={domain === d.id}
-                    onClick={() => setDomain((prev) => (prev === d.id ? "" : d.id))}
+                    onClick={() => selectPill(d.id)}
                   >
                     <span className="emoji" aria-hidden="true">{DOMAIN_ICONS[d.id]}</span>
                     {d.label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="pill"
+                  aria-pressed={otherOpen}
+                  aria-expanded={otherOpen}
+                  onClick={toggleOther}
+                >
+                  <span className="emoji" aria-hidden="true">✏️</span>
+                  Other
+                </button>
               </div>
+              {otherOpen && (
+                <div className="custom-domain">
+                  <input
+                    className="filter-input"
+                    autoFocus
+                    maxLength={40}
+                    value={custom}
+                    onChange={(e) => setCustom(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && requireName(doDiscover)}
+                    placeholder="e.g. robotics, blockchain, DevOps…"
+                  />
+                  <p className="custom-hint">
+                    Keep it broad — a field like <strong>robotics</strong>, not a specific
+                    product like <em>minecraft</em>. Use the keyword box below to narrow down.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="filter-group">
@@ -263,7 +312,7 @@ export function DomainSelectPage() {
               <button
                 className="btn-lg btn-mint"
                 onClick={() => requireName(doDiscover)}
-                disabled={!domain}
+                disabled={!effectiveDomain}
               >
                 Find repos <span className="arrow" aria-hidden="true">→</span>
               </button>
