@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { listStories } from "../api/client";
 import type { StorySummary } from "../api/types";
+import { AppHeader } from "../components/AppHeader";
 import { StoryCard } from "../components/StoryCard";
 import { QUALITIES } from "../filters";
 
@@ -54,94 +55,142 @@ export function StoryCatalogPage() {
     setSearchParams(p);
   }
 
+  function clearQualities() {
+    const p = new URLSearchParams(params);
+    p.delete("qualities");
+    setSearchParams(p);
+  }
+
   if (repos.length === 0) {
     return (
-      <p className="page">
-        No repo selected. <a href="/">Go back</a>
-      </p>
+      <div className="landing">
+        <div className="landing-inner">
+          <AppHeader />
+          <main className="landing-main">
+            <div className="discover-empty">
+              <h1>No repository selected</h1>
+              <p>Head back and pick a repository to explore its stories.</p>
+              <button className="btn-lg btn-mint" onClick={() => navigate("/")}>
+                Back to start <span className="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
     );
   }
-  if (!groups) return <p className="page">Loading stories for {repos.join(", ")}...</p>;
 
   const showRepoBadges = repos.length > 1;
-  const storyCount = groups.reduce((n, g) => n + (g.stories?.length ?? 0), 0);
-  const qualityLabels = qualities
-    .map((id) => QUALITIES.find((q) => q.id === id)?.label ?? id)
-    .join(", ");
+  const storyCount = groups?.reduce((n, g) => n + (g.stories?.length ?? 0), 0) ?? 0;
 
   // Merge per-repo label counts so each chip shows total available stories for
   // that quality across the selected repos.
   const mergedCounts: Record<string, number> = {};
-  for (const g of groups) {
+  for (const g of groups ?? []) {
     for (const [k, v] of Object.entries(g.counts ?? {})) {
       mergedCounts[k] = (mergedCounts[k] ?? 0) + v;
     }
   }
 
+  const headline = showRepoBadges
+    ? `We found ${storyCount} engineering stories across ${repos.length} repositories! 🌟`
+    : `We found some great stories in ${repos[0]}! 🌟`;
+
+  const loading = !groups;
+
   return (
-    <div className="page">
-      <h1>{repos.join(" · ")}</h1>
-      <p>
-        {storyCount} engineering stories found
-        {qualityLabels && ` — filtered by ${qualityLabels}`}
-      </p>
+    <div className="landing">
+      <div className="landing-inner">
+        <AppHeader />
 
-      <div className="chip-bar">
-        {QUALITIES.map((q) => {
-          const count = mergedCounts[q.id] ?? 0;
-          const active = qualities.includes(q.id);
-          return (
-            <button
-              key={q.id}
-              className={`chip${active ? " chip-active" : ""}${count === 0 ? " chip-empty" : ""}`}
-              onClick={() => toggleQuality(q.id)}
-              disabled={count === 0 && !active}
-              title={count === 0 ? "No stories carry this quality" : undefined}
-            >
-              {q.label} ({count})
-            </button>
-          );
-        })}
-      </div>
-
-      {failedMining.length > 0 && !noticeDismissed && (
-        <div className="notice">
-          Story mining failed for: {failedMining.join(", ")}
-          <button className="notice-dismiss" onClick={() => setNoticeDismissed(true)}>
-            Dismiss
+        <main className="catalog-main">
+          <button className="back-link" onClick={() => navigate(-1)}>
+            ← Back to Repositories
           </button>
-        </div>
-      )}
 
-      {groups.map(
-        (g) =>
-          g.error && (
-            <p key={g.repo} className="error">
-              {g.repo}: {g.error}
-            </p>
-          ),
-      )}
+          <section className="catalog-hero">
+            <span className="step-capsule yellow">Step 3 of 3</span>
+            <h1>{headline}</h1>
+            <p>Choose a story below to dive into the background, the debate, and the code.</p>
+          </section>
 
-      <div className="grid">
-        {groups.flatMap(
-          (g) =>
-            g.stories?.map((s) => (
-              <StoryCard
-                key={s.story_id}
-                story={s}
-                repoBadge={showRepoBadges ? g.repo : undefined}
-                onOpen={() => navigate(`/workspace?story=${encodeURIComponent(s.story_id)}`)}
-              />
-            )) ?? [],
-        )}
+          <div className="catalog-chips">
+            <button
+              className={`catalog-chip${qualities.length === 0 ? " active" : ""}`}
+              onClick={clearQualities}
+            >
+              All
+            </button>
+            {QUALITIES.map((q) => {
+              const count = mergedCounts[q.id] ?? 0;
+              const active = qualities.includes(q.id);
+              return (
+                <button
+                  key={q.id}
+                  className={`catalog-chip${active ? " active" : ""}${count === 0 && !active ? " empty" : ""}`}
+                  onClick={() => toggleQuality(q.id)}
+                  disabled={count === 0 && !active}
+                  title={count === 0 ? "No stories carry this quality" : undefined}
+                >
+                  {q.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {failedMining.length > 0 && !noticeDismissed && (
+            <div className="warn-card warn-row">
+              <span>Story mining failed for: {failedMining.join(", ")}</span>
+              <button className="btn-sm ghost" onClick={() => setNoticeDismissed(true)}>
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {groups?.map(
+            (g) =>
+              g.error && (
+                <div key={g.repo} className="warn-card">
+                  {g.repo}: {g.error}
+                </div>
+              ),
+          )}
+
+          {loading ? (
+            <div className="story-feed" aria-busy="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="story-card skeleton" aria-hidden="true">
+                  <div className="sk-line sk-title" />
+                  <div className="sk-line sk-tag" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="story-feed">
+                {groups!.flatMap(
+                  (g) =>
+                    g.stories?.map((s) => (
+                      <StoryCard
+                        key={s.story_id}
+                        story={s}
+                        repoBadge={showRepoBadges ? g.repo : undefined}
+                        onOpen={() => navigate(`/workspace?story=${encodeURIComponent(s.story_id)}`)}
+                      />
+                    )) ?? [],
+                )}
+              </div>
+
+              {storyCount === 0 && (
+                <p className="catalog-empty">
+                  No stories matched the selected quality filters. Try removing a filter or picking
+                  different repos.
+                </p>
+              )}
+            </>
+          )}
+        </main>
       </div>
-
-      {storyCount === 0 && (
-        <p>
-          No stories matched the selected quality filters. Try removing a filter or picking
-          different repos.
-        </p>
-      )}
     </div>
   );
 }
