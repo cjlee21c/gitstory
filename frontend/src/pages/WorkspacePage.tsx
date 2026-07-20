@@ -61,6 +61,30 @@ export function WorkspacePage() {
       .catch((e: Error) => setPart2Error(e.message));
   }, [storyId]);
 
+  // Keyboard navigation (←/→). Refs keep the listener reading fresh values
+  // without re-binding. Space is intentionally left free for scrolling.
+  const stepRef = useRef(currentStep);
+  stepRef.current = currentStep;
+  const doneRef = useRef(checkpointDone);
+  doneRef.current = checkpointDone;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const s = stepRef.current;
+      const unlocked = doneRef.current ? 5 : 3;
+      if (e.key === "ArrowRight" && s < Math.min(5, unlocked)) {
+        setCurrentStep(s + 1);
+        contentRef.current?.scrollTo({ top: 0 });
+      } else if (e.key === "ArrowLeft" && s > 0) {
+        setCurrentStep(s - 1);
+        contentRef.current?.scrollTo({ top: 0 });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   if (!storyId) {
     return <p className="page">No story selected. <a href="/">Go back</a></p>;
   }
@@ -141,6 +165,12 @@ export function WorkspacePage() {
           )}
         </div>
       </div>
+
+      {canGoNext && (
+        <div className="kbd-hint">
+          Press <kbd>→</kbd> to continue
+        </div>
+      )}
 
       <footer className="workspace-footer">
         <button

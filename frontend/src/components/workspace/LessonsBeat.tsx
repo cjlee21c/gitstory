@@ -1,4 +1,5 @@
 import type { LessonsBeat as LessonsBeatType } from "../../api/types";
+import { highlightCode } from "./highlight";
 
 export function LessonsBeat({ beat }: { beat: LessonsBeatType }) {
   return (
@@ -8,7 +9,7 @@ export function LessonsBeat({ beat }: { beat: LessonsBeatType }) {
         {beat.lessons.map((lesson, i) => (
           <li key={i}>
             <span className="lesson-number">{String(i + 1).padStart(2, "0")}</span>
-            <span>{lesson}</span>
+            <span>{highlightCode(lesson)}</span>
           </li>
         ))}
       </ol>
