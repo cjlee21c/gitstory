@@ -37,6 +37,22 @@ export function runPipeline(repo: string, force = false): Promise<PipelineRunRes
   return request(`/repos/${repo}/pipeline?force=${force}`, { method: "POST" });
 }
 
+// In-flight pipeline runs, keyed by repo. Mining is kicked off from an effect
+// now that the catalog page drives it, and StrictMode invokes effects twice in
+// development — without this, both invocations would miss the backend cache and
+// pay for a full duplicate run. Entries are dropped once settled so a genuine
+// later visit re-requests (and gets a cache hit).
+const inFlightPipelines = new Map<string, Promise<PipelineRunResponse>>();
+
+export function runPipelineOnce(repo: string): Promise<PipelineRunResponse> {
+  const existing = inFlightPipelines.get(repo);
+  if (existing) return existing;
+
+  const run = runPipeline(repo).finally(() => inFlightPipelines.delete(repo));
+  inFlightPipelines.set(repo, run);
+  return run;
+}
+
 export function listStories(repo: string, qualities: string[] = []): Promise<StoryListResponse> {
   const query = qualities.length ? `?qualities=${encodeURIComponent(qualities.join(","))}` : "";
   return request(`/repos/${repo}/stories${query}`);

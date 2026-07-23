@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { discoverRepos, runPipeline } from "../api/client";
+import { discoverRepos } from "../api/client";
 import type { DiscoverFilters, RepoRecommendation } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
 import { RepoCard } from "../components/RepoCard";
 import { DOMAINS, QUALITIES } from "../filters";
 
 const MAX_SELECTED = 3;
-
-type PipelineStatus = "running" | "done" | "error";
 
 function filtersFromParams(params: URLSearchParams): DiscoverFilters | null {
   const domain = params.get("domain");
@@ -31,8 +29,6 @@ export function RepoDiscoveryPage() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [qualities, setQualities] = useState<string[]>([]);
-  const [pipelineStatus, setPipelineStatus] = useState<Record<string, PipelineStatus>>({});
-  const [mining, setMining] = useState(false);
 
   const filterKey = params.toString();
   useEffect(() => {
@@ -60,38 +56,12 @@ export function RepoDiscoveryPage() {
     setQualities((prev) => (prev.includes(id) ? prev.filter((q) => q !== id) : [...prev, id]));
   }
 
-  async function handleMine() {
-    setMining(true);
-    setError(null);
-    setPipelineStatus(Object.fromEntries(selected.map((r) => [r, "running" as PipelineStatus])));
-
-    const results = await Promise.allSettled(
-      selected.map((repo) =>
-        runPipeline(repo).then(
-          (res) => {
-            setPipelineStatus((prev) => ({ ...prev, [repo]: "done" }));
-            return res;
-          },
-          (err) => {
-            setPipelineStatus((prev) => ({ ...prev, [repo]: "error" }));
-            throw err;
-          },
-        ),
-      ),
-    );
-
-    const succeeded = selected.filter((_, i) => results[i].status === "fulfilled");
-    const failed = selected.filter((_, i) => results[i].status === "rejected");
-
-    if (succeeded.length === 0) {
-      setError("Story mining failed for all selected repos. Please try again.");
-      setMining(false);
-      return;
-    }
-
-    const query = new URLSearchParams({ repos: succeeded.join(",") });
+  // Mining used to run here and block navigation until every repo finished, so
+  // the user waited on the slowest one even when others were ready in seconds.
+  // The catalog page now owns mining and streams each repo in as it lands.
+  function handleMine() {
+    const query = new URLSearchParams({ repos: selected.join(",") });
     if (qualities.length) query.set("qualities", qualities.join(","));
-    if (failed.length) query.set("failed", failed.join(","));
     navigate(`/stories?${query.toString()}`);
   }
 
@@ -120,9 +90,8 @@ export function RepoDiscoveryPage() {
   const count = selected.length;
   const loading = !repos && !error;
 
-  const primaryLabel = mining
-    ? "Mining stories… (first run can take a few minutes)"
-    : count === 0
+  const primaryLabel =
+    count === 0
       ? "Select repositories to continue"
       : `Generate stories for ${count} repositor${count === 1 ? "y" : "ies"} →`;
 
@@ -141,7 +110,7 @@ export function RepoDiscoveryPage() {
             </p>
           </section>
 
-          {error && !mining && <div className="warn-card">{error}</div>}
+          {error && <div className="warn-card">{error}</div>}
 
           {loading ? (
             <div className="repo-grid" aria-busy="true">
@@ -166,7 +135,7 @@ export function RepoDiscoveryPage() {
                   key={r.repo}
                   repo={r}
                   selected={selected.includes(r.repo)}
-                  disabled={mining || (!selected.includes(r.repo) && count >= MAX_SELECTED)}
+                  disabled={!selected.includes(r.repo) && count >= MAX_SELECTED}
                   onToggle={() => toggleRepo(r.repo)}
                 />
               ))}
@@ -185,7 +154,6 @@ export function RepoDiscoveryPage() {
                   className="pill"
                   aria-pressed={qualities.includes(q.id)}
                   onClick={() => toggleQuality(q.id)}
-                  disabled={mining}
                 >
                   {q.label}
                 </button>
@@ -193,30 +161,15 @@ export function RepoDiscoveryPage() {
             </div>
           )}
 
-          {mining && (
-            <div className="ab-status">
-              {selected.map((repo) => (
-                <span key={repo} className={`ab-statuspill status-${pipelineStatus[repo]}`}>
-                  <span className="dot" aria-hidden="true" />
-                  {repo.split("/")[1] ?? repo}:{" "}
-                  {pipelineStatus[repo] === "running"
-                    ? "mining…"
-                    : pipelineStatus[repo] === "done"
-                      ? "done"
-                      : "failed"}
-                </span>
-              ))}
-            </div>
-          )}
 
           <div className="ab-row">
-            <button className="btn-sm ghost ab-back" onClick={() => navigate(-1)} disabled={mining}>
+            <button className="btn-sm ghost ab-back" onClick={() => navigate(-1)}>
               ← Back
             </button>
             <button
               className="btn-lg btn-mint"
               onClick={handleMine}
-              disabled={mining || count === 0}
+              disabled={count === 0}
             >
               {primaryLabel}
             </button>

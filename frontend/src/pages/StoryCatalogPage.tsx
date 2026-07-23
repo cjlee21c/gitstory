@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { listStories } from "../api/client";
+import { listStories, runPipelineOnce } from "../api/client";
 import type { StorySummary } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
 import { StoryCard } from "../components/StoryCard";
@@ -8,6 +8,7 @@ import { QUALITIES } from "../filters";
 
 interface RepoStories {
   repo: string;
+  status: "mining" | "ready" | "error";
   stories: StorySummary[] | null;
   counts: Record<string, number> | null;
   error: string | null;
@@ -20,28 +21,99 @@ export function StoryCatalogPage() {
     params.get("repos")?.split(",").filter(Boolean) ??
     (params.get("repo") ? [params.get("repo")!] : []);
   const qualities = params.get("qualities")?.split(",").filter(Boolean) ?? [];
-  const failedMining = params.get("failed")?.split(",").filter(Boolean) ?? [];
   const navigate = useNavigate();
 
-  const [groups, setGroups] = useState<RepoStories[] | null>(null);
-  const [noticeDismissed, setNoticeDismissed] = useState(false);
+  // Keyed by repo so each one can be replaced the moment it lands, independently
+  // of the others — mining times vary by several seconds between repos.
+  const [groups, setGroups] = useState<Record<string, RepoStories>>({});
 
-  const paramKey = params.toString();
+  // Repos whose pipeline has already run this visit. Toggling a quality filter
+  // must re-read stories without re-mining.
+  const minedRef = useRef<Set<string>>(new Set());
+
+  const reposKey = repos.join(",");
+  const qualitiesKey = qualities.join(",");
+
   useEffect(() => {
     if (repos.length === 0) return;
-    setGroups(null);
-    Promise.allSettled(repos.map((repo) => listStories(repo, qualities))).then((results) =>
-      setGroups(
-        results.map((result, i) => ({
-          repo: repos[i],
-          stories: result.status === "fulfilled" ? result.value.stories : null,
-          counts: result.status === "fulfilled" ? result.value.quality_counts : null,
-          error: result.status === "rejected" ? (result.reason as Error).message : null,
-        })),
+
+    minedRef.current = new Set();
+    setGroups(
+      Object.fromEntries(
+        repos.map((repo) => [
+          repo,
+          { repo, status: "mining" as const, stories: null, counts: null, error: null },
+        ]),
       ),
     );
+
+    let cancelled = false;
+    for (const repo of repos) {
+      runPipelineOnce(repo)
+        .then(() => listStories(repo, qualities))
+        .then(
+          (res) => {
+            if (cancelled) return;
+            minedRef.current.add(repo);
+            setGroups((prev) => ({
+              ...prev,
+              [repo]: {
+                repo,
+                status: "ready",
+                stories: res.stories,
+                counts: res.quality_counts,
+                error: null,
+              },
+            }));
+          },
+          (err: Error) => {
+            if (cancelled) return;
+            setGroups((prev) => ({
+              ...prev,
+              [repo]: {
+                repo,
+                status: "error",
+                stories: null,
+                counts: null,
+                error: err.message,
+              },
+            }));
+          },
+        );
+    }
+    return () => {
+      cancelled = true;
+    };
+    // `qualities` is read for the initial fetch only; later changes are handled
+    // by the effect below, which skips the pipeline.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramKey]);
+  }, [reposKey]);
+
+  // Quality toggles are a read-time, cache-hit call — no mining, no tokens. Only
+  // repos that finished mining are re-read; the rest pick the filter up when
+  // their initial fetch lands.
+  useEffect(() => {
+    const mined = repos.filter((r) => minedRef.current.has(r));
+    if (mined.length === 0) return;
+
+    let cancelled = false;
+    for (const repo of mined) {
+      listStories(repo, qualities).then(
+        (res) => {
+          if (cancelled) return;
+          setGroups((prev) => ({
+            ...prev,
+            [repo]: { ...prev[repo], stories: res.stories, counts: res.quality_counts },
+          }));
+        },
+        () => {},
+      );
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qualitiesKey]);
 
   // Toggling a quality just rewrites the URL param; the effect re-fetches
   // (a free read-time, cache-hit call — no tokens).
@@ -81,22 +153,31 @@ export function StoryCatalogPage() {
   }
 
   const showRepoBadges = repos.length > 1;
-  const storyCount = groups?.reduce((n, g) => n + (g.stories?.length ?? 0), 0) ?? 0;
+  // Render in the order the user picked, not the order they happened to finish,
+  // so cards don't reshuffle as later repos land.
+  const orderedGroups = repos.map((r) => groups[r]).filter(Boolean);
+  const storyCount = orderedGroups.reduce((n, g) => n + (g.stories?.length ?? 0), 0);
+  const mining = orderedGroups.filter((g) => g.status === "mining");
+  const settled = orderedGroups.filter((g) => g.status !== "mining");
 
   // Merge per-repo label counts so each chip shows total available stories for
   // that quality across the selected repos.
   const mergedCounts: Record<string, number> = {};
-  for (const g of groups ?? []) {
+  for (const g of orderedGroups) {
     for (const [k, v] of Object.entries(g.counts ?? {})) {
       mergedCounts[k] = (mergedCounts[k] ?? 0) + v;
     }
   }
 
-  const headline = showRepoBadges
-    ? `We found ${storyCount} engineering stories across ${repos.length} repositories! 🌟`
-    : `We found some great stories in ${repos[0]}! 🌟`;
+  const headline = mining.length
+    ? `Found ${storyCount} engineering stories so far… 🌟`
+    : showRepoBadges
+      ? `We found ${storyCount} engineering stories across ${repos.length} repositories! 🌟`
+      : `We found some great stories in ${repos[0]}! 🌟`;
 
-  const loading = !groups;
+  // Only skeleton until the *first* repo lands — after that there is real
+  // content to show while the rest keep mining.
+  const loading = settled.length === 0;
 
   return (
     <div className="landing">
@@ -129,8 +210,10 @@ export function StoryCatalogPage() {
                   key={q.id}
                   className={`catalog-chip${active ? " active" : ""}${count === 0 && !active ? " empty" : ""}`}
                   onClick={() => toggleQuality(q.id)}
-                  disabled={count === 0 && !active}
-                  title={count === 0 ? "No stories carry this quality" : undefined}
+                  // Counts are still accumulating while repos mine, so a zero
+                  // there means "not known yet", not "none exist".
+                  disabled={count === 0 && !active && mining.length === 0}
+                  title={count === 0 && mining.length === 0 ? "No stories carry this quality" : undefined}
                 >
                   {q.label} ({count})
                 </button>
@@ -138,16 +221,28 @@ export function StoryCatalogPage() {
             })}
           </div>
 
-          {failedMining.length > 0 && !noticeDismissed && (
-            <div className="warn-card warn-row">
-              <span>Story mining failed for: {failedMining.join(", ")}</span>
-              <button className="btn-sm ghost" onClick={() => setNoticeDismissed(true)}>
-                Dismiss
-              </button>
+          {/* Per-repo progress. Stories below fill in as each repo lands, so
+              this explains why the feed is still growing. */}
+          {repos.length > 1 && mining.length > 0 && (
+            <div className="ab-status">
+              {orderedGroups.map((g) => (
+                <span
+                  key={g.repo}
+                  className={`ab-statuspill status-${g.status === "mining" ? "running" : g.status === "error" ? "error" : "done"}`}
+                >
+                  <span className="dot" aria-hidden="true" />
+                  {g.repo.split("/")[1] ?? g.repo}:{" "}
+                  {g.status === "mining"
+                    ? "mining…"
+                    : g.status === "error"
+                      ? "failed"
+                      : `${g.stories?.length ?? 0} stories`}
+                </span>
+              ))}
             </div>
           )}
 
-          {groups?.map(
+          {orderedGroups.map(
             (g) =>
               g.error && (
                 <div key={g.repo} className="warn-card">
@@ -168,7 +263,7 @@ export function StoryCatalogPage() {
           ) : (
             <>
               <div className="story-feed">
-                {groups!.flatMap(
+                {orderedGroups.flatMap(
                   (g) =>
                     g.stories?.map((s) => (
                       <StoryCard
@@ -179,9 +274,17 @@ export function StoryCatalogPage() {
                       />
                     )) ?? [],
                 )}
+                {/* Placeholders for repos still mining, so the feed shows that
+                    more is coming rather than looking finished. */}
+                {mining.map((g) => (
+                  <div key={g.repo} className="story-card skeleton" aria-hidden="true">
+                    <div className="sk-line sk-title" />
+                    <div className="sk-line sk-tag" />
+                  </div>
+                ))}
               </div>
 
-              {storyCount === 0 && (
+              {storyCount === 0 && mining.length === 0 && (
                 <p className="catalog-empty">
                   No stories matched the selected quality filters. Try removing a filter or picking
                   different repos.
