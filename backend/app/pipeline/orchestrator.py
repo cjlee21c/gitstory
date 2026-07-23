@@ -8,16 +8,30 @@ from app.storage import cache
 # Safety ceiling only — the per-response story cap now lives in the stories
 # API (routes_repos.STORY_CAP), applied after quality filtering at read time.
 # Pass 2 is LLM-free, so enriching all elites keeps the cache reusable across
-# any quality selection without re-running the pipeline.
+# any quality selection without re-running the pipeline. Pass 1's GATE_LIMIT
+# already caps the shortlist well below this.
 ENRICH_CEILING = 20
+
+# Bumped whenever screening logic changes shape, so tuning thresholds doesn't
+# leave every previously-run repo pinned to results from the old rules. Without
+# this, loosening a threshold is invisible until someone passes force=true —
+# repos screened under the old 8-comment / 5-file cuts stayed at 0 stories
+# forever. Mirrors the `discover:v3:` convention in discovery/orchestrator.py.
+PIPELINE_VERSION = "v2"
+
+
+def pass2_cache_key(repo: str) -> str:
+    """The read side (stories API) has to look under the same versioned key the
+    pipeline writes, so both go through here."""
+    return f"{repo}:{PIPELINE_VERSION}:pass2"
 
 
 def run_pipeline(repo: str, force: bool = False):
     github = GitHubClient(GITHUB_TOKEN)
 
-    pass1_key = f"{repo}:pass1"
-    pass1_5_key = f"{repo}:pass1_5"
-    pass2_key = f"{repo}:pass2"
+    pass1_key = f"{repo}:{PIPELINE_VERSION}:pass1"
+    pass1_5_key = f"{repo}:{PIPELINE_VERSION}:pass1_5"
+    pass2_key = pass2_cache_key(repo)
 
     if not force:
         bundles = cache.get(pass2_key)

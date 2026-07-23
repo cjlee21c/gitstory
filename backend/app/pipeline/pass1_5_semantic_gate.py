@@ -6,6 +6,7 @@ from app.filters import QUALITY_ATTRIBUTES, QUALITY_DEFINITIONS
 from app.llm.client import SEMANTIC_GATE_MODEL, client
 from app.llm.json_utils import extract_json
 from app.llm.usage import log_usage
+from app.pipeline.ranking import stage2_score
 
 _QUALITY_DEFINITIONS_TEXT = "\n".join(
     f"- {name}: {definition}" for name, definition in QUALITY_DEFINITIONS.items()
@@ -55,6 +56,23 @@ def _parse_gate_response(text: str) -> dict:
         return {"is_story": "true" in text.lower(), "qualities": []}
 
 
+GATE_EXCERPT_SIZE = 6
+
+
+def _gate_excerpt(comments: list[dict]) -> list[dict]:
+    """Picks which comments the gate reads. Since Pass 1b merges review threads
+    into the timeline, the chronological head is often boilerplate ("please
+    rebase", CI chatter) while the argument sits deeper in the diff comments.
+    Take the longest comments — length is the cheapest available proxy for
+    reasoning — then restore chronological order so the exchange still reads as
+    a conversation."""
+    ranked = sorted(
+        enumerate(comments), key=lambda pair: len(pair[1].get("body") or ""), reverse=True
+    )
+    picked = sorted(ranked[:GATE_EXCERPT_SIZE], key=lambda pair: pair[0])
+    return [c for _, c in picked]
+
+
 def _gate_candidate(candidate):
     """Runs one Haiku call to judge and quality-label a single candidate.
     Independent across candidates, so callers can run many of these
@@ -64,7 +82,7 @@ def _gate_candidate(candidate):
     issue = candidate["issue"]
     comments_snippet = "\n".join(
         f"{c.get('user', {}).get('login', 'unknown')} ({c.get('author_association', 'NONE')}): {c.get('body', '')[:200]}"
-        for c in candidate["comments"][:5]
+        for c in _gate_excerpt(candidate["comments"])
     )
     compact_context = (
         f"Title: {issue['title']}\nBody: {str(issue.get('body', ''))[:400]}\nComments:\n{comments_snippet}"
@@ -104,6 +122,16 @@ def pass_1_5_semantic_gate(qualified_candidates):
         results = list(executor.map(_gate_candidate, qualified_candidates))
 
     elite_candidates = [c for c, _ in results if c is not None]
+    # Stage-2 ordering: now that bodies are in hand we can rank on substance
+    # (long comments, back-and-forth, maintainer involvement) rather than raw
+    # volume. This is the order STORY_CAP=4 slices, so it decides what the user
+    # actually sees.
+    # `signals` is attached by Pass 1, but the gate is also called directly in
+    # scripts and on candidates rehydrated from disk, so score defensively —
+    # an unranked candidate sorts last rather than crashing the run.
+    elite_candidates.sort(
+        key=lambda c: -stage2_score(c["signals"]) if c.get("signals") else float("inf")
+    )
     total_in = sum(usage[0] for _, usage in results)
     total_out = sum(usage[1] for _, usage in results)
 

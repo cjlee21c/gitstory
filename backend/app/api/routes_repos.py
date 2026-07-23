@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.filters import QUALITY_ATTRIBUTES
 from app.models.schemas import PipelineRunResponse, StoryListResponse, StorySummary
-from app.pipeline.orchestrator import run_pipeline
+from app.pipeline.orchestrator import pass2_cache_key, run_pipeline
 from app.storage import cache
 
 router = APIRouter(prefix="/repos", tags=["repos"])
@@ -50,7 +50,7 @@ def filter_bundles(bundles: list[dict], qualities: str | None) -> list[dict]:
 
 @router.post("/{repo:path}/pipeline", response_model=PipelineRunResponse)
 def trigger_pipeline(repo: str, force: bool = False):
-    was_cached = not force and cache.get(f"{repo}:pass2") is not None
+    was_cached = not force and cache.get(pass2_cache_key(repo)) is not None
     bundles = run_pipeline(repo, force=force)
     return PipelineRunResponse(
         repo=repo,
@@ -62,7 +62,7 @@ def trigger_pipeline(repo: str, force: bool = False):
 
 @router.get("/{repo:path}/stories", response_model=StoryListResponse)
 def list_stories(repo: str, qualities: str | None = None):
-    bundles = cache.get(f"{repo}:pass2")
+    bundles = cache.get(pass2_cache_key(repo))
     if bundles is None:
         raise HTTPException(
             status_code=404,

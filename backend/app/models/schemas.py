@@ -33,6 +33,9 @@ class DiscussionEntry(BaseModel):
     role: str
     body: str
     timestamp: str
+    # "issue" | "review" | "review_inline". Defaulted so bundles cached before
+    # review threads were merged in still validate.
+    source: str = "issue"
 
 
 class CommitEntry(BaseModel):

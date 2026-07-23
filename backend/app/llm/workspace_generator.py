@@ -82,13 +82,27 @@ def _truncate(text: str, limit: int = COMMENT_BODY_LIMIT) -> str:
     return text[:limit] + "... [truncated]"
 
 
+# Inline review comments ("nit: rename this", "done", "+1") are numerous and
+# say nothing about the decision. Dropping them before sampling keeps the cap —
+# and so the Sonnet input cost — unchanged while raising what fills it.
+TRIVIAL_COMMENT_CHARS = 80
+
+
 def _sample_comments(comments: list, cap: int = DISCUSSION_COMMENT_CAP) -> list:
     if len(comments) <= cap:
         return comments
+
+    # Since Pass 1b folds review threads into the timeline, a busy PR can carry
+    # 50+ entries where the old issue-only timeline carried 10. An even spread
+    # over that would mostly land on drive-by remarks, so thin those out first —
+    # but only as far as the cap, so a terse thread doesn't get gutted.
+    substantial = [c for c in comments if len(c.get("body") or "") > TRIVIAL_COMMENT_CHARS]
+    pool = substantial if len(substantial) >= cap else comments
+
     # Take spread across the discussion arc: start, middle, end
-    step = (len(comments) - 1) / (cap - 1)
+    step = (len(pool) - 1) / (cap - 1)
     indices = sorted({round(i * step) for i in range(cap)})
-    return [comments[i] for i in indices]
+    return [pool[i] for i in indices]
 
 
 def _build_raw_data(bundle: dict) -> str:

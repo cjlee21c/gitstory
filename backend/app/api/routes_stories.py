@@ -9,6 +9,7 @@ from app.llm.workspace_generator import (
     generate_workspace_part2,
 )
 from app.models.schemas import StoryBundle, WorkspaceContent
+from app.pipeline.orchestrator import pass2_cache_key
 from app.storage import cache
 
 router = APIRouter(prefix="/stories", tags=["stories"])
@@ -37,7 +38,7 @@ def _get_bundle_or_404(story_id: str) -> dict:
             detail="story_id must be in '<owner>/<repo>#<issue_number>' format",
         )
     repo, _, _ = story_id.rpartition("#")
-    bundles = cache.get(f"{repo}:pass2")
+    bundles = cache.get(pass2_cache_key(repo))
     if bundles is None:
         raise HTTPException(status_code=404, detail=f"No pipeline results for {repo}")
     for bundle in bundles:

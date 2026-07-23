@@ -20,6 +20,9 @@ def _enrich_candidate(repo: str, github: GitHubClient, candidate: dict):
             "role": comment.get("author_association", "NONE"),
             "body": comment["body"],
             "timestamp": comment["created_at"],
+            # Where it was said: an inline diff comment reads differently from a
+            # conversation reply, and the workspace generator cites both.
+            "source": comment.get("source", "issue"),
         }
         for comment in candidate["comments"]
     ]
