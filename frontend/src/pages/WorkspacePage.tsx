@@ -8,6 +8,34 @@ import { useStudent } from "../context/StudentContext";
 
 const STEP_NAMES = ["Background", "The Problem", "The Debate", "Your Take", "What Happened", "Key Lessons"];
 
+/** Chrome shared by the loading, error and loaded states, so arriving content
+ *  swaps into place instead of replacing a whole different-looking page. */
+function WorkspaceFrame({
+  title,
+  onBack,
+  children,
+}: {
+  title: string;
+  onBack: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="workspace-shell">
+      <header className="workspace-header">
+        <div className="workspace-header-top">
+          <button className="btn-back" onClick={onBack}>← Back</button>
+          <span className="workspace-title">{title}</span>
+        </div>
+        {/* current=-1 so no step reads as active while there is nothing to read
+            yet — the map is still shown, so the reader sees the shape of what's
+            coming rather than a blank header. */}
+        <StoryProgress steps={STEP_NAMES} current={-1} unlockedUpTo={-1} onNavigate={() => {}} />
+      </header>
+      <div className="workspace-content">{children}</div>
+    </div>
+  );
+}
+
 function groupBeats(beats: Beat[]): Beat[][] {
   const buckets: Beat[][] = [[], [], [], [], [], []];
   for (const beat of beats) {
@@ -42,11 +70,15 @@ export function WorkspacePage() {
   const [part2Error, setPart2Error] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [checkpointDone, setCheckpointDone] = useState(false);
+  // Bumped by Retry to re-run the fetch effect after a failure.
+  const [attempt, setAttempt] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (!storyId) return;
-    if (fetchedFor.current === storyId) return;
-    fetchedFor.current = storyId;
+    const key = `${storyId}#${attempt}`;
+    if (fetchedFor.current === key) return;
+    fetchedFor.current = key;
     setPart1(null);
     setPart2(null);
     setError(null);
@@ -59,7 +91,19 @@ export function WorkspacePage() {
     getWorkspacePart(storyId, 2)
       .then(setPart2)
       .catch((e: Error) => setPart2Error(e.message));
-  }, [storyId]);
+  }, [storyId, attempt]);
+
+  // Honest elapsed counter while Part 1 generates — a first, uncached run is
+  // real Sonnet work and can take the better part of a minute. Showing the
+  // seconds tick is the difference between "working" and "frozen".
+  const waiting = !!storyId && !part1 && !error;
+  useEffect(() => {
+    if (!waiting) return;
+    setElapsed(0);
+    const started = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [waiting, storyId, attempt]);
 
   // Keyboard navigation (←/→). Refs keep the listener reading fresh values
   // without re-binding. Space is intentionally left free for scrolling.
@@ -85,15 +129,90 @@ export function WorkspacePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Until Part 1 lands there is no generated title, so name the story by its
+  // repo and PR number rather than showing a bare id.
+  const [repoName, prNumber] = storyId.split("#");
+  const storyLabel = prNumber ? `${repoName} #${prNumber}` : storyId;
+
   if (!storyId) {
-    return <p className="page">No story selected. <a href="/">Go back</a></p>;
+    return (
+      <div className="landing">
+        <div className="landing-inner">
+          <main className="landing-main">
+            <div className="discover-empty">
+              <h1>No story selected</h1>
+              <p>Head back and pick a story to open its workspace.</p>
+              <button className="btn-lg btn-mint" onClick={() => navigate("/")}>
+                Back to start <span className="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
-  if (error) return <p className="page error">{error}</p>;
+
+  if (error) {
+    return (
+      <WorkspaceFrame title={storyLabel} onBack={() => navigate(-1)}>
+        <div className="step-card ws-state">
+          <p className="step-type-label">Something went wrong</p>
+          <h1>We couldn't build this story</h1>
+          <p className="ws-state-lead">
+            The workspace for <strong>{storyLabel}</strong> failed to generate. Retrying is safe —
+            whichever half already generated is reused rather than paid for twice.
+          </p>
+          <p className="ws-state-detail">{error}</p>
+          <div className="ws-state-actions">
+            <button
+              className="btn-lg btn-mint"
+              onClick={() => {
+                setError(null);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try again
+            </button>
+            <button className="btn-sm ghost" onClick={() => navigate(-1)}>
+              Back to stories
+            </button>
+          </div>
+        </div>
+      </WorkspaceFrame>
+    );
+  }
+
   if (!part1) {
     return (
-      <p className="page">
-        Generating workspace for {storyId}… this can take up to a minute the first time.
-      </p>
+      <WorkspaceFrame title={storyLabel} onBack={() => navigate(-1)}>
+        <div className="step-card ws-state ws-generating">
+          <p className="step-type-label">{STEP_NAMES[0]}</p>
+          <div className="ws-gen-head">
+            <span className="ws-gen-spinner" aria-hidden="true" />
+            <div>
+              <h1>Writing this story…</h1>
+              <p className="ws-state-lead">
+                Reading the discussion on <strong>{storyLabel}</strong> — the argument, the code,
+                and how it was settled.
+              </p>
+            </div>
+          </div>
+
+          <p className="ws-gen-meta" role="status">
+            <span className="ws-gen-elapsed">{elapsed}s</span>
+            First run takes around a minute. After that this story opens instantly.
+          </p>
+
+          {/* Shaped like the Background step that is about to replace it, so the
+              arrival reads as content filling in rather than a page swap. */}
+          <div className="ws-skeleton" aria-hidden="true">
+            <div className="sk-line sk-title" />
+            <div className="sk-line" />
+            <div className="sk-line" />
+            <div className="sk-line sk-short" />
+          </div>
+        </div>
+      </WorkspaceFrame>
     );
   }
 
