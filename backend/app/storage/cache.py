@@ -1,7 +1,11 @@
 import json
+import os
 from pathlib import Path
 
-CACHE_DIR = Path(__file__).resolve().parent.parent.parent / ".cache"
+# Defaults to backend/.cache (gitignored); in deploy, CACHE_DIR points at a
+# mounted disk (e.g. /data/.cache) so mined stories survive redeploys and the
+# first user after a redeploy doesn't wait on a full re-mine.
+CACHE_DIR = Path(os.environ.get("CACHE_DIR", Path(__file__).resolve().parent.parent.parent / ".cache"))
 
 
 def _path_for_key(key: str) -> Path:
