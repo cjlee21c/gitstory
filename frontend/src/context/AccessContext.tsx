@@ -56,7 +56,6 @@ export function AccessProvider({ children }: { children: React.ReactNode }) {
     <div className="landing">
       <div className="access-gate">
         <div className="landing-logo">
-          <span className="logo-mark" aria-hidden="true">📖</span>
           <span><span className="git">Git</span>Stories</span>
         </div>
         <h1>Enter your access code</h1>

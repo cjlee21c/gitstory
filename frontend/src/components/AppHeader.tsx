@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useStudent } from "../context/StudentContext";
 
 // Shared warm header (logo + name avatar with an edit popover). Reuses the
@@ -24,10 +25,9 @@ export function AppHeader() {
 
   return (
     <header className="landing-header">
-      <div className="landing-logo">
-        <span className="logo-mark" aria-hidden="true">📖</span>
+      <Link className="landing-logo" to="/">
         <span><span className="git">Git</span>Stories</span>
-      </div>
+      </Link>
 
       <div className="name-menu">
         <button

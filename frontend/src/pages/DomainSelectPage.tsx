@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStudent } from "../context/StudentContext";
 import { CONTRIBUTORS, DOMAIN_ICONS, DOMAINS, SIZES, STARS } from "../filters";
 
@@ -90,10 +90,9 @@ export function DomainSelectPage() {
     <div className="landing">
       <div className="landing-inner">
         <header className="landing-header">
-          <div className="landing-logo">
-            <span className="logo-mark" aria-hidden="true">📖</span>
+          <Link className="landing-logo" to="/">
             <span><span className="git">Git</span>Stories</span>
-          </div>
+          </Link>
 
           <div className="name-menu">
             <button

@@ -740,7 +740,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 .landing-logo {
   display: flex; align-items: center; gap: 10px;
   font-weight: 800; font-size: 18px; letter-spacing: -0.02em; color: var(--text);
+  text-decoration: none;
 }
+a.landing-logo { cursor: pointer; }
 .landing-logo .logo-mark {
   width: 34px; height: 34px; border-radius: 11px;
   background: var(--mint-soft); display: grid; place-items: center; font-size: 18px;
@@ -1195,6 +1197,6 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 .access-gate .landing-logo { font-size: 20px; font-weight: 700; }
 .access-gate h1 { font-size: 24px; margin: 6px 0 0; color: var(--warm-ink, #2b2b2b); }
 .access-gate p { color: var(--warm-muted); margin: 0 0 6px; }
-.access-gate .filter-input { width: 100%; text-align: center; }
+.access-gate .filter-input { width: 100%; flex: 0 0 auto; text-align: center; }
 .access-gate .btn-mint { width: 100%; justify-content: center; }
 .access-error { color: #c0392b; font-size: 14px; margin: 0; }
