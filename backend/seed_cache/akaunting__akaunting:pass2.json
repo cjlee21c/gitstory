@@ -1,0 +1,129 @@
+[
+  {
+    "story_id": "akaunting/akaunting#1743",
+    "metadata": {
+      "title": "Remove nullable property from due_at column",
+      "labels": [
+        "Bug"
+      ],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-01-11T12:34:19Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "pavel-mironchik",
+        "role": "CONTRIBUTOR",
+        "body": "@burakcakirel are you sure about this? For example, credit and debit notes don't have the due date, so this field could contain `null` in such cases.",
+        "timestamp": "2021-01-11T12:47:39Z"
+      },
+      {
+        "author": "burakcakirel",
+        "role": "CONTRIBUTOR",
+        "body": "Actually, this was `not null` column before. I don't have any idea why I've marked it as `null` :)\r\n\r\nHowever, currently, `due_at` field is required at the frontend for invoices and bills. I thought it should be `not null`.\r\n\r\nBut I understand your concern about the modules that don't have this field. \r\n\r\nMaybe, sending `due_at` field as a hidden input works for you to skip the form validation or @cuneytsenturk has a better idea about it?",
+        "timestamp": "2021-01-11T13:07:33Z"
+      },
+      {
+        "author": "pavel-mironchik",
+        "role": "CONTRIBUTOR",
+        "body": "> Actually, this was `not null` column before. I don't have any idea why I've marked it as `null` :)\r\n\r\nProbably, exactly because of credit/debit notes, or otherwise you couldn't be able to migrate them to documents? I'm wondering now will update scripts work after this change or it will require changes too?\r\n\r\nYeah, I could use the hidden field but that requires to put some random date in it to pass validation, right?",
+        "timestamp": "2021-01-11T13:20:34Z"
+      },
+      {
+        "author": "pavel-mironchik",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, this will do in my case: \r\n`{{ Form::hidden('due_at', '1970-01-01 00:00:00', ['id' => 'due_at', 'v-model' => 'form.due_at']) }}`",
+        "timestamp": "2021-01-12T16:25:06Z"
+      },
+      {
+        "author": "burakcakirel",
+        "role": "CONTRIBUTOR",
+        "body": ">Probably, exactly because of credit/debit notes, or otherwise you couldn't be able to migrate them to documents? I'm wondering now will update scripts work after this change or it will require changes too?\r\n\r\nThat's right. Now I have an idea why I've marked it as `null` :smile: \r\n\r\nSo, yes, the migration script needs to be changed and I'll open a PR about it.",
+        "timestamp": "2021-01-12T18:14:30Z"
+      },
+      {
+        "author": "cuneytsenturk",
+        "role": "MEMBER",
+        "body": "> Actually, this was `not null` column before. I don't have any idea why I've marked it as `null` :)\r\n> \r\n> However, currently, `due_at` field is required at the frontend for invoices and bills. I thought it should be `not null`.\r\n> \r\n> But I understand your concern about the modules that don't have this field.\r\n> \r\n> Maybe, sending `due_at` field as a hidden input works for you to skip the form validation or @cuneytsenturk has a better idea about it?\r\n\r\nI've set hidden fiel for hide due_at field..",
+        "timestamp": "2021-01-12T18:47:19Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "498614f",
+        "message": "Remove nullable property from due_at column",
+        "author": "Burak Çakırel",
+        "timestamp": "2021-01-11T12:00:59Z"
+      }
+    ]
+  },
+  {
+    "story_id": "akaunting/akaunting#1981",
+    "metadata": {
+      "title": "Move document footer to the end of the document",
+      "labels": [
+        "Enhancement"
+      ],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-05-01T08:32:00Z",
+      "reviewers": [],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "When creating PDF files of bills the footer section is moved to the left besides the invoice summary. This would ensure to keep the footer below the summary"
+    },
+    "discussion_timeline": [
+      {
+        "author": "cuneytsenturk",
+        "role": "MEMBER",
+        "body": "Thank you feedback. Did you check our css file before add custom css class.\r\nArgon theme already this style `clearfix` or `floatfix`\r\nPlease check core css then update it.",
+        "timestamp": "2021-04-21T07:12:46Z"
+      },
+      {
+        "author": "incrolution",
+        "role": "NONE",
+        "body": "I added this css class to the print css file since no other css file is used for print views.\r\nShould I rather import the argon css  file to the print export or should i stick with an added css class within the print css file?",
+        "timestamp": "2021-04-21T07:57:52Z"
+      },
+      {
+        "author": "cuneytsenturk",
+        "role": "MEMBER",
+        "body": "> I added this css class to the print css file since no other css file is used for print views.\r\n> Should I rather import the argon css file to the print export or should i stick with an added css class within the print css file?\r\n\r\nThis print content use **show** page so then I said can use argon theme class and add `print.css`.\r\n",
+        "timestamp": "2021-04-21T13:28:13Z"
+      },
+      {
+        "author": "incrolution",
+        "role": "NONE",
+        "body": "Is this the way you meant it to be?",
+        "timestamp": "2021-04-29T12:33:08Z"
+      },
+      {
+        "author": "cuneytsenturk",
+        "role": "MEMBER",
+        "body": "Thank you your all effor @incrolution ",
+        "timestamp": "2021-05-01T08:32:14Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b12a5f3",
+        "message": "Move document footer to the end of the\ndocument for classic and default layout",
+        "author": "Aron Gutberlet",
+        "timestamp": "2021-04-12T08:24:43Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "story_id": "berty/berty#1556",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Protocol Merged as Event-Sourcing Compliant Design",
+      "body": "The PR was merged on December 20, 2019, adopting an event-sourcing architecture where the protocol layer guarantees event ordering and delivers raw events, leaving consolidation logic to consuming applications. Conflict resolution responsibility was explicitly delegated upward to the application layer rather than embedded in the protocol. Member eviction was intentionally left unsupported, accepting that group membership is append-only by design.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[13]",
+        "discussion_timeline[7]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Clearly separating ordering guarantees from merge logic prevents the protocol layer from accumulating application-specific complexity it cannot generalize.",
+        "Accepting immutable membership as a constraint early forces consuming applications to design around it rather than discovering the limitation after integration.",
+        "When CRDT-based systems expose raw events with guaranteed ordering, downstream consumers gain flexibility but must own the burden of state consolidation."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3258 @@
+[
+  {
+    "story_id": "aeron-io/aeron#1917",
+    "metadata": {
+      "title": "Rollback the consensus module leader's uncommitted state",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "security"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-01-28T09:37:29Z",
+      "reviewers": [
+        "marc-adaptive",
+        "vyazelenko",
+        "mikeb01"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "This PR is to rollback the consensus module leader's uncommitted state in the case of an unexpected election.\r\n\r\nIn the cases of using control toggle for suspend, snapshot, shutdown, and resume - the consensus module leader updates its ConsensusModuleAgent#state. The corresponding cluster action added to the log is initially uncommitted. If an unexpected election occurs, the leader will need to rollback this uncommitted state to its committed value.\r\n\r\nThe leader's consensus module will track its previous states and log position corresponding to cluster action, while cluster action is uncommitted. For now, avoided using aeron-test-support TestCluster as using consensus module invoker for ease of testing and wanted to avoid making changes to TestCluster.\r\n\r\nFeel free to close if I'm wrong, misunderstanding something, or there's a better approach."
+    },
+    "discussion_timeline": [
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "The approach seems reasonable. However the use of IP Tables for testing feels heavyweight and Linux dependant. ",
+        "timestamp": "2026-01-12T14:19:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> However the use of IP Tables for testing feels heavyweight and Linux dependant.\r\n\r\nWe use this approach for testing Cluster in other places. See [ClusterNetworkPartitionTest](https://github.com/aeron-io/aeron/blob/master/aeron-system-tests/src/test/java/io/aeron/cluster/ClusterNetworkPartitionTest.java).",
+        "timestamp": "2026-01-12T14:31:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Could replaced with `cluser.awaitLeader(firstLeader.memberId()`.",
+        "timestamp": "2026-01-12T14:33:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "Loss and other channel behaviour can be introduced in an OS independent way. For example: https://github.com/aeron-io/aeron/blob/master/aeron-system-tests/src/test/java/io/aeron/GapFillLossTest.java.",
+        "timestamp": "2026-01-12T14:40:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] You should wait for election completion first with `awaitElectionClosed(firstLeader)` and then assert the CM state.",
+        "timestamp": "2026-01-12T14:40:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "For testing needed a way to generate uncommitted data deterministically and then have 2 followers start new leadership term. I could think of:\r\n\r\n1. Use system test cluster allowing consensus module invoker. Think more decisions beyond the scope of this PR needed to be made there, for example, calls to ClusterTool without a way of polling consensus module.\r\n2. Using private test class to pull out required methods from TestCluster seems like may add long term maintenance cost. Used this approach initially.\r\n3. Using loss generator. Seems like it would require complex logic - originally drop specific frames and from test thread set a volatile to allow those frames. Is this the way to go?\r\n4. Using ip tables.",
+        "timestamp": "2026-01-12T14:43:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Can be simplified with returning `false` if state is not `SUSPENDED`. It is also faster.",
+        "timestamp": "2026-01-12T14:43:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Can be simplified with returning `false` if state is not `SUSPENDED`. It is also faster.",
+        "timestamp": "2026-01-12T14:43:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "@marc-adaptive I suggest to stick to existing ip tables tests for this release. Perhaps move them to the `ClusterNetworkPartitionTest` so that we have a single place to improve. We can then iterate on the approach for the next major release.",
+        "timestamp": "2026-01-12T21:16:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Thanks",
+        "timestamp": "2026-01-13T02:16:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Thanks",
+        "timestamp": "2026-01-13T02:16:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] The reason awaiting for active is to use least amount of awaits + assertions. This test only cares about recovering leader's state. By looking at the state - only need to assert was suspended and eventually became active again, simulating a truncation. Waiting for election closed would maybe get confused by prior election closed and reading previous counter value. Likely would have to also assert leadershipTermId or election count has increased too. Is this okay to leave?",
+        "timestamp": "2026-01-13T02:22:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterUncommittedStateTest.java] Thanks you're right. Initially used this assert since cluster#awaitLeader checks for all nodes to have a closed election. Given this test, the node is suspended and won't enter a new election if network partition. Left to keep aligned with other tests; the other tests need this await because active node will detect inactive follower quorum, start a new election, and await would timeout. Okay to keep aligned with other tests?",
+        "timestamp": "2026-01-13T02:24:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @vyazelenko. Started looking at potentially using loss generator and maybe unit testing these scenarios. Hoping to have something soon.",
+        "timestamp": "2026-01-13T02:26:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Perhaps this should store the `state` variable instead of the constant so that it is clear that we are storing the current state prior to a transition rather that a specific state.",
+        "timestamp": "2026-01-14T02:26:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Just to verify my understanding here we are using `<=` here as this queue will always be storing state prior to the one we actually want to restore to.  So we then either restore to the next state present in the queue or leave it in the current state?",
+        "timestamp": "2026-01-14T02:28:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] We're storing the log position of the cluster action and the corresponding previous state. <= is used to verify log position corresponding to the cluster action was committed, then we don't need to remember the corresponding previous state.\r\n\r\n<img width=\"903\" height=\"626\" alt=\"image\" src=\"https://github.com/user-attachments/assets/475b765a-332e-4c85-984f-fb349931a113\" />",
+        "timestamp": "2026-01-14T16:04:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] That makes sense. Thanks",
+        "timestamp": "2026-01-14T16:35:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "marc-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "I've pushed a change to use java sender/receiver endpoint suppliers to toggle loss for now. Have done so with other PRs as well. These tests are only enabled using java media driver for the time being. ",
+        "timestamp": "2026-01-20T15:23:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] These two lines are repeated a few times, I think it should be pulled into a method with a descriptive name.  Also because then idea the value stored as a pair of entries can be encapsulated.  We should also have a single method for popping those values off again (as we do that in two places).  Probably something like:\n```\nofferUncommittedStateAndPosition(long logPublisherPosition, State state)\n```",
+        "timestamp": "2026-01-27T18:21:20Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "9d5155f",
+        "message": "Rollback the consensus module leader's uncommitted state in the case of an unexpected election.",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-05T18:23:30Z"
+      },
+      {
+        "sha": "3bf1586",
+        "message": "Tidy up testing",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-07T11:47:17Z"
+      },
+      {
+        "sha": "968bc71",
+        "message": "Leave cluster termination for future",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-07T13:22:55Z"
+      },
+      {
+        "sha": "7cf0e21",
+        "message": "Make slow test",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-07T16:05:30Z"
+      },
+      {
+        "sha": "d6b3ef1",
+        "message": "Remove shutdown test for now",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-07T16:22:32Z"
+      },
+      {
+        "sha": "e1a2248",
+        "message": "Tidy up test",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-07T17:13:01Z"
+      },
+      {
+        "sha": "4e694bf",
+        "message": "Use network partition testing",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-10T16:37:44Z"
+      },
+      {
+        "sha": "077056c",
+        "message": "Relax tests",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-10T19:03:24Z"
+      },
+      {
+        "sha": "ea73d10",
+        "message": "Move tests to new class",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-10T21:31:11Z"
+      },
+      {
+        "sha": "e947c75",
+        "message": "In tests resume needs to also wait for neutral toggle as state is set before resetting control toggle",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-10T21:41:16Z"
+      },
+      {
+        "sha": "51e120f",
+        "message": "Tidy up on comments",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-13T02:15:53Z"
+      },
+      {
+        "sha": "61dca06",
+        "message": "Store the state variable instead of the constant so that it is clear that we are storing the current state prior to a transition rather that a specific state",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-14T16:33:59Z"
+      },
+      {
+        "sha": "54cab49",
+        "message": "Move away from iptables to loss generator",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-19T21:43:33Z"
+      },
+      {
+        "sha": "cd88037",
+        "message": "Move away from iptables to loss generator",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-19T22:09:59Z"
+      },
+      {
+        "sha": "64abeec",
+        "message": "Rebase conflicts",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-27T22:12:44Z"
+      },
+      {
+        "sha": "07d95e6",
+        "message": "[Cluster] tidy up comments",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-27T23:43:05Z"
+      },
+      {
+        "sha": "ce88463",
+        "message": "[Cluster] extend test scenarios for extension too",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-27T23:43:21Z"
+      },
+      {
+        "sha": "bd9cbc4",
+        "message": "[Cluster] extend test scenarios for extension too",
+        "author": "marc-adaptive",
+        "timestamp": "2026-01-28T00:29:43Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#789",
+    "metadata": {
+      "title": "[C] Fixes for Windows",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-12-19T09:28:57Z",
+      "reviewers": [
+        "mjpt777",
+        "ltrzesniewski",
+        "tmontgomery"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "This fixes various things on Windows, and makes the CMake build and tests pass with VS 2019.\r\n\r\nEvery commit message explains the introduced changes in more detail.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] Why remove DllMain?",
+        "timestamp": "2019-12-19T07:39:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] Why not keep the `aeron_free` version and have it do the right thing depending on platform?",
+        "timestamp": "2019-12-19T07:39:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] It does nothing useful, and wastes a TLS slot.\r\n\r\nThis code is basically taken from [the docs example](https://docs.microsoft.com/en-us/windows/win32/dlls/using-thread-local-storage-in-a-dynamic-link-library) but unlike the example it does not use `dwTlsIndex` anywhere outside of `DllMain`. So basically `DllMain` manages a TLS slot and some per-thread memory just for itself. The other TLS code does not need this.",
+        "timestamp": "2019-12-19T09:20:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] `aeron_free` already does the right thing and calls `free`. I'm not sure why, but this additional indirection causes an assertion in the debug build. It looks like the two different modules use two different heaps.\r\n\r\nIn any case, I think `free` is more correct here, as the `strdup` docs tell you should call `free` on what it returns. Something like `aeron_free` could potentially switch to a different allocator in the future, breaking this code even for other platforms.",
+        "timestamp": "2019-12-19T09:26:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "BTW would you accept a PR which adds a Windows CI, using something like GitHub Actions for instance (so it won't require you to setup any external account)?\r\n\r\nIf yes, would you like to also migrate the Linux CI from Travis to GitHub Actions for consistency?\r\n",
+        "timestamp": "2019-12-19T09:30:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "Migrating to GitHub Actions is on my list of things to try. Travis has been very frustrating.",
+        "timestamp": "2019-12-19T09:32:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] `aeron_free` should be used by all memory calls. The debug build is probably mixing new and malloc and not sorting it correctly.... or would be my best guess.",
+        "timestamp": "2019-12-19T17:19:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] Actually, I think DllMain will be necessary. Currently, the error handling is broken in tests due to the TLS state not working. And that is partially due to it not being wired in correctly with DllMain or handling static libs correctly.",
+        "timestamp": "2019-12-19T17:19:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "I've reverted so it can done in parts which are easily agreed.",
+        "timestamp": "2019-12-19T17:34:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] A correct DllMain should use the existing slot and make the checks work. The changes to the TLS handling may work for static libs. Should write a test to make sure error handling is actually correct for threading, etc.",
+        "timestamp": "2019-12-19T17:50:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "Everything but the DllMain and the removal of aeron_free from the test are OK.",
+        "timestamp": "2019-12-19T17:53:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] I actually fixed the error handling in this PR, it was previously causing one of the unit tests to fail because `aeron_thread_once` was not working properly.\r\n\r\nWhile we *could* make the TLS slot be managed by `DllMain`, it would break TLS if the media driver is used as a static library, since those don't use `DllMain`, and it would create the need to maintain different code paths for Windows and Linux.\r\n\r\nI think the TLS code from this PR is fine, and it doesn't need a `DllMain` function to work properly, unless I'm misunderstanding something.",
+        "timestamp": "2019-12-19T18:25:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] The code uses `strdup` so we can't really control how it allocates the memory. The docs simply say to use `free` to release it.\r\nUnder a MSVC debug build, going through `aeron_free` causes an assertion failure, while using `free` works fine.",
+        "timestamp": "2019-12-19T18:29:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] You don't need different code paths. The DllMain can just pre-populate the TLS key/slot. Same code in what is there now but with DllMain but thread once will need to see if the slot is pre-populate or not. And as you point out it is needed for static libs. \r\n\r\nA DllMain is needed as we have plans that do require it soon. Also, while it is small, it is an advantage to pre-populate on DLL attach when possible.",
+        "timestamp": "2019-12-19T18:34:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] As `aeron_free` uses free under the covers.... it indicates a different problem is at play. So, just moving to `free` does not fix that. Also, as I mentioned, all memory free should use `aeron_free`. Probably shouldn't be using `strdup` either. @mikeb01 can these not use `strdup` and be on the stack instead so that we can get rid of both `free` and `aeron_free` in this test?",
+        "timestamp": "2019-12-19T18:41:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] I've removed the strdup and free from the test as of 22401b35b",
+        "timestamp": "2019-12-19T19:13:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] > And as you point out it is needed for static libs.\r\n\r\nNot exactly, I just said that `DllMain` is not called in static libs, which would require a different initialization path if you want to support them.\r\n\r\nBut since you have plans to require `DllMain` soon, I suppose that using the media driver as a static library will not be possible anymore in the future, right?\r\n\r\nI could move the TLS slot handling to `DllMain` but my understanding is that it will make retrieving the error messages impossible in a static library on Windows as a consequence, unless we add the currently existing code in an `#if STATIC_LIBRARY` or something similar.",
+        "timestamp": "2019-12-19T19:20:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] > can these not use `strdup` and be on the stack instead so that we can get rid of both `free` and `aeron_free` in this test?\r\n\r\nI like that solution, it should be easy with a `strcpy` to the stack.",
+        "timestamp": "2019-12-19T19:22:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] This can be done, I think, quite easily. A static set to indicate that `TlsAlloc` has been called by DllMain means that `aeron_thread_key_create` doesn't need to call it. If not, then it can call `TlsAlloc`. All of this can be hidden in there. So, this shouldn't require anything weird. The use of `TlsSetValue` can still use the existing paths and created on demand.\r\n\r\nIf you are not comfortable about this or do not quite understand what I am suggesting. Just keep the DllMain and remove the TLS calls from it and keep the rest as you fixed it. I'll fix DllMain up when I have time.\r\n\r\nIn terms of requiring DllMain. Only the use of specific options may (or may not). Eventually, we would like to do DPDK, RIO, and other specific support. Some of that will be easier to integrate with DllMain than without.",
+        "timestamp": "2019-12-19T19:38:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] BTW, in a static lib, won't the error state be a leak when the thread goes away? Meaning to avoid the leak, DLL would be a better idea? (I've not looked for a hook to catch thread death for a while)...",
+        "timestamp": "2019-12-19T19:45:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] @tmontgomery OK I'm pretty sure I understand the problem now.\r\n\r\nCMake generated different configurations regarding the CRT library for the media driver and the unit test: the media driver uses *\"Multi-threaded Debug DLL (/MDd)\"* while the test uses *\"Multi-threaded Debug (/MTd)\"*.\r\n\r\nThis basically means they use a different instance of the C runtime, so memory allocated by one cannot be freed by the other.\r\n\r\nAnyway, your fix makes the issue go away.",
+        "timestamp": "2019-12-19T19:58:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/aeron_strutil_test.cpp] AH. Makes perfect sense. Glad you figured it out and mentioned it. And glad the change works. Thanks!",
+        "timestamp": "2019-12-19T20:00:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ltrzesniewski",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] Ok I think I understand what you're suggesting now. I'll implement that tomorrow.\r\n\r\n> Eventually, we would like to do DPDK, RIO, and other specific support.\r\n\r\nThat's great! 👍\r\n\r\n> Some of that will be easier to integrate with DllMain than without.\r\n\r\nI figured an empty `DllMain` wouldn't be useful and you could add it back at a later time when needed. Anyway, I'll add it back with specific support for error messages.\r\n\r\n> BTW, in a static lib, won't the error state be a leak when the thread goes away?\r\n\r\nYes, it will leak. That can be mitigated from `DllMain`. But if I understand correctly, it also means there's currently a leak on Linux.",
+        "timestamp": "2019-12-19T20:10:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "tmontgomery",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_windows.c] On Linux it doesn't leak because `pthread_key_create` takes `free` as the destructor arg. Which should be `aeron_free`, but sigh...",
+        "timestamp": "2019-12-19T20:13:26Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "8ff0a24",
+        "message": "[C] Fix random on Windows\n\nThese functions are expected to return a value between 0 and 1\nbut were returning a value between 0 and RAND_MAX.\nRAND_MAX + 1 is known not to overflow on MSVC.",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T11:42:26Z"
+      },
+      {
+        "sha": "23851e4",
+        "message": "[C] Fix aeron_thread_once on Windows\n\nThe callback does not have the correct signature which is expected\nby the InitOnceExecuteOnce function.",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T11:42:40Z"
+      },
+      {
+        "sha": "4f7b538",
+        "message": "[C] Use the correct gmock lib names in Windows Debug build",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T13:03:30Z"
+      },
+      {
+        "sha": "3bacbff",
+        "message": "[C] Fix strutil_test on Windows in Debug mode\n\nstrdup and free need to be called from the same binary\nin order to ensure the same heap is used on malloc and free.",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T13:46:54Z"
+      },
+      {
+        "sha": "9c9d64d",
+        "message": "[C] Fix aeron-client UtilTest on Windows\n\nCMake v3.13 no longer includes the /FC option which makes __FILE__\nlower case and absolute. This adjusts the unit test.test\n\nSee https://gitlab.kitware.com/cmake/cmake/issues/18261",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T14:33:25Z"
+      },
+      {
+        "sha": "7099f68",
+        "message": "[C] Remove DllMain function\n\nIt manages some data which is only used from the DllMain function itself,\ntherefore it serves no purpose.",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T15:09:47Z"
+      },
+      {
+        "sha": "4e2faaf",
+        "message": "[C] Misc fixes",
+        "author": "Lucas Trzesniewski",
+        "timestamp": "2019-12-18T15:34:25Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1774",
+    "metadata": {
+      "title": "synchronize session ids across cluster nodes",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-04-15T22:05:51Z",
+      "reviewers": [
+        "ryanoftalltrees",
+        "github-advanced-security",
+        "vyazelenko"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "I left the option to set the session id outside of the constructor, but if the approach of reusing rejected session ids works, then we may not need it.  I also left the option to create a KeepAlive object that requires a client and one that doesn't.",
+        "timestamp": "2025-04-02T17:54:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ClusterSession.java] Why new constructor? Who uses it?",
+        "timestamp": "2025-04-02T18:14:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ClusterSession.java] This should simply assign value, i.e. no check is needed here.",
+        "timestamp": "2025-04-02T18:14:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ClusterSession.java] leftover comment",
+        "timestamp": "2025-04-02T18:14:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ClusterSession.java] leftover comment",
+        "timestamp": "2025-04-02T18:14:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Keep non-star imports please.",
+        "timestamp": "2025-04-02T18:15:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] This approach is much more complicated and error prone than the original one with not assigning an id until session is authenticated. Why was this approaches chosen?",
+        "timestamp": "2025-04-02T18:16:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] This is very inefficient.",
+        "timestamp": "2025-04-02T18:18:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] leftover comments",
+        "timestamp": "2025-04-02T18:19:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] This method should use [ConsensusModuleSnapshotAdapter](https://github.com/aeron-io/aeron/blob/master/aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleSnapshotAdapter.java) with a `ConsensusModuleSnapshotListener` configured for proper asserting the state of the snapshot.",
+        "timestamp": "2025-04-02T18:23:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Why was this modified?",
+        "timestamp": "2025-04-02T18:24:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ClusterSession.java] I left this here in case we need to revert back to it but yes, agreed it should go if we always set the id out of the gate.",
+        "timestamp": "2025-04-02T18:29:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "That new test is failing in CI.\r\nhttps://github.com/aeron-io/aeron/actions/runs/14226204604\r\n",
+        "timestamp": "2025-04-02T18:34:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] I still need to do this.  It wasn't straightforward.  will tackle that next",
+        "timestamp": "2025-04-03T21:36:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] ## Unread local variable\n\nVariable 'AeronCluster client' is never read.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2684)",
+        "timestamp": "2025-04-08T19:49:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] ## Unread local variable\n\nVariable 'int nodeIndex' is never read.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2685)",
+        "timestamp": "2025-04-08T19:49:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] ## Unread local variable\n\nVariable 'ExpandableArrayBuffer destBuffer' is never read.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2686)",
+        "timestamp": "2025-04-08T19:49:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] ## Unread local variable\n\nVariable 'MutableInteger destOffset' is never read.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2687)",
+        "timestamp": "2025-04-08T19:49:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] ## Inner class could be static\n\nMyConsensusModuleSnapshotListener should be made static, since the enclosing instance is not used.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2688)",
+        "timestamp": "2025-04-08T19:49:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] `processPendingSessions` method is only called when `role == LEADER` so no need to check for the role.\r\nHowever, there is another issue, i.e. update of `nextCommittedSessionId` before session is appended to the log. Instead the logic should be moved inside of the if statement body for `session.appendSessionToLogAndSendOpen` and it should be simplified to:\r\n```java\r\nnextCommittedSessionId = session.id() + 1;\r\n```",
+        "timestamp": "2025-04-09T19:24:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Simply use `nextCommittedSessionId` which is guaranteed to be correct for any node role.",
+        "timestamp": "2025-04-09T19:24:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Simply use `nextCommittedSessionId` which is guaranteed to be correct for any node role.",
+        "timestamp": "2025-04-09T19:24:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] No need for this (see below).",
+        "timestamp": "2025-04-09T19:25:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Why this change?",
+        "timestamp": "2025-04-09T19:26:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] This line needs to be moved inside of the if statement that follows it, i.e. after a session was appended to the log.\r\nThe `nextCommittedSessionId` needs to be protected against going backwards, i.e. pending sessions are processed from newest to oldest so the subsequent session will decrease the value.\r\nInstead we should also check that the value is larger, i.e. add `if (session.id() >= nextCommittedSessionId)`.",
+        "timestamp": "2025-04-10T07:20:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Protection against regression is missing, i.e. we must prevent `nextCommittedSessionId` from going backwards. Therefore a check is required to enforce `session.id() >= nextCommittedSessionId`.",
+        "timestamp": "2025-04-10T17:58:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] I previously had this...should I switch it back?  nextCommittedSessionId = Math.max(session.id() + 1, nextCommittedSessionId);",
+        "timestamp": "2025-04-11T13:42:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] actually, going with this:  nextCommittedSessionId = Math.max(session.id(),nextCommittedSessionId)+1;",
+        "timestamp": "2025-04-11T14:12:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Everywhere else the following pattern is used:\r\n```java\r\nif (clusterSessionId >= nextSessionId)\r\n{\r\n    nextSessionId = clusterSessionId + 1;\r\n}\r\n```\r\nAnd the same should be done here for `nextCommittedSessionId`.",
+        "timestamp": "2025-04-14T14:52:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] Let's allow at least two sessions to connect to test the logic that prevents `nextCommittedSessionId` going backwards.",
+        "timestamp": "2025-04-14T14:55:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] Instead of calling `TestClutser#connectClient` we should create a standalone `AeronCluster` instance. Something like this:\r\n```java\r\n// Original client - should always be allowed\r\nfinal AeronCluster client = connectClient();\r\n\r\nfinal AeronCluster.Context clientContext = new AeronCluster.Context()\r\n    .aeronDirectoryName(client.context().aeronDirectoryName())\r\n    .aeron(client.context().aeron())\r\n    .ingressChannel(client.context().ingressChannel())\r\n    .ingressStreamId(555)\r\n    .isIngressExclusive(true)\r\n    .egressChannel(client.context().egressChannel())\r\n    .egressStreamId(777)\r\n    .ingressEndpoints(client.context().ingressEndpoints());\r\n\r\n// Another session -> also OK\r\nfinal AeronCluster client2 = AeronCluster.connect(clientContext.clone());\r\n\r\n// Any further connections are rejected\r\nassertThrowsExactly(AuthenticationException.class, () -> AeronCluster.connect(clientContext.clone()));\r\n```",
+        "timestamp": "2025-04-14T15:06:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] done",
+        "timestamp": "2025-04-15T20:18:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] done",
+        "timestamp": "2025-04-15T20:19:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/ClusterTest.java] done",
+        "timestamp": "2025-04-15T20:19:15Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6816695",
+        "message": "synchronize session ids across cluster nodes",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-02T17:33:14Z"
+      },
+      {
+        "sha": "77c3ebb",
+        "message": "Changed the approach to tracking session ids across nodes",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-03T21:34:00Z"
+      },
+      {
+        "sha": "f595ad4",
+        "message": "fix failing test",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-04T15:18:01Z"
+      },
+      {
+        "sha": "8ae21d9",
+        "message": "Use committed session Id for snapshots",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-08T19:32:17Z"
+      },
+      {
+        "sha": "5bb56e0",
+        "message": "Cleanup imports",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-08T20:03:24Z"
+      },
+      {
+        "sha": "729d9c8",
+        "message": "Style issues",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-08T20:52:09Z"
+      },
+      {
+        "sha": "0f9528c",
+        "message": "Increase test timeout",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-09T14:01:42Z"
+      },
+      {
+        "sha": "2b7ad51",
+        "message": "changes from suggestions",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-09T20:44:50Z"
+      },
+      {
+        "sha": "6c5a4db",
+        "message": "increment nextCommittedSessionId after session is open",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-10T14:24:20Z"
+      },
+      {
+        "sha": "e9952fd",
+        "message": "Prevent session id from going backwards",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-11T14:53:50Z"
+      },
+      {
+        "sha": "0a94fe9",
+        "message": "consistency on session id integrity checks",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-04-15T19:12:40Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#2008",
+    "metadata": {
+      "title": "Added drain of queued commands during close to fix memory leaks",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-04-24T02:47:06Z",
+      "reviewers": [
+        "mikeb01",
+        "strangelydim"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "@vyazelenko hold off on this for just a bit... new test failure I need to address.",
+        "timestamp": "2026-04-15T17:50:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "@strangelydim The existing approach assumed user's ownership of the `async` object's memory. Therefore application thread was responsible for freeing said memory by:\r\n* Polling async object to completion.\r\n* Cancelling async operation (new API added recently).\r\n* Manually freeing async objects if no longer polling and/or aeron client is closed.\r\n\r\nC++ Wrapper relies on this and does manual freeing once `Aeron` is closed, see:\r\n\r\nhttps://github.com/aeron-io/aeron/blob/93e45901d06a32e490b536700e8244f0a8b411de/aeron-client/src/main/cpp_wrapper/Aeron.h#L91-L125\r\n\r\nIf we are going to change the existing logic than we need to update C++ Wrapper as well. \r\n\r\nI wonder what @mikeb01 thinks?",
+        "timestamp": "2026-04-15T19:05:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "The problem is if you have an cancel request inflight when the Aeron client is closed it will end up leaking because we have no other handle to that memory for a user to remove.\r\n\r\nAnother option would be to do something similar to the change I made in the driver, which was to use a ring buffer rather than a queue for the commands so that allocation is not required.  A command can just occupy space in the buffer.  For all of the add operations we would still need to allocate an object and for that store a pointer in the ring buffer, but for simple commands that don't need to be tracked by the user (e.g. cancels) the data can just be stored inline.",
+        "timestamp": "2026-04-16T01:00:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> The problem is if you have an cancel request inflight when the Aeron client is closed it will end up leaking because we have no other handle to that memory for a user to remove.\r\n\r\n@mikeb01 You are right. I was thinking about the `async` stucts only but cancel requests are a problem.\r\n\r\nThe proposed approach will work, albeit not being the most efficient, since it will effectively execute all commands in the queue including create requests. The driver will remove all client-specific resources once the client is closed (provided a client can send a request to remove itself from the driver that is). \r\n\r\nThe C++ Wrapper is effectively already using the same approach by calling `aeron_add_close_handler` which implicitly drains the command queue. So when the rest of the close proceeds there will be no commands in flight anymore.\r\n_**NB:** All add/remove handler methods (e.g. `aeron_add_close_handler`, `aeron_remove_close_handler`, `aeron_add_available_counter_handler` etc.) are blocking and force command queue to drain in order to execute the request. Unlike the rest of the aeron client API which is asynchronous._\r\n\r\nSo the questions are:\r\n\r\n1. Do we want to execute all pending commands or shall we just free the memory associated with them without executing?\r\n   I'm inclined to simply free memory.\r\n\r\n2. What shall we do with the `async` structs on close?\r\n   Currently they are an end user responsibility. However, actual resources (e.g. `aeron_subscription_t`, `aeron_publication_t`) are freed in the close method. Therefore it seems sensible that the `async` structs in the `registering_resources` array should be also freed.\r\n",
+        "timestamp": "2026-04-16T08:21:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "OK, just pushed a new fix that I _think_ should work:\r\n\r\n1. Keep track of all outstanding `aeron_client_remove_resource_cmd_t` objects in a list that is only ever modified by the user thread\r\n2. Added a volatile `processed` flag to `aeron_client_remove_resource_cmd_t`, false initially, set to true by the conductor thread after it has gotten to the remove and handled it\r\n3. `aeron_client_conductor_on_close` walks the list of outstanding `aeron_client_remove_resource_cmd_t` objects and frees all of them\r\n4. To prevent that list from just accumulating and accumulating... it's also walked by `aeron_client_conductor_async_remove_resource`, but _only_ cmds that have already been processed are free'd and removed from the list.  But that should be good enough to keep the max size of the list fairly small in practice.\r\n\r\nSo... that's at least one possible approach.  Seems to work in my testing so far....",
+        "timestamp": "2026-04-16T15:21:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> OK, just pushed a new fix that I _think_ should work:\r\n> \r\n>     1. Keep track of all outstanding `aeron_client_remove_resource_cmd_t` objects in a list that is only ever modified by the user thread\r\n> \r\n>     2. Added a volatile `processed` flag to `aeron_client_remove_resource_cmd_t`, false initially, set to true by the conductor thread after it has gotten to the remove and handled it\r\n> \r\n>     3. `aeron_client_conductor_on_close` walks the list of outstanding `aeron_client_remove_resource_cmd_t` objects and frees all of them\r\n> \r\n>     4. To prevent that list from just accumulating and accumulating... it's also walked by `aeron_client_conductor_async_remove_resource`, but _only_ cmds that have already been processed are free'd and removed from the list.  But that should be good enough to keep the max size of the list fairly small in practice.\r\n> \r\n> \r\n> So... that's at least one possible approach. Seems to work in my testing so far....\r\n\r\nI don't think it will work.\r\n\r\nFirst of all, there could be multiple application threads using a single `aeron_client_t`, i.e. the client is thread safe and could be shared across multiple threads.\r\n\r\nSecond, there are at least two threads writing to that list: application thread (when submitting) and the conductor thread (when removing). So the list pointer access must be atomic and volatile. \r\n\r\nWhy not simply scan command queue and free all instances of the `aeron_client_remove_resource_cmd_t`?",
+        "timestamp": "2026-04-16T15:34:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "> > OK, just pushed a new fix that I _think_ should work:\r\n> > ```\r\n> > 1. Keep track of all outstanding `aeron_client_remove_resource_cmd_t` objects in a list that is only ever modified by the user thread\r\n> > \r\n> > 2. Added a volatile `processed` flag to `aeron_client_remove_resource_cmd_t`, false initially, set to true by the conductor thread after it has gotten to the remove and handled it\r\n> > \r\n> > 3. `aeron_client_conductor_on_close` walks the list of outstanding `aeron_client_remove_resource_cmd_t` objects and frees all of them\r\n> > \r\n> > 4. To prevent that list from just accumulating and accumulating... it's also walked by `aeron_client_conductor_async_remove_resource`, but _only_ cmds that have already been processed are free'd and removed from the list.  But that should be good enough to keep the max size of the list fairly small in practice.\r\n> > ```\r\n> > \r\n> > \r\n> >     \r\n> >       \r\n> >     \r\n> > \r\n> >       \r\n> >     \r\n> > \r\n> >     \r\n> >   \r\n> > So... that's at least one possible approach. Seems to work in my testing so far....\r\n> \r\n> I don't think it will work.\r\n> \r\n> First of all, there could be multiple application threads using a single `aeron_client_t`, i.e. the client is thread safe and could be shared across multiple threads.\r\n> \r\n> Second, there are at least two threads writing to that list: application thread (when submitting) and the conductor thread (when removing). So the list pointer access must be atomic and volatile.\r\n> \r\n> Why not simply scan command queue and free all instances of the `aeron_client_remove_resource_cmd_t`?\r\n\r\nAh nuts, didn't realize the client needed to be thread-safe... So nope, this won't work as-is.\r\n\r\nI don't think the conductor thread modifies the list, though - at the point `aeron_client_conductor_on_close` is called, isn't the conductor thread already stopped?  I might be wrong...",
+        "timestamp": "2026-04-16T15:52:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "> Ah nuts, didn't realize the client needed to be thread-safe... So nope, this won't work as-is.\r\n\r\nCould band-aid it all even more and make the list of outstanding `aeron_client_remove_resource_cmd_t` objects thread-local, and have every user thread that calls `aeron_client_conductor_async_remove_resource` register a pointer to its thread-local outstanding `aeron_client_remove_resource_cmd_t` list to a master list o' lists (just on that thread's very first call to `aeron_client_conductor_async_remove_resource`) that is protected by an actual lock.\r\n\r\nEach individual user thread would then be responsible for the \"lazy\" frees of its own remove_cmds that had already been processed, and the rest would then still be cleaned up by `aeron_client_conductor_on_close` which would walk through each of the thread-local lists at that point rather than just the one big list that's in my current commit.\r\n\r\nToo complicated?",
+        "timestamp": "2026-04-16T16:02:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "OK, pushed yet another update to make this now one of the most complicated ways to ever fix a small and infrequent memory leak ever written... but... probably works and isn't slow?",
+        "timestamp": "2026-04-16T17:51:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "> OK, pushed yet another update to make this now one of the most complicated ways to ever fix a small and infrequent memory leak ever written... but... probably works and isn't slow?\r\n\r\nSeems to work great with pthreads... not so great on Windows, where the Aeron TLS code doesn't support TLS destructors. But could be modified to support them ala https://iangrunert.com/2025/08/04/fiber-local-storage-slow . Boy howdy, and I thought this would be simple.",
+        "timestamp": "2026-04-16T18:48:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "> > OK, pushed yet another update to make this now one of the most complicated ways to ever fix a small and infrequent memory leak ever written... but... probably works and isn't slow?\r\n> \r\n> Seems to work great with pthreads... not so great on Windows, where the Aeron TLS code doesn't support TLS destructors. But could be modified to support them ala https://iangrunert.com/2025/08/04/fiber-local-storage-slow . Boy howdy, and I thought this would be simple.\r\n\r\nWindows should probably support TLS destructors anyway for parity with Linux/macOS (we probably have a tiny leak of aeron_errmsg there now), regardless of the approach we take here, so: https://github.com/aeron-io/aeron/pull/2009\r\n\r\n(And yes - with the commit in the above PR added to this one, the Windows tests pass for me as well.)",
+        "timestamp": "2026-04-16T19:42:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> > OK, pushed yet another update to make this now one of the most complicated ways to ever fix a small and infrequent memory leak ever written... but... probably works and isn't slow?\r\n> \r\n> Seems to work great with pthreads... not so great on Windows, where the Aeron TLS code doesn't support TLS destructors. But could be modified to support them ala https://iangrunert.com/2025/08/04/fiber-local-storage-slow . Boy howdy, and I thought this would be simple.\r\n\r\n@strangelydim Can we step back and think about what problem we are trying to solve?\r\n\r\nThe main issue is pending `cancel` requests that were submitted but not yet executed by the client conductor thread, right? There is no problem if:\r\n* `cancel` request failed during submission, i.e. no space in the conductor command queue in which case the request is freed on the application thread.\r\n* `cancel` request was submitted and client conductor thread executed it. In this case the `cancel` struct will be freed on the conductor thread.\r\n\r\nThe remaining case is when such `cancel` request sits on the conductor command queue (`command_queue`). So how about we drain this queue in the `aeron_client_conductor_on_close` method and simply free every pending command? Similar to how we delete resources in the `resource_by_id_map` map. This would also solve the issue with non-polled `async` structs and will simplify our C++ Wrapper impl.\r\n\r\nWe use a similar approach when closing `async_executor`:\r\n\r\nhttps://github.com/aeron-io/aeron/blob/a092f5bd9f04f882be4bc7cdec5a3e86c115edd5/aeron-client/src/main/c/concurrent/aeron_executor.c#L79-L93\r\n\r\n/cc @mikeb01 ",
+        "timestamp": "2026-04-16T19:45:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "> So how about we drain this queue in the `aeron_client_conductor_on_close` method and simply free every pending command?\r\n\r\nWith or without calling the user's `on_complete` function?  We'd probably want to call it... presumably the user set it for a good reason it. Could that cause any issues?",
+        "timestamp": "2026-04-16T20:13:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> > So how about we drain this queue in the `aeron_client_conductor_on_close` method and simply free every pending command?\r\n> \r\n> With or without calling the user's `on_complete` function? We'd probably want to call it... presumably the user set it for a good reason it. Could that cause any issues?\r\n\r\nWith `on_complete` function for parity with normal close operation. However, `_cancel` (e.g. `aeron_async_add_subscription_cancel`) and `_remove` (e.g. `aeron_async_remove_subscription`) APIs were added just 2 weeks ago (i.e. are not yet released) so we can change them not to have the `on_complete` functions. At the momemnt those are used to free the corresponding `async` struct. ",
+        "timestamp": "2026-04-16T20:53:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "strangelydim",
+        "role": "CONTRIBUTOR",
+        "body": "I really do think the `on_complete` callbacks are useful, and so wouldn't want to remove them, but also agree that the fancy TLS approach was overkill.\r\n\r\nSo new approach: tagged pointers. Set the LSB on remove cmds to mark them as such, and then we don't need to dereference each command in `aeron_client_conductor_on_close` to tell if it was a remove command or not (because if not, it was probably already free'd, so we'd blow up just trying to check what type of command it was). Now if the LSB is set, we know it's a remove command and safe to deref during close, calling the user's `on_complete` callback inline inside `aeron_client_conductor_on_close` and then free'ing the cmd.\r\n\r\nNo insane TLS machinery needed, preserves user callbacks and ordering, simple code.  @vyazelenko - just pushed to this branch if you'd like to take a look. I think this solution is fine as long as we can stomach using tagged pointers.  Tests all pass with this approach as well.",
+        "timestamp": "2026-04-17T21:41:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "> Set the LSB on remove cmds to mark them as such, and then we don't need to dereference each command in aeron_client_conductor_on_close to tell if it was a remove command or not (because if not, it was probably already free'd, so we'd blow up just trying to check what type of command it was). \r\n\r\nWhen a command is processed it is removed from the list. So by definition the only items in the list are non-processed items and hence not yet freed.\r\n\r\nTo me the approach with pointer tagging seems like an overkill. ",
+        "timestamp": "2026-04-23T13:36:37Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ccd212f",
+        "message": "[C] Drain pending remove cmds on conductor close to avoid a possible leak.",
+        "author": "Eric Bowden",
+        "timestamp": "2026-04-17T21:17:26Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#2052",
+    "metadata": {
+      "title": "Roll Debug File Logs Based on File Size (C Driver)",
+      "labels": [],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-05-26T13:05:18Z",
+      "reviewers": [
+        "github-advanced-security",
+        "mikeb01",
+        "vyazelenko"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / File created without restricting permissions\n\nA file may be created here with mode 0666, which would make it world-writable.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2796)",
+        "timestamp": "2026-05-21T04:32:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to fopen(__filename).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2799)",
+        "timestamp": "2026-05-21T04:32:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / File created without restricting permissions\n\nA file may be created here with mode 0666, which would make it world-writable.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2795)",
+        "timestamp": "2026-05-21T04:32:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to fopen(__filename).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2798)",
+        "timestamp": "2026-05-21T04:32:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/test/c/agent/aeron_driver_agent_test.cpp] ## CodeQL / File created without restricting permissions\n\nA file may be created here with mode 0666, which would make it world-writable.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2797)",
+        "timestamp": "2026-05-21T04:32:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Commented-out code\n\nThis comment appears to contain commented-out code.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2794)",
+        "timestamp": "2026-05-21T04:32:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Commented-out code\n\nThis comment appears to contain commented-out code.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2793)",
+        "timestamp": "2026-05-21T04:32:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to aeron_open_log_file(path), which calls open(__path).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2801)",
+        "timestamp": "2026-05-22T00:45:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to aeron_open_log_file(path), which calls open(__path).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2800)",
+        "timestamp": "2026-05-22T00:45:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/test/c/agent/aeron_driver_agent_test.cpp] ## CodeQL / File created without restricting permissions\n\nA file may be created here with mode 0666, which would make it world-writable.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2803)",
+        "timestamp": "2026-05-24T22:44:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/test/c/aeron_name_resolver_test.cpp] ## CodeQL / File created without restricting permissions\n\nA file may be created here with mode 0666, which would make it world-writable.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2804)",
+        "timestamp": "2026-05-25T04:12:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] Use `AERON_MAX_PATH`.",
+        "timestamp": "2026-05-25T06:59:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/c/agent/aeron_driver_agent_test.cpp] Use `AERON_MAX_PATH`.",
+        "timestamp": "2026-05-25T07:02:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.h] Given that this function is agent logging specific I think it should move to `aeron_driver_agent`. This will require making `aeron_create_file` public.",
+        "timestamp": "2026-05-25T07:03:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.c] Why `+1`?",
+        "timestamp": "2026-05-25T07:15:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.c] Why `+1`?\n\nAlso there are two constants for max path value:\n```\n#define AERON_MAX_PATH (4096) // max path name including NUL character\n\n#define AERON_MAX_FILE_PATH_LENGTH (4096)\n```\nBoth assume max path + `NUL` character at the end. I think we should use just one.",
+        "timestamp": "2026-05-25T07:15:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] Same question as with the Java PR, i.e. should we print current epoch time instead?",
+        "timestamp": "2026-05-25T07:20:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] Constant on the left.",
+        "timestamp": "2026-05-25T07:21:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.h] I wanted to keep the platform specific functionality out of the logging agent.  I've renamed this to `aeron_open_file_append`.  I had a look to see if it could use the `aeron_create_file`.  However, there are some differing semantics.  I think some of this could be unified, but should out of scope for this PR.",
+        "timestamp": "2026-05-25T21:42:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.c] The original code uses the constant MAX_PATH.  However when `GetTempPath` is called it takes the path and appends the final trailing backslash to the end of it, potentially making the length of the returned value of the string an extra character longer than the system max path.",
+        "timestamp": "2026-05-25T21:55:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.c] I'm converting everything to AERON_MAX_PATH.",
+        "timestamp": "2026-05-25T22:09:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/util/aeron_fileutil.c] We're now using AERON_MAX_PATH which will be larger than this.",
+        "timestamp": "2026-05-25T22:12:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] Fixed.",
+        "timestamp": "2026-05-25T22:15:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] Fixed.",
+        "timestamp": "2026-05-25T22:15:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to aeron_open_file_append(path), which calls open(__path).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2806)",
+        "timestamp": "2026-05-25T22:29:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/agent/aeron_driver_agent.c] ## CodeQL / Uncontrolled data used in path expression\n\nThis argument to a file access function is derived from [user input (an environment variable)](1) and then passed to aeron_open_file_append(path), which calls open(__path).\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2805)",
+        "timestamp": "2026-05-25T22:29:16Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5d8f812",
+        "message": "[C Driver] Add driver debug log file rolling.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-21T02:00:37Z"
+      },
+      {
+        "sha": "dbc82cb",
+        "message": "[C Driver] Add max event log file length configuration.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-21T03:20:19Z"
+      },
+      {
+        "sha": "2110408",
+        "message": "[C Driver] Refactor method to take stream as a parameter.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-21T04:06:33Z"
+      },
+      {
+        "sha": "a56fccc",
+        "message": "[C Driver] Fix compiler warning.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-21T04:16:49Z"
+      },
+      {
+        "sha": "c754f17",
+        "message": "[C Driver] Fix windows compiler error.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-21T23:56:08Z"
+      },
+      {
+        "sha": "087c07b",
+        "message": "[C Driver] Open log file using open/fdopen to get correct file permissions. Move to utility function to handle Windows as well.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-22T00:29:58Z"
+      },
+      {
+        "sha": "c935d6b",
+        "message": "[C] Introduce common function for temporary directory.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-22T02:18:57Z"
+      },
+      {
+        "sha": "34576fc",
+        "message": "[C] Add Windows based directory scan function for the driver agent test.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T20:23:00Z"
+      },
+      {
+        "sha": "1489fd9",
+        "message": "[C] Remove off64_t in favour of off_t, fix compile error on Mac.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T20:27:46Z"
+      },
+      {
+        "sha": "e13ce08",
+        "message": "[C] Additional fixes for Windows.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T20:42:04Z"
+      },
+      {
+        "sha": "b33df0f",
+        "message": "[C] Additional fixes for Windows, #2.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T20:49:07Z"
+      },
+      {
+        "sha": "7ca04a0",
+        "message": "[C] Additional fixes for Windows, #3.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T20:59:57Z"
+      },
+      {
+        "sha": "51b9a7c",
+        "message": "[C] Additional fixes for Windows, #4.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T21:10:03Z"
+      },
+      {
+        "sha": "637857a",
+        "message": "[C] Additional fixes for Windows, #5.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T21:31:12Z"
+      },
+      {
+        "sha": "4d7121e",
+        "message": "[C] Additional fixes for Windows, #6.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T22:01:45Z"
+      },
+      {
+        "sha": "1107bab",
+        "message": "[C] Additional fixes for Mac, #7.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T22:09:41Z"
+      },
+      {
+        "sha": "073fdc1",
+        "message": "[C] Additional fixes for Windows, #8.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T22:18:41Z"
+      },
+      {
+        "sha": "f754c1c",
+        "message": "[C] Additional fixes for Windows, #9.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-24T22:28:55Z"
+      },
+      {
+        "sha": "313c5fb",
+        "message": "[C] Additional fixes for Windows, #10.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T01:47:18Z"
+      },
+      {
+        "sha": "f45a9c6",
+        "message": "[C] Use aeron constant for max path length.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T02:22:50Z"
+      },
+      {
+        "sha": "6f6976d",
+        "message": "[C] Close the correct file pointer in shouldWriteHeaderToLogFile test.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T02:28:13Z"
+      },
+      {
+        "sha": "71421db",
+        "message": "[C] Fix NameResolver.shouldHandleDisscetion test. Pass file pointer to the dissection function and remove stdout capture.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T03:56:50Z"
+      },
+      {
+        "sha": "bacb3b6",
+        "message": "[C] Fix CodeQL issues.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T04:33:53Z"
+      },
+      {
+        "sha": "6f69ed4",
+        "message": "[C] Use AERON_MAX_PATH in all places where file lengths are used. Remove AERON_MAX_FILE_PATH_LENGTH.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T21:25:27Z"
+      },
+      {
+        "sha": "12bba98",
+        "message": "[C] Rename aeron_open_log_file to aeron_open_file_append.",
+        "author": "Michael Barker",
+        "timestamp": "2026-05-25T22:14:21Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1604",
+    "metadata": {
+      "title": "Error Frames and User Image Invalidation",
+      "labels": [],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-09-04T01:02:15Z",
+      "reviewers": [
+        "mikeb01",
+        "github-advanced-security",
+        "mjpt777",
+        "wojciech-adaptive",
+        "vyazelenko"
+      ],
+      "changed_files": 87
+    },
+    "issue_payload": {
+      "body": "* Support the ability to allow a user to invalidate an image within a subscription.\r\n* Report error frames for publications back to the client."
+    },
+    "discussion_timeline": [
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-client/src/test/java/io/aeron/ImageTest.java] ## Unread local variable\n\nVariable 'long maxPosition' is never read.\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2587)",
+        "timestamp": "2024-05-24T04:23:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/aeron_driver_conductor.c] ## Too many arguments to formatting function\n\nFormat for aeron_err_set (in a macro expansion) expects 0 arguments but given 1\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2588)",
+        "timestamp": "2024-05-24T04:46:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_driver_conductor.c] @mikeb01 The format option for the correlationId argument is missing.",
+        "timestamp": "2024-05-27T10:06:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/ImageInvalidationTest.java] ## Ignored error status of call\n\nMethod onPublicationError ignores exceptional return value of OneToOneConcurrentArrayQueue<ErrorFrame>.offer.\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2594)",
+        "timestamp": "2024-06-19T02:44:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/ImageInvalidationTest.java] ## Ignored error status of call\n\nMethod onPublicationError ignores exceptional return value of OneToOneConcurrentArrayQueue<PublicationErrorFrame>.offer.\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2595)",
+        "timestamp": "2024-06-24T02:41:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "wojciech-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/Aeron.java] The naming here is inconsistent (handler/listener). Worth adding what thread will this be called on?",
+        "timestamp": "2024-06-24T07:46:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "wojciech-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/Aeron.java] By this client?",
+        "timestamp": "2024-06-24T07:46:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "wojciech-adaptive",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/status/SystemCounterDescriptor.java] From peers or maybe we can just drop it?",
+        "timestamp": "2024-06-24T08:10:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/Image.java] I feel \"reject\" is a better name here. The image itself is not invalid.",
+        "timestamp": "2024-07-04T08:47:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/Subscription.java] Please consider \"reject\" as a better name.",
+        "timestamp": "2024-07-04T08:47:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/protocol/ErrorFlyweight.java] Missing javadoc",
+        "timestamp": "2024-07-04T08:49:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/protocol/ErrorFlyweight.java] It would be better to treat encoded strings at US_ASCII as this is consistent elsewhere and ports to C.",
+        "timestamp": "2024-07-04T08:50:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/status/SystemCounterDescriptor.java] Should we have a corresponding error frames sent counter?",
+        "timestamp": "2024-07-04T08:54:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/RejectImageTest.java] ## Ignored error status of call\n\nMethod onPublicationError ignores exceptional return value of OneToOneConcurrentArrayQueue<PublicationErrorFrame>.offer.\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2607)",
+        "timestamp": "2024-07-23T02:33:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/aeron_client_conductor.c] How significant is this TODO?",
+        "timestamp": "2024-08-29T04:42:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/command/aeron_control_protocol.h] Consider re-ordering fields to avoid alignment gaps, i.e. keep int64_t first, then int32_t etc.",
+        "timestamp": "2024-08-29T04:45:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/protocol/aeron_udp_protocol.h] Struct fields order and alignment gaps.",
+        "timestamp": "2024-08-29T04:46:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/aeronc.h] Naming. The one in Java is called `publicationErrorFrameHandler` whereas in C we call just `error_frame_handler`?",
+        "timestamp": "2024-08-29T04:48:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/ClientConductor.java] Is the length check missing?",
+        "timestamp": "2024-08-29T04:49:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/command/ControlProtocolEvents.java] Add `@Since` tag.",
+        "timestamp": "2024-08-29T04:51:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/command/ControlProtocolEvents.java] Add `@Since` tag.",
+        "timestamp": "2024-08-29T04:51:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/command/ControlProtocolEvents.java] Add `@Since` tag.",
+        "timestamp": "2024-08-29T04:51:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/Aeron.java] Add `@Since` tag.",
+        "timestamp": "2024-08-29T04:51:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_publication_image.c] Stale TODO?",
+        "timestamp": "2024-08-29T04:54:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/PublicationImage.java] Debug statement was not removed.",
+        "timestamp": "2024-08-29T04:56:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/CmdInterceptor.java] `CMD_IN_REMOVE_DESTINATION_BY_ID` is missing.\r\n\r\nAlso logging changes in the C driver are missing.",
+        "timestamp": "2024-08-29T05:00:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/command/aeron_control_protocol.h] I did consider that, but I think it will be okay as all of the fields are currently on their matching alignment.  E.g. we have 64 bits between the `destination_registration_id` and the `receeiver_id`.  It should remain okay if it changes as long as 64 bit values are placed between `group_tag` and `address_type`.",
+        "timestamp": "2024-08-29T08:26:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/CmdInterceptor.java] That was missing from a previous PR, will fix in master.",
+        "timestamp": "2024-08-29T18:57:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/protocol/aeron_udp_protocol.h] All of the fields remain aligned, so I'm going to leave it as is.",
+        "timestamp": "2024-09-02T02:57:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/ClientConductor.java] Handled in the driver and is also bound by the size of the Many2One buffer.",
+        "timestamp": "2024-09-02T04:11:04Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "e38ed04",
+        "message": "[Java] Use private method to update state in PublicationImage.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-14T03:09:27Z"
+      },
+      {
+        "sha": "3eae27d",
+        "message": "[Java] Add basic test and command to invalidate and image from user code. Prevent new data being inserted into an invalidated image. Add logging.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-20T00:23:07Z"
+      },
+      {
+        "sha": "2b2af13",
+        "message": "[Java] Set image invalidation test as a slow test. Early exit of image is found during invalidation on the receiver.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-24T03:09:20Z"
+      },
+      {
+        "sha": "23da70a",
+        "message": "[Java] Start adding ErrorFlyweight.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-27T23:29:22Z"
+      },
+      {
+        "sha": "0fa5893",
+        "message": "[Java] Pass invalidation reason through to the source publication and have it disconnect.  Allow receiver side image to linger to prevent immediately recreation of the image.  Treat errors received by the NetworkPublication to behaviour like end of stream messages.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-12T03:01:59Z"
+      },
+      {
+        "sha": "6e98c4d",
+        "message": "[C] Start adding invalidate image information.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-20T03:26:41Z"
+      },
+      {
+        "sha": "0c21ecf",
+        "message": "[C] Invalidate image on the receiver.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-24T03:10:22Z"
+      },
+      {
+        "sha": "108b9fc",
+        "message": "[Java/C] Fix CodeQL errors.",
+        "author": "Michael Barker",
+        "timestamp": "2024-05-27T22:34:15Z"
+      },
+      {
+        "sha": "68a059f",
+        "message": "[C] Add support for send/receiving error frames and update flow control and liveness.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-12T23:47:22Z"
+      },
+      {
+        "sha": "0c58d8e",
+        "message": "[C] Tighten stack allocation of buffer to work better with MSVC.  Don't send max frame size each time.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-13T01:36:08Z"
+      },
+      {
+        "sha": "1eb13e6",
+        "message": "[Java] New system counter to track number of error messages received.  Check that we don't spam out error messages too quickly.  Reset timestamp of last SM sent by the publication image when sending errors.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-13T02:56:39Z"
+      },
+      {
+        "sha": "74c5e7e",
+        "message": "[C] New system counter to track number of error messages received.  Check that we don't spam out error messages too quickly.  Reset timestamp of last SM sent by the publication image when sending errors.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-13T02:59:09Z"
+      },
+      {
+        "sha": "805924a",
+        "message": "[Java] Add additional tests for EOS and errors for MDC publications.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-14T01:26:21Z"
+      },
+      {
+        "sha": "87ed206",
+        "message": "[Java] Limit the length of the invalidation reason.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-14T04:12:23Z"
+      },
+      {
+        "sha": "cfb36cf",
+        "message": "[C] Limit reason length for image invalidation.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-14T04:48:57Z"
+      },
+      {
+        "sha": "0d3a237",
+        "message": "[Java] Allow test to run on C media driver.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-16T18:49:13Z"
+      },
+      {
+        "sha": "8a40f02",
+        "message": "[C/Java] Rename Error Messages to Error Frames.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-16T22:43:26Z"
+      },
+      {
+        "sha": "9f63664",
+        "message": "[Java] Log errors when error frames are received.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T00:33:20Z"
+      },
+      {
+        "sha": "03a34c5",
+        "message": "[C] Log errors when error frames are received.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T04:11:41Z"
+      },
+      {
+        "sha": "04b88ce",
+        "message": "[Java] Enable test for C driver.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T04:12:19Z"
+      },
+      {
+        "sha": "426cb5c",
+        "message": "[Java] Checkstyle.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T04:29:25Z"
+      },
+      {
+        "sha": "d6eea13",
+        "message": "[C] Use C++ compliant flexible array member.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T06:37:00Z"
+      },
+      {
+        "sha": "9ecd94c",
+        "message": "[C] Handle flexible array members in MSVC.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-17T23:21:57Z"
+      },
+      {
+        "sha": "f03acaa",
+        "message": "[C] Use flexible array member correctly in more places for reason text on invalidate image.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-18T03:16:28Z"
+      },
+      {
+        "sha": "3d09285",
+        "message": "[Java] First pass at surfacing error frames to the client.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-19T02:36:39Z"
+      },
+      {
+        "sha": "14b7fd0",
+        "message": "[C] Send publication error frames to the client.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-19T03:57:41Z"
+      },
+      {
+        "sha": "8aece1d",
+        "message": "[Java] Enable test for C driver.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-20T03:47:05Z"
+      },
+      {
+        "sha": "b6c3863",
+        "message": "[Java] Only report publication error frame to client that has the publication registered.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-20T04:17:21Z"
+      },
+      {
+        "sha": "9aeb7c7",
+        "message": "[Java] Start encapsulating all fields relating to an error frame in an object to be reported to the caller.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-20T22:39:13Z"
+      },
+      {
+        "sha": "999f7a9",
+        "message": "[Java] Add additional parameters including source address of the error frame.",
+        "author": "Michael Barker",
+        "timestamp": "2024-06-24T02:31:26Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1880",
+    "metadata": {
+      "title": "allow custom aeron directory in TestCluster",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-11-11T16:15:55Z",
+      "reviewers": [
+        "ryanoftalltrees",
+        "github-advanced-security",
+        "vyazelenko"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Use `\"-\" + index` like we do for the `baseDirName`.",
+        "timestamp": "2025-11-06T14:06:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Use `\"-\" + index` like we do for the `baseDirName`.",
+        "timestamp": "2025-11-06T14:06:19Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Use `\"-\" + index` like we do for the `baseDirName`.",
+        "timestamp": "2025-11-06T14:06:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Use `\"-\" + index` like we do for the `baseDirName`.",
+        "timestamp": "2025-11-06T14:06:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] This should be replaced with `CommonContext.generateRandomDirName()` to ensure that tests don't interact badly.",
+        "timestamp": "2025-11-06T14:08:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/AppointedLeaderTest.java] Instead of changing existing tests to use `aeronBaseDir` you should write a dedicated test and add it to the `ClusterTest` class. There you should verify that drivers of all nodes as well as the client driver all use the same base dir.",
+        "timestamp": "2025-11-06T14:12:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/AppointedLeaderTest.java] Will do",
+        "timestamp": "2025-11-06T14:33:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] My intention here was to leave the default behavior exactly as it is now.  Currently, it uses CommonContext.generateRandomDirName() for each individual aeron dir in the cluster.  (This was modified in July, '25).  Using a base dir + \"-\" + random UUID gives the exact same behavior as current if base dir isn't overridden.  Your suggestion here wouldn't allow for a different aeron dir for each node.  Happy to change it to use the index though as that makes sense.  but I'm guessing you changed the behavior to absolutely ensure each node gets a fully unique aeron dir?",
+        "timestamp": "2025-11-06T14:39:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Using `CommonContext.generateRandomDirName()` and adding `index` for each node will ensure just that. You'll also need to ensure that client driver will use a unique `aeron.dir`.",
+        "timestamp": "2025-11-06T14:48:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] ok, got it.  thanks",
+        "timestamp": "2025-11-06T14:51:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/TestClusterTest.java] ## Unread local variable\n\nVariable 'TestNode leader' is never read.\n\n[Show more details](https://github.com/aeron-io/aeron/security/code-scanning/2706)",
+        "timestamp": "2025-11-07T21:48:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/TestClusterTest.java] Inject this directory at the test level not the class.",
+        "timestamp": "2025-11-10T10:21:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/TestClusterTest.java] Needs `TempDir` injected.",
+        "timestamp": "2025-11-10T10:22:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/TestClusterTest.java] Instead of a negative assert use a positive one, i.e. check that the directory starts with the `baseDir`. Please use `MatcherAssert.assertThat` API, i.e.:\n```java\nMatcherAssert.assertThat(dir, Matchers.startsWith(aeronDirectory));\n```",
+        "timestamp": "2025-11-10T10:31:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/cluster/TestClusterTest.java] Same as above.",
+        "timestamp": "2025-11-10T10:31:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Should also use `aerobBaseDir` with a fixed suffix (e.g. `-client`).",
+        "timestamp": "2025-11-10T10:32:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Sorry, but I don't understand this request.  You want the default aeron base dir to have \"-client\" at the end of it?  or just on the client media driver?",
+        "timestamp": "2025-11-10T15:33:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Just the client driver. As for the default value it should be `CommonContext.generateRandomDirName()` like you already had.",
+        "timestamp": "2025-11-10T15:46:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ryanoftalltrees",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-test-support/src/main/java/io/aeron/test/cluster/TestCluster.java] Great, thanks",
+        "timestamp": "2025-11-10T17:10:52Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d4a047d",
+        "message": "allow custom aeron directory in TestCluster",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-10-31T17:47:52Z"
+      },
+      {
+        "sha": "fa70068",
+        "message": "Remove unused import",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-10-31T18:01:24Z"
+      },
+      {
+        "sha": "27e455d",
+        "message": "default to exact same method for getting aeron dir as before",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-11-03T17:22:38Z"
+      },
+      {
+        "sha": "ddcc887",
+        "message": "Use recommended approach from PR for aeron dir default in TestCluster",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-11-07T21:42:52Z"
+      },
+      {
+        "sha": "f0a671c",
+        "message": "Use custom dir for client",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-11-10T14:47:07Z"
+      },
+      {
+        "sha": "1896a84",
+        "message": "modified tests based on suggestions in PR",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-11-10T16:57:46Z"
+      },
+      {
+        "sha": "08ecc63",
+        "message": "update aeron dir name for client driver",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-11-10T18:53:00Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1640",
+    "metadata": {
+      "title": "[Java] add config option and uri param for setting max retransmits",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-08-20T19:11:31Z",
+      "reviewers": [
+        "mikeb01",
+        "nbradac",
+        "mjpt777",
+        "github-advanced-security",
+        "vyazelenko"
+      ],
+      "changed_files": 28
+    },
+    "issue_payload": {
+      "body": "Could use some feedback on uri param name and system property name.\r\n\r\nAlso, right now I'm grabbing the default right before passing the value to the RetransmitHandler.  I *could* change that so the PublicationParams object always ends up with a valid maxRetransmits value (set either via the uri, system property, or the default).  Not sure if matters much either way, but perhaps there are reasons for/against such a refactor."
+    },
+    "discussion_timeline": [
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/PublicationParams.java] I think we should have an upper bound on this as well because it will affect the amount of space allocated.",
+        "timestamp": "2024-07-23T02:24:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/RetransmitHandlerTest.java] I'd prefer this to be an explicit value in the test as we could end up with non-reproducible tests if system properties started creeping in from somewhere.",
+        "timestamp": "2024-07-23T02:26:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/ChannelUriStringBuilder.java] Add original exception as a cause like other methods do (e.g. `termOffset`).",
+        "timestamp": "2024-08-14T14:27:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeronmd.h] The name of the variable does not match the value, why? For all other parameters we use the `VALUE_ENV_VAR=\"VALUE\"`.",
+        "timestamp": "2024-08-14T14:31:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/c/uri/aeron_uri.h] Variable name does not match the value. Other keys use `AERON_URI_VALUE_KEY \"value\"`.",
+        "timestamp": "2024-08-14T14:32:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/cpp/ChannelUri.h] Name and value do not match unlike other parameters.",
+        "timestamp": "2024-08-14T14:33:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/cpp_wrapper/ChannelUri.h] Naming.",
+        "timestamp": "2024-08-14T14:33:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/main/java/io/aeron/CommonContext.java] Naming. Why the value is `retransmits-active-max` and not simply `max-retransmits` or `retransmits-max`?\r\nIn any case the variable name should reflect the value like we have for other parameters.",
+        "timestamp": "2024-08-14T14:34:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/uri/aeron_driver_uri.c] Would be good to include an actual value that fails this validation.",
+        "timestamp": "2024-08-14T14:36:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/PublicationParams.java] please add actual value to the exception message.",
+        "timestamp": "2024-08-16T16:14:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/uri/aeron_driver_uri.c] We should use the [standardised fixed width integer type](https://en.cppreference.com/w/c/types/integer) macros for printing, e.g. in this case PRIu64.",
+        "timestamp": "2024-08-19T01:04:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/DriverConductor.java] The fallback value should be derived from the driver context, the `Configuration.retransmitsActiveMax()` should be used to set initial value on the context.",
+        "timestamp": "2024-08-19T01:24:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nbradac",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/DriverConductor.java] Good catch!",
+        "timestamp": "2024-08-19T16:07:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-advanced-security",
+        "role": "NONE",
+        "body": "[aeron-driver/src/main/c/uri/aeron_driver_uri.c] ## Too many arguments to formatting function\n\nFormat for aeron_err_set (in a macro expansion) expects 2 arguments but given 3\n\n[Show more details](https://github.com/real-logic/aeron/security/code-scanning/2612)",
+        "timestamp": "2024-08-19T17:48:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nbradac",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/uri/aeron_driver_uri.c] D'oh",
+        "timestamp": "2024-08-19T17:57:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/uri/aeron_driver_uri.c] Should it be resend hander and not retransmit handler?",
+        "timestamp": "2024-08-19T17:59:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "LGTM",
+        "timestamp": "2024-08-19T22:10:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-client/src/test/java/io/aeron/ChannelUriStringBuilderTest.java] Test naming.",
+        "timestamp": "2024-08-20T12:49:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_retransmit_handler.c] Shouldn't this be called `max_resend` now?",
+        "timestamp": "2024-08-20T12:51:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/c/aeron_retransmit_handler.h] `max_resend`?",
+        "timestamp": "2024-08-20T12:51:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/RetransmitHandler.java] `maxResend`?",
+        "timestamp": "2024-08-20T12:54:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "LGTM",
+        "timestamp": "2024-08-20T12:57:46Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "683308b",
+        "message": "[Java] add config option and uri param for setting max retransmits",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-22T17:07:44Z"
+      },
+      {
+        "sha": "fa8971a",
+        "message": "[Java] fix checkstyle",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-22T18:02:21Z"
+      },
+      {
+        "sha": "c299c34",
+        "message": "[Java] add a max to the max_retransmits",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-23T20:19:00Z"
+      },
+      {
+        "sha": "c2be890",
+        "message": "Merge branch 'master' into configurable-max-retrans-actions",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-06T22:23:51Z"
+      },
+      {
+        "sha": "b90ec30",
+        "message": "[C] C implementation of configurable max retransmits",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-07T01:44:04Z"
+      },
+      {
+        "sha": "addc1da",
+        "message": "[C] use AERON_RETRANSMIT_HANDLER_MAX_RETRANSMITS_MAX instead of 256",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-07T13:50:53Z"
+      },
+      {
+        "sha": "8fad029",
+        "message": "[Java] update ChannelUriStringBuilder for maxRetransmits",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-12T18:50:32Z"
+      },
+      {
+        "sha": "22eb3d6",
+        "message": "[C++] update cpp and cpp_wrapper uri string builder for max retransmits",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-13T14:42:58Z"
+      },
+      {
+        "sha": "7772cf9",
+        "message": "[Java] updates to conform with naming standards",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-16T14:48:05Z"
+      },
+      {
+        "sha": "c36ec76",
+        "message": "[C,C++] updates to conform with naming standards",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-16T15:43:39Z"
+      },
+      {
+        "sha": "2226729",
+        "message": "[C] add better logging when configured max is out of valid range",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-16T16:06:27Z"
+      },
+      {
+        "sha": "28740fe",
+        "message": "[Java] add invalid value to illegal argument exception message",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-16T16:23:25Z"
+      },
+      {
+        "sha": "136d525",
+        "message": "[Java] switch to max-resend",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-19T16:49:45Z"
+      },
+      {
+        "sha": "820f80f",
+        "message": "[C,C++] switch to max-resend",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-19T17:31:35Z"
+      },
+      {
+        "sha": "4b3e63a",
+        "message": "[C] fix invalid print format",
+        "author": "Nate Bradac",
+        "timestamp": "2024-08-19T17:56:54Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1370",
+    "metadata": {
+      "title": "[Java/C] Improve handling of the out of disc space errors.",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-11-23T17:59:43Z",
+      "reviewers": [
+        "mjpt777",
+        "mikeb01",
+        "vyazelenko"
+      ],
+      "changed_files": 27
+    },
+    "issue_payload": {
+      "body": "This PR contains the following changes:\r\n* Add `StorageSpaceException` that is thrown when there is not enough space to create a log buffer.\r\n* Translate the above exception into the client visible error code `STORAGE_SPACE`.\r\n* Update the C driver to return `AERON_ERROR_CODE_STORAGE_SPACE` if insufficient storage space when creating log buffers.\r\n* [C] Fix storage space calculation on MacOS.\r\n* [C] Add support for sparse files on Windows.\r\n* [C] Allocate storage space for non-sparse files.\r\n* [C] Recognize OS-specific out of disc space errors.\r\n* [C] Add OS-specific error handling for the file system calls. "
+    },
+    "discussion_timeline": [
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "It would be useful to have a system test, so that we can check that both the C driver and Java driver send the appropriate storage errors.  I think if we get a `AERON_ERROR_CODE_STORAGE_SPACE` I think it will come through as `AERON_ERROR_CODE_GENERIC_ERROR`.\r\n\r\nI think the best would be to have the CI scripts create a tmpfs file system will a much smaller size (will need sudo access) such that it will trigger the error.  The test could have an assumption to check for the presence of that file system.  We'd only need to run it on Linux.",
+        "timestamp": "2022-10-26T21:56:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "Looks like it does work okay.  I've added a test for it, attached as a patch.\r\n[0001-Java-Add-system-test-to-cover-storage-space-errors.patch.txt](https://github.com/real-logic/aeron/files/9874836/0001-Java-Add-system-test-to-cover-storage-space-errors.patch.txt)\r\n",
+        "timestamp": "2022-10-27T01:08:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "@mikeb01 The error translation happens in the `aeron_driver_conductor_on_command`:\r\n```c\r\nint os_errno = aeron_errcode();\r\nint code = os_errno < 0 ? -os_errno : AERON_ERROR_CODE_GENERIC_ERROR;\r\naeron_driver_conductor_on_error(conductor, code, aeron_errmsg(), strlen(aeron_errmsg()), correlation_id);\r\naeron_driver_conductor_log_error(conductor);\r\n```\r\nand because the check emits `-AERON_ERROR_CODE_STORAGE_SPACE` it will come out as `AERON_ERROR_CODE_STORAGE_SPACE`.\r\n\r\nI was considering to convert the raw `ENOSPC` into the `AERON_ERROR_CODE_STORAGE_SPACE` instead. But that would be different from all other custom errors codes we emit and also will not match Java which only handle insufficient space errors for the log files.\r\n\r\nThanks for the test I'll add it to the PR.\r\n",
+        "timestamp": "2022-10-27T07:42:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "lgtm-com",
+        "role": "CONTRIBUTOR",
+        "body": "This pull request **introduces 1 alert** when merging 655b67ace911c4eb74d06c50be9cef43efca27bf into e1cff331d14ae5dac4a4850a255cb3877fd9d149 - [view on LGTM.com](https://lgtm.com/projects/g/real-logic/aeron/rev/pr-887595f5c6bf6a4e3532a6527b4268007579afbc)\n\n**new alerts:**\n\n* 1 for FIXME comment",
+        "timestamp": "2022-10-29T16:43:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "lgtm-com",
+        "role": "CONTRIBUTOR",
+        "body": "This pull request **introduces 1 alert** when merging 0431f14d9a01d84dfb95de0717da1b9407c2a218 into e1cff331d14ae5dac4a4850a255cb3877fd9d149 - [view on LGTM.com](https://lgtm.com/projects/g/real-logic/aeron/rev/pr-5ee98818f198cb8f53a12a22d51bcacbd19139b3)\n\n**new alerts:**\n\n* 1 for FIXME comment",
+        "timestamp": "2022-10-30T16:43:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "lgtm-com",
+        "role": "CONTRIBUTOR",
+        "body": "This pull request **introduces 1 alert** when merging fafa29025161c9c4bbfb3dadf88e8e65fadb77df into 74531551031c1ba6731fa8a6375dbcfe48a4ca30 - [view on LGTM.com](https://lgtm.com/projects/g/real-logic/aeron/rev/pr-f10b4e95b1e3ecd14b1c512bd777d72af3e45e16)\n\n**new alerts:**\n\n* 1 for FIXME comment",
+        "timestamp": "2022-10-31T11:55:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "lgtm-com",
+        "role": "CONTRIBUTOR",
+        "body": "This pull request **introduces 1 alert** when merging e0dcc094f09c8a38ee6ae6604c936b6de89b646d into 74531551031c1ba6731fa8a6375dbcfe48a4ca30 - [view on LGTM.com](https://lgtm.com/projects/g/real-logic/aeron/rev/pr-b4574902ede0b3a5538fc73dc7d1f3846d2a340f)\n\n**new alerts:**\n\n* 1 for FIXME comment",
+        "timestamp": "2022-10-31T13:59:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "LGTM",
+        "timestamp": "2022-11-01T03:18:37Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5612b9b",
+        "message": "[Java] Throw InsufficientUsableStorageException in case of low storage space when creating a log file.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-21T14:56:53Z"
+      },
+      {
+        "sha": "97d023b",
+        "message": "[Java] Translate InsufficientUsableStorageException into ErrorCode.INSUFFICIENT_USABLE_STORAGE so that client can react accordingly.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-21T16:42:32Z"
+      },
+      {
+        "sha": "1fdba8c",
+        "message": "[Java] Terminate Cluster agents in case of RegistrationException with the ErrorCode.INSUFFICIENT_USABLE_STORAGE.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-21T17:33:52Z"
+      },
+      {
+        "sha": "5388903",
+        "message": "[Java] Close created resources.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-21T18:29:03Z"
+      },
+      {
+        "sha": "2e97e27",
+        "message": "[Java] Rename InsufficientUsableStorageException to StorageSpaceException.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-24T10:00:05Z"
+      },
+      {
+        "sha": "1408346",
+        "message": "[C] Return `AERON_ERROR_CODE_STORAGE_SPACE` upon insufficient usable storage when creating log buffers.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-26T19:56:00Z"
+      },
+      {
+        "sha": "75e3dcd",
+        "message": "[Java] Add DriverSpaceTest.",
+        "author": "Michael Barker",
+        "timestamp": "2022-10-27T07:47:17Z"
+      },
+      {
+        "sha": "52d9dce",
+        "message": "[Java] Run DriverSpaceTest on Linux only.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T09:14:53Z"
+      },
+      {
+        "sha": "f9102cb",
+        "message": "[CI] Remove tempfs after the test run.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T09:19:17Z"
+      },
+      {
+        "sha": "e3355b7",
+        "message": "[Java] Add more checks and debug output.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T09:27:36Z"
+      },
+      {
+        "sha": "8b91e93",
+        "message": "[Java] Enable storage checks in the test.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T09:42:18Z"
+      },
+      {
+        "sha": "a9b9f1f",
+        "message": "[Java] Enable storage checks while running all tests.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T09:47:49Z"
+      },
+      {
+        "sha": "0480d8f",
+        "message": "Revert \"[Java] Enable storage checks while running all tests.\"\n\nThis reverts commit daec6f0301252c10d603cb21e2f6b6bdc3394f6d.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T10:13:14Z"
+      },
+      {
+        "sha": "cc40173",
+        "message": "[Java] Return ErrorCode.STORAGE_SPACE upon IOException(\"No space left on device\").",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-27T10:29:28Z"
+      },
+      {
+        "sha": "fc77074",
+        "message": "[C] Close file descriptor if mapping a file fails.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-28T15:44:16Z"
+      },
+      {
+        "sha": "0cdc6d2",
+        "message": "[C] Use OS-specific `open` call to open existing files.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-28T16:30:14Z"
+      },
+      {
+        "sha": "b470a47",
+        "message": "[C] Use AERON_SET_ERR_WIN for logging errors in mmap on Windows.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-28T16:44:30Z"
+      },
+      {
+        "sha": "7cc85b1",
+        "message": "[C] Write zero as the last byte upon mapping newly created file to force the ENOSPC error when the storage is full. This is needed to avoid the SIGBUS crashes that would occur upon attempt to access the memory of those files (e.g. when writing the tail of the log file).",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T14:53:45Z"
+      },
+      {
+        "sha": "c75949d",
+        "message": "[C] Convert ENOSPC into AERON_ERROR_CODE_STORAGE_SPACE.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T14:54:08Z"
+      },
+      {
+        "sha": "eee341b",
+        "message": "[C] Use pwrite syscall to write zero byte.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T15:18:32Z"
+      },
+      {
+        "sha": "fd69e9d",
+        "message": "[C] Use `aeron_touch_pages` to pre-touch when native pre-touch is undefined.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T15:21:35Z"
+      },
+      {
+        "sha": "98a68f9",
+        "message": "[Java] Use OS-specific directory.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T15:26:32Z"
+      },
+      {
+        "sha": "87771a1",
+        "message": "[C] Call `aeron_touch_pages` to pre-touch when native pre-touch is undefined.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-29T16:00:53Z"
+      },
+      {
+        "sha": "73f4f3b",
+        "message": "[CI] Setup /Volumes/tmp_aeron_dir for MacOS.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-30T11:35:48Z"
+      },
+      {
+        "sha": "90e1728",
+        "message": "[CI] Increase temp drive capacity to 20m.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-30T11:46:49Z"
+      },
+      {
+        "sha": "aad86c0",
+        "message": "[Java] Delete log file if an error occurs while initializing.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-31T10:36:38Z"
+      },
+      {
+        "sha": "3364f05",
+        "message": "[C] Remove the newly created file if initialization (e.g. `aeron_mmap`) fails.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-31T10:45:46Z"
+      },
+      {
+        "sha": "cb1a738",
+        "message": "[C] Log errors inside of `aeron_mmap` function to access the OS-specific error codes.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-31T10:54:02Z"
+      },
+      {
+        "sha": "f8c41ee",
+        "message": "[Java] Add tests for different values of `termBufferSparseFile` and disable `performStorageChecks=false, termBufferSparseFile=false` on the Java driver.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-31T11:01:56Z"
+      },
+      {
+        "sha": "c85372b",
+        "message": "[CI] Create small temp drive on Windows.",
+        "author": "Dmitry Vyazelenko",
+        "timestamp": "2022-10-31T13:16:24Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1615",
+    "metadata": {
+      "title": "Intercept replay and recording session state changes",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-07-06T08:45:54Z",
+      "reviewers": [
+        "nbradac",
+        "mikeb01",
+        "vyazelenko"
+      ],
+      "changed_files": 16
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Outstanding TODO.",
+        "timestamp": "2024-07-02T02:36:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Outstanding TODO.",
+        "timestamp": "2024-07-02T02:36:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventEncoder.java] Because we have two variable length strings to be encoded, we should consider the total length of the strings to determine if the data needs to be truncated.  It would probably be safer to put the state change before the reason text as the state description is likely to be shorter.",
+        "timestamp": "2024-07-02T02:38:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventEncoder.java] This should be using something like `CommonEncoder.encodeTrailingString` to truncate the message if required.  As should the other cases where the reason value is logged.",
+        "timestamp": "2024-07-02T02:43:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/RecordingSession.java] Remove `ArchiveException: ` prefix.",
+        "timestamp": "2024-07-03T12:59:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplaySession.java] Add `replayPosition` and `replayLimit` to the message.",
+        "timestamp": "2024-07-03T13:01:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplaySession.java] Add `replayPosition` and `replayLimit` to the message.",
+        "timestamp": "2024-07-03T13:01:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Drop the prefix and simply use exception message in all cases.",
+        "timestamp": "2024-07-03T13:02:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Add values for both `fileIoMaxLength` and `mtuLength` to the error.",
+        "timestamp": "2024-07-03T13:04:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Since we issue a `SYNC` signal here we can simply use \"sync\" or \"in sync\" (or maybe \"complete\") as a reason. I do not see a value in printing how the sync was reached.",
+        "timestamp": "2024-07-03T13:06:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Drop prefix.",
+        "timestamp": "2024-07-03T13:07:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] We should either include value of the `srcRecordingPosition` into the message or maybe use empty string, i.e. as the state transition `SRC_RECORDING_POSITION -> EXTEND` is self explanatory.",
+        "timestamp": "2024-07-03T13:13:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] The `recordingSubscription` will be `null` only if `conductor.extendRecording` call fails with an error. The error message is directly sent via the ControlSession back to the AeronArchive client. The response will be logged (if enabled) via `CMD_OUT_RESPONSE` event. However it would be great if we could get the error message and capture it in a `reason` field here. That would require changing `conductor.extendRecording` method (e.g. return `Object` instead of `Subscription` and return error String if error and actual subscription if success).",
+        "timestamp": "2024-07-03T13:22:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Should be \"replay destination added\" probably including `replayDestination` value.",
+        "timestamp": "2024-07-03T13:24:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Use an empty string here. This is a technical state transition that is only happening when response channels feature is used during replication.",
+        "timestamp": "2024-07-03T13:26:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Same as above.",
+        "timestamp": "2024-07-03T13:26:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Empty string will be less confusing.",
+        "timestamp": "2024-07-03T13:27:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] \"ArchiveProxy created\"",
+        "timestamp": "2024-07-03T13:27:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] `\"srcReplaySessionId=\" + srcReplaySessionId`",
+        "timestamp": "2024-07-03T13:28:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] `\"image.correlationId=\" + image.correlationId() + \", image.sessionId=\" + image.sessionId() + \", image.jointPosition=\" + image.joinPosition()`",
+        "timestamp": "2024-07-03T13:34:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Use `isSync ? \"sync\" : \"done\"` instead of `\"replicate\"`. There is already a dedicated log event `logReplicationSessionDone` which will print full information.",
+        "timestamp": "2024-07-03T13:37:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] \"merge\"",
+        "timestamp": "2024-07-03T13:37:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] Include values.",
+        "timestamp": "2024-07-03T13:38:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ReplicationSession.java] \"connected to the Archive\"",
+        "timestamp": "2024-07-03T13:39:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventCode.java] Covered by `CMD_IN_START_RECORDING2` and `CMD_IN_START_RECORDING`.",
+        "timestamp": "2024-07-03T14:03:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventCode.java] Covered by `CMD_IN_REPLAY` and `CMD_IN_START_BOUNDED_REPLAY`.",
+        "timestamp": "2024-07-03T14:03:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventCode.java] Covered by `CMD_IN_REPLICATE`, `CMD_IN_REPLICATE2` and `CMD_IN_TAGGED_REPLICATE`.",
+        "timestamp": "2024-07-03T14:04:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] This should be `\": replaySessionId=\"`.\r\nWhat would be also valuable is to print the `sessionId` of the replay Publication which is [encoded in the lower 32 bits](https://github.com/real-logic/aeron/blob/master/aeron-archive/src/main/java/io/aeron/archive/ArchiveConductor.java#L782) of the `replaySessionId`. \r\n\r\n\r\nFor example:\r\n```\r\nreplaySessionId=16231259302 sessionId=-948609882\r\n```\r\nor\r\n```\r\nreplaySessionId=16231259302 replayId=3 sessionId=-948609882\r\n```",
+        "timestamp": "2024-07-03T17:54:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] You can just cast to `int`.",
+        "timestamp": "2024-07-03T18:22:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nbradac",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] Is it 'better' to cast it to an int?  I don't have strong feelings either way, but I kind of like the explicit nature of doing a bitwise AND.",
+        "timestamp": "2024-07-03T18:40:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nbradac",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] Casting to an int yields a different value compared with '& 0xFFFF_FFFFL'.  The sign gets switched.",
+        "timestamp": "2024-07-03T19:04:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nbradac",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] Oh I get it... if I use the &, the returned value is still a long, and the last bit is 0, so the number is positive.  If I cast to an int, it's an int... in which case (in the case of 20000000000), the last bit is a 1.  So the number is negative.  The 32 bits in question are the same, but how it looks when it gets printed is quite different.\r\n\r\nWhich is 'correct'?  Seems like in most places the session id is passed around as a long, in which case casting to an int and printing that is probably the wrong approach.",
+        "timestamp": "2024-07-03T19:11:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-agent/src/main/java/io/aeron/agent/ArchiveEventDissector.java] `Publication#sessionId` is a 32 bit value (`int` in Java) so casting to an `int` is correct way to extract this value out of `long` value.\r\nRunning this test:\r\n```java\r\n@ParameterizedTest\r\n    @ValueSource(ints = { Integer.MIN_VALUE, -777, -1, 0, 1, 42, Integer.MAX_VALUE })\r\n    void extractSessionId(final int sessionId)\r\n    {\r\n        final int replayId = 0xFF;\r\n        final long replicationSessionId = ((long)replayId << 32) | (sessionId & 0xFFFF_FFFFL);\r\n        System.out.println(\"replicationSessionId=\" + replicationSessionId);\r\n        System.out.println(\"cast: \" + (int)replicationSessionId);\r\n        System.out.println(\"mask: \" + (replicationSessionId & 0xFFFF_FFFFL));\r\n    }\r\n```\r\nI get the following output:\r\n```\r\nreplicationSessionId=1097364144128\r\ncast: -2147483648\r\nmask: 2147483648\r\nreplicationSessionId=1099511626999\r\ncast: -777\r\nmask: 4294966519\r\nreplicationSessionId=1099511627775\r\ncast: -1\r\nmask: 4294967295\r\nreplicationSessionId=1095216660480\r\ncast: 0\r\nmask: 0\r\nreplicationSessionId=1095216660481\r\ncast: 1\r\nmask: 1\r\nreplicationSessionId=1095216660522\r\ncast: 42\r\nmask: 42\r\nreplicationSessionId=1097364144127\r\ncast: 2147483647\r\nmask: 2147483647\r\n```",
+        "timestamp": "2024-07-03T21:09:23Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2ea6fd4",
+        "message": "[Java] add code to agent to intercept replay and recording session state changes",
+        "author": "Nate Bradac",
+        "timestamp": "2024-06-27T03:01:42Z"
+      },
+      {
+        "sha": "284f96e",
+        "message": "[Java] update unit tests",
+        "author": "Nate Bradac",
+        "timestamp": "2024-06-27T14:16:14Z"
+      },
+      {
+        "sha": "89e85a8",
+        "message": "[Java] add reason field to state change events",
+        "author": "Nate Bradac",
+        "timestamp": "2024-06-28T00:38:07Z"
+      },
+      {
+        "sha": "531eac2",
+        "message": "[Java] add session started messages",
+        "author": "Nate Bradac",
+        "timestamp": "2024-06-29T20:51:04Z"
+      },
+      {
+        "sha": "0ec152b",
+        "message": "Merge branch 'master' into replay-recording-session-state-change-logging",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-01T18:44:20Z"
+      },
+      {
+        "sha": "bf86c34",
+        "message": "[Java] add unit tests for encoders and dissectors",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-01T19:49:35Z"
+      },
+      {
+        "sha": "db98ab1",
+        "message": "[Java] swap state change and reason, update reasons in session code",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-03T16:43:39Z"
+      },
+      {
+        "sha": "8814788",
+        "message": "[Java] remove SESSION_STARTED events, split out replaySessionId into replayId and sessionId",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-03T18:20:34Z"
+      },
+      {
+        "sha": "8fc60e0",
+        "message": "[Java] get sessionId by casting replaySessionId to int",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-05T15:05:30Z"
+      },
+      {
+        "sha": "d20c67d",
+        "message": "Merge branch 'master' into replay-recording-session-state-change-logging",
+        "author": "Nate Bradac",
+        "timestamp": "2024-07-05T18:05:48Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1801",
+    "metadata": {
+      "title": "Add separate linger timeout for untethered subscriptions",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-05-23T22:12:32Z",
+      "reviewers": [
+        "nickelaway",
+        "mikeb01",
+        "vyazelenko"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "Adding a separate linger timeout for untethered subscriptions.  Code is in place.  Might need to re-order some things and add more tests.  also may need to adjust the description."
+    },
+    "discussion_timeline": [
+      {
+        "author": "nickelaway",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/Configuration.java] if we pass untetheredWindowLimitTimeoutNs() as the default here, we can skip the extra null check in this method, as getDurationInNanos will check that too.",
+        "timestamp": "2025-05-19T09:55:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nickelaway",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/Configuration.java] Given we will be defaulting to the window limit timeout, I don't think we will ever need this default.",
+        "timestamp": "2025-05-19T09:56:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "nickelaway",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/PublicationParams.java] typo: explicitely\r\nAlso, first time I read this comment I read the two lines as being a single sentence. I would favour capitalising and punctuating the comments to make things a bit clearer, otherwise it reads like this:\r\n\"use the context value for linger context value for linger needs similar checks to default to window timeout if not set\"",
+        "timestamp": "2025-05-19T10:09:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/MediaDriver.java] I think would be simpler implementation if we set this value to be Aeron.NULL_VALUE initially, then check for that value during the `MediaDriver.Context::conclude` call and set it to the window timeout there.",
+        "timestamp": "2025-05-20T02:19:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "For the most part this looks good.\r\n\r\nWe don't have a lot of strong testing with tethering timeouts.  You could look to expand the `UntetheredSubscriptionTest` tests (there is a unit and system test).\r\n\r\nWe should also update the ChannelUriStringBuilder.  This will also need to be reflected in the C driver as well as the C++ API/Wrapper.",
+        "timestamp": "2025-05-20T02:27:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "Needs to be implemented in the C media driver as well.",
+        "timestamp": "2025-05-21T16:35:13Z",
+        "source": "review"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/MediaDriver.java] I agree. This is especially important if the `MediaDriver.Context#untetheredWindowLimitTimeoutNs()` is set programmatically.",
+        "timestamp": "2025-05-21T19:43:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/MediaDriver.java] This is way too complicate see Mike's comment above.",
+        "timestamp": "2025-05-21T19:44:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/MediaDriver.java] See above.",
+        "timestamp": "2025-05-21T19:44:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/PublicationParams.java] We should only check for `UNTETHERED_WINDOW_LIMIT_TIMEOUT_PARAM_NAME` if `UNTETHERED_LINGER_TIMEOUT_PARAM_NAME` not defined.",
+        "timestamp": "2025-05-21T20:44:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "Also as Mike already mentioned:\r\n> This will also need to be reflected in the C driver as well as the C++ API/Wrapper.",
+        "timestamp": "2025-05-21T20:46:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] Use existing constants for the property names.",
+        "timestamp": "2025-05-23T20:43:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] Constants.",
+        "timestamp": "2025-05-23T20:43:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] No need to close here.",
+        "timestamp": "2025-05-23T20:43:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] Split the test into two tests, i.e. test both properties separately.",
+        "timestamp": "2025-05-23T20:44:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] Split into two tests.",
+        "timestamp": "2025-05-23T20:44:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/Configuration.java] Add `@since`.",
+        "timestamp": "2025-05-23T20:44:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/main/java/io/aeron/driver/MediaDriver.java] `@since`",
+        "timestamp": "2025-05-23T20:45:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] Constants, i.e. `UNTETHERED_LINGER_TIMEOUT_PROP_NAME`.",
+        "timestamp": "2025-05-23T20:46:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] No close.",
+        "timestamp": "2025-05-23T20:46:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-driver/src/test/java/io/aeron/driver/MediaDriverContextTest.java] See above.",
+        "timestamp": "2025-05-23T20:46:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "vyazelenko",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-system-tests/src/test/java/io/aeron/UntetheredSubscriptionTest.java] Use constant from `CommonContext`.",
+        "timestamp": "2025-05-23T20:48:07Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "3f48d2b",
+        "message": "Add separate linger timeout for untethered subscriptions",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-14T14:38:17Z"
+      },
+      {
+        "sha": "3aeabf1",
+        "message": "Set param for linger and update tests",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-15T18:12:27Z"
+      },
+      {
+        "sha": "e19bef9",
+        "message": "Update defaults for untethered subscription linger timeout",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-15T20:13:06Z"
+      },
+      {
+        "sha": "6387367",
+        "message": "Use untetheredWindowLimitTimeoutNs for linger when explicitly set for MediaDriver",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-16T17:42:30Z"
+      },
+      {
+        "sha": "483a4a6",
+        "message": "simplification and cleanup",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-19T20:28:48Z"
+      },
+      {
+        "sha": "8d55475",
+        "message": "Remove comments",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-19T21:53:55Z"
+      },
+      {
+        "sha": "29aa89d",
+        "message": "Add untethered linger timeout to StringBuilder",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-20T22:48:10Z"
+      },
+      {
+        "sha": "0a0d00a",
+        "message": "Change strategy to use untethered linger timeout from any level over window limit timeout",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-23T18:04:36Z"
+      },
+      {
+        "sha": "dfced80",
+        "message": "cleanup unit tests",
+        "author": "Ryan Andrews",
+        "timestamp": "2025-05-23T21:51:19Z"
+      }
+    ]
+  },
+  {
+    "story_id": "aeron-io/aeron#1584",
+    "metadata": {
+      "title": "[Java ]  Delegate decision on unknown schema to consensus agent",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-06-03T16:34:40Z",
+      "reviewers": [
+        "mjpt777",
+        "mikeb01",
+        "langera"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/IngressAdapter.java] Should return after this so the same template id from another schema does not get dispatched.",
+        "timestamp": "2024-04-12T09:39:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/test/java/io/aeron/cluster/IngressAdapterTest.java] Methods do not need to be public in a package private class.",
+        "timestamp": "2024-04-12T09:40:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/test/java/io/aeron/cluster/IngressAdapterTest.java] done",
+        "timestamp": "2024-05-20T20:13:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "Consensus module can be configured now with `SchemaAdapter` instances to handle messages from schemas unknown to core Aeron.  \r\n1. The handling of unknown schema is delegated to consensus module - Normal flow with schemaId 111 is unaffected.\r\n2. Consensus module Context now enables registering SchemaAdapter implementations\r\n3. SchemaAdapter interface added - similar to ControlledFragmentHandler  but schemaId and templateId are passed as well\r\n4. Default SchemaAdapter will throw exception so behaviour is preserved",
+        "timestamp": "2024-05-21T06:00:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "mikeb01",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/test/java/io/aeron/cluster/ConsensusModuleAgentTest.java] Is there are reason why we are setting the clock time to the schema id?",
+        "timestamp": "2024-05-26T20:45:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/test/java/io/aeron/cluster/ConsensusModuleAgentTest.java] accidental overuse of the number 17 :)",
+        "timestamp": "2024-05-28T10:07:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModule.java] New instance should be setup in context conclude. Supplier can be set as a property or loaded dynamically.",
+        "timestamp": "2024-05-30T13:04:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] We don't use `@Override` in our code style.",
+        "timestamp": "2024-05-30T13:05:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] This should be renamed to `onExtensionMessage`.",
+        "timestamp": "2024-05-30T13:07:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Fragments would be assembled at this stage so it would be `onMessage`.",
+        "timestamp": "2024-05-30T13:08:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] Perform null check in Agent rather than have another implementation that could defeat monomorphic optimisation.",
+        "timestamp": "2024-05-30T13:09:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] removed unknown schema impl",
+        "timestamp": "2024-06-03T08:59:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] renamed",
+        "timestamp": "2024-06-03T08:59:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] renamed",
+        "timestamp": "2024-06-03T08:59:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleAgent.java] removed",
+        "timestamp": "2024-06-03T08:59:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-archive/src/main/java/io/aeron/archive/ArchivingMediaDriver.java] Seems debug code got left in.",
+        "timestamp": "2024-06-03T09:20:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "mjpt777",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleExtension.java] Needs removed.",
+        "timestamp": "2024-06-03T09:20:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "langera",
+        "role": "CONTRIBUTOR",
+        "body": "[aeron-cluster/src/main/java/io/aeron/cluster/ConsensusModuleExtension.java] supplier called in conclude",
+        "timestamp": "2024-06-03T09:32:56Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6536ba3",
+        "message": "[Java] IngressAdapterTest onFragment before making any changes",
+        "author": "amir.langer",
+        "timestamp": "2024-04-10T16:59:59Z"
+      },
+      {
+        "sha": "d4415a2",
+        "message": "[Java] IngressAdapter to delegate to ConsensusModuleAgent when schema id is unknown",
+        "author": "amir.langer",
+        "timestamp": "2024-04-11T15:48:10Z"
+      },
+      {
+        "sha": "8bb22df",
+        "message": "[Java] PR comments fixes",
+        "author": "amir.langer",
+        "timestamp": "2024-05-20T08:11:35Z"
+      },
+      {
+        "sha": "d2de85a",
+        "message": "[Java] schema adapter",
+        "author": "amir.langer",
+        "timestamp": "2024-05-20T20:09:27Z"
+      },
+      {
+        "sha": "595a82b",
+        "message": "[Java] PRE comments fix",
+        "author": "amir.langer",
+        "timestamp": "2024-05-28T10:11:35Z"
+      },
+      {
+        "sha": "9e789ca",
+        "message": "[Java] SchemaAdapter -> ConsensusModuleExtension and only a single extension",
+        "author": "amir.langer",
+        "timestamp": "2024-05-29T12:49:16Z"
+      },
+      {
+        "sha": "f7167d0",
+        "message": "[Java] PR comments fixes",
+        "author": "amir.langer",
+        "timestamp": "2024-06-03T08:58:15Z"
+      },
+      {
+        "sha": "3c1089d",
+        "message": "[Java] supplier called during conclude",
+        "author": "amir.langer",
+        "timestamp": "2024-06-03T09:32:18Z"
+      }
+    ]
+  }
+]

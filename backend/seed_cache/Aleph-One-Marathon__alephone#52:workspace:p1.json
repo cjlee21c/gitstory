@@ -1,0 +1,64 @@
+{
+  "story_id": "Aleph-One-Marathon/alephone#52",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Cleaning Up Legacy Mouse Input Calculations",
+      "body": "A contributor submitted changes to how mouse input is translated into in-game rotation before action flags are encoded. The PR removes unused legacy code, corrects a timing inconsistency that caused inaccurate sensitivity under unstable framerates, and widens the per-frame rotation limits to the maximum the action flag format supports.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[1]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Authentic Feel vs. Improved Responsiveness: Where Should the Turn-Rate Ceiling Sit?",
+      "body": "Widening the per-frame rotation cap measurably improves quick-turn responsiveness for mouse users, but it also shifts the competitive balance in multiplayer away from keyboard players, who are already constrained by physics-model constants. The core tension is whether turn-rate limits are a correctable technical artifact or a protected part of the original game's feel and balance.",
+      "source_refs": [
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[9]",
+        "discussion_timeline[10]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — LidMop",
+      "body": "The existing cap is technically inconsistent: identical physical mouse movement yields different in-game rotation depending on how it happens to be sampled across frames. LidMop initially advocated for the higher limits as a genuine improvement, but after testing conceded that the original limits are part of the gameplay and should be restored—while still wanting the sampling inconsistency fixed.",
+      "author": "LidMop",
+      "author_role": "COLLABORATOR",
+      "source_refs": [
+        "discussion_timeline[7]",
+        "discussion_timeline[9]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — treellama",
+      "body": "Mouse turn-rate limits are not a bug to fix but a core physics parameter that defines the game's feel and preserves decades of multiplayer balance between mouse and keyboard players. Raising the cap—even optionally via a preference slider—disadvantages keyboard players in net games and sets a precedent of treating fundamental gameplay constants as user-tunable settings.",
+      "author": "treellama",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[6]",
+        "discussion_timeline[12]",
+        "discussion_timeline[10]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given the tension between correcting a real sampling inconsistency and preserving original multiplayer balance, what would you do with the turn-rate limits in this PR?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

@@ -1,0 +1,1839 @@
+[
+  {
+    "story_id": "berty/berty#1556",
+    "metadata": {
+      "title": "feat: event-sourcing compliant berty protocol",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-12-20T17:38:43Z",
+      "reviewers": [
+        "90dy",
+        "glouvigny"
+      ],
+      "changed_files": 18
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I see no contact subscription, is that normal ?",
+        "timestamp": "2019-12-20T11:11:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Ah yes; everything transit through GroupMessage",
+        "timestamp": "2019-12-20T11:13:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Incoming and Outgoing requests would be an `AccountEventType_ContactRequested` event on your Account store, allowing it to be synchronized on across devices and that you know the existence of the account-to-account group",
+        "timestamp": "2019-12-20T11:14:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Where is sent contact request from protocol ?",
+        "timestamp": "2019-12-20T11:14:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Okay alright",
+        "timestamp": "2019-12-20T11:15:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What do you expect from a contact subscription?",
+        "timestamp": "2019-12-20T11:15:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Seems we were not sync, everythings fine for me :+1:",
+        "timestamp": "2019-12-20T11:17:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] We will have a proto that define the chat that will be over the protocol, but the protocol don't need to be aware of the chat implementation",
+        "timestamp": "2019-12-20T11:42:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=h1) Report\n> Merging [#1556](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/3b0d1e31d35a51fa676ccca6f5128fbef779aabe?src=pr&el=desc) will **increase** coverage by `2.88%`.\n> The diff coverage is `0%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/1556/graphs/tree.svg?width=650&token=rBPpNHNNow&height=150&src=pr)](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master    #1556      +/-   ##\n==========================================\n+ Coverage      63%   65.89%   +2.88%     \n==========================================\n  Files          31       28       -3     \n  Lines        1184      950     -234     \n==========================================\n- Hits          746      626     -120     \n+ Misses        310      218      -92     \n+ Partials      128      106      -22\n```\n\n\n| [Impacted Files](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [go/pkg/bertyprotocol/api\\_device.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2RldmljZS5nbw==) | `0% <0%> (ø)` | |\n| [go/pkg/bertyprotocol/api\\_group.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2dyb3VwLmdv) | `0% <0%> (ø)` | :arrow_up: |\n| [go/pkg/bertyprotocol/api\\_event.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2V2ZW50Lmdv) | `0% <0%> (ø)` | :arrow_up: |\n| [go/pkg/bertyprotocol/api\\_contact.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2NvbnRhY3QuZ28=) | `0% <0%> (ø)` | :arrow_up: |\n| [go/pkg/bertyprotocol/api\\_contactrequest.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2NvbnRhY3RyZXF1ZXN0Lmdv) | `0% <0%> (ø)` | :arrow_up: |\n| [go/pkg/bertyprotocol/api\\_app.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2FwcC5nbw==) | `0% <0%> (ø)` | |\n| [go/framework/bpbridge/bridge.go](https://codecov.io/gh/berty/berty/pull/1556/diff?src=pr&el=tree#diff-Z28vZnJhbWV3b3JrL2JwYnJpZGdlL2JyaWRnZS5nbw==) | `59.45% <0%> (-6.76%)` | :arrow_down: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=footer). Last update [3b0d1e3...da9507f](https://codecov.io/gh/berty/berty/pull/1556?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2019-12-20T11:52:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] To have no conflict in chat I need to be aware of event order or maybe a chained list from protocol logs to permit me to replay subscriptions and regenerate aggregat\r\nNeed to discuss about it",
+        "timestamp": "2019-12-20T12:31:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Chat can disable it yes",
+        "timestamp": "2019-12-20T12:34:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] You want to declare devices as members ?\r\nI don't know the low level implications",
+        "timestamp": "2019-12-20T12:35:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I don't understand what is a group update",
+        "timestamp": "2019-12-20T12:38:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Each events should have a next field that is updated when the log order is resolved by ipfs or orbitdb (I don't know where log order is resolved by protocol)\r\n(don't know if you can know when it's done)",
+        "timestamp": "2019-12-20T12:41:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] We should have an each event should have a EventConflictResolved or anything that say (ok the log have been reorder from this point of conflict)",
+        "timestamp": "2019-12-20T12:43:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Next field are not required if we add an EventConflictResolved (see next comment)",
+        "timestamp": "2019-12-20T12:44:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Actually the question is : does the chat app will expose its presence on the rendezvous point on its own or does bertycore manages it?",
+        "timestamp": "2019-12-20T12:49:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] No, actually when I wrote that comment I thought it could be handled like devices on multi-accounts groups, but it could be messy to manage as it would scatter the data across multiple stores for the account, something we might want to avoid.",
+        "timestamp": "2019-12-20T12:50:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I updated the comment, it is consuming the OrbitDB store",
+        "timestamp": "2019-12-20T12:51:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I can't give you a next field, however an event can have multiple parents (in the case of joining forked logs)",
+        "timestamp": "2019-12-20T12:53:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] bertyprotocol have the knowledge of network so I think It's network that should enable disable rendez vous point\r\nBut, maybe we can have a RDVPointEnable RDVPointDisable if the chat can manage requests, I don't know",
+        "timestamp": "2019-12-20T12:53:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Okay 👍",
+        "timestamp": "2019-12-20T12:57:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] When and how conflicts of crdt are resolved ?\r\nImagine that I have blocked a member from a group and I'm offline, but this member do something messy online and other users received it and apply it.\r\nI go online and my protocol account send my event to the log.\r\nHow others can know that all the member did was not to take in count ?\r\nIn other words, how they know they must replay the events from my event.",
+        "timestamp": "2019-12-20T13:05:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] You can't evict a member from a group for this exact reason",
+        "timestamp": "2019-12-20T13:07:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] In my case I could possibly do it in chat. I could recreate a group and send everyone in it, but not the blocked member.\r\nBut I must know the order of the events, to not apply the messy things member blocked had done.",
+        "timestamp": "2019-12-20T13:10:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I will find another example",
+        "timestamp": "2019-12-20T13:11:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Recreating a group hasn't be defined and need to be implemented by your app consuming the API, you won't be able to reach all the group members as you don't necessarily have them as contacts.\r\n\r\nWhat \"naughty\" things you have in mind? Anyway, your application need to trust the members in the group as you can't exclude someone from the group.\r\n\r\nAlso, your Account store is only synced across your own devices, other members won't be able to read it. The worst that can happen regarding your account log and someone else is that you will receive a request from an already blocked contact, which you can refuse too.",
+        "timestamp": "2019-12-20T13:13:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Otherwise I need the algorithm of resolution of CRDT to know where to replay my event",
+        "timestamp": "2019-12-20T13:14:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What you will have in the event structure are the IDs of its parents, which already defines the order and won't change over time (which can't be guaranteed for its children)\r\n\r\nTake the following example, which can happen in a CRDT environment, node 7 have multiple children and multiple parents\r\nhttps://hackmd.io/i21I_ea7Tt-Y-hfyWBFFfA#Example",
+        "timestamp": "2019-12-20T13:22:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] > Recreating a group hasn't be defined and need to be implemented by your app consuming the API, you won't be able to reach all the group members as you don't necessarily have them as contacts.\r\n\r\nYes I don't know, bad example, I will find another\r\n\r\n> What \"naughty\" things you have in mind? Anyway, your application need to trust the members in the group as you can't exclude someone from the group.\r\n\r\nIt's not a question of trust, It's question of order of event and app data consistency. Some things that have been done before could have consequences to things that have been done after them.",
+        "timestamp": "2019-12-20T13:24:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] That's why your app should be able to use as few conflicting operations as possible:\r\n\r\nhttps://en.wikipedia.org/wiki/Conflict-free_replicated_data_type#Known_CRDTs\r\n\r\nData will be consistent as the order will be the same for two peers with an OrbitDB store evenly replicated",
+        "timestamp": "2019-12-20T13:26:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] No, conflict should not be a problem. We should be able to manage it.\r\nI only need to know when and where a conflict has been merged.",
+        "timestamp": "2019-12-20T13:29:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What are you calling a conflict?\r\n\r\nYou will know a merge occurred when an event has two parents",
+        "timestamp": "2019-12-20T13:33:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Is CRDT defining in merge that one of the concurrent event need to be apply before another ?\r\nIf it's the case it could be good to have this informations.\r\nIn the other case I will have a resolution algorithm to sort them.",
+        "timestamp": "2019-12-20T13:35:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I can manage it if I have their parents. So no problem.",
+        "timestamp": "2019-12-20T13:40:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] We are guaranteeing you the order and we provide you the raw events, we don't merge any information.\r\n\r\nIt is up to you to apply the logic to consolidate your store according to the data you received and the ordering you get in the event.",
+        "timestamp": "2019-12-20T13:41:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Thanks I understand now. I will just need the parent id if it's possible 👍",
+        "timestamp": "2019-12-20T13:43:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "let's make smaller changes on new PRs\r\n\r\nthank you everyone",
+        "timestamp": "2019-12-20T17:38:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 1.0.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v1.0.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2019-12-23T21:23:46Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "da9507f",
+        "message": "feat: event-sourcing compliant berty protocol",
+        "author": "Guillaume Louvigny",
+        "timestamp": "2019-12-19T14:58:32Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#2312",
+    "metadata": {
+      "title": "feat: add a message cache for messages that can't be opened",
+      "labels": [
+        "enhancement"
+      ],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-10-12T11:37:01Z",
+      "reviewers": [
+        "D4ryl00",
+        "phanhuynhquy",
+        "moul"
+      ],
+      "changed_files": 13
+    },
+    "issue_payload": {
+      "body": "**Scenario:** when A sends to B a message and B has not registered the A's chainkey yet, so B can't decrypt A's message.\n**Solution:** we add this message to a cache until the A´s chainkey is registered by B.\n\nRequire sending chainkey before sending the first message in a contact group is now in https://github.com/berty/berty/pull/2447\n\nSigned-off-by: d4ryl00 <d4ryl00@gmail.com>"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=h1) Report\n> Merging [#2312](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/201a1832b4290b117c29dd49ed726222fae39de8?el=desc) will **increase** coverage by `0.41%`.\n> The diff coverage is `97.50%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/2312/graphs/tree.svg?width=650&height=150&src=pr&token=rBPpNHNNow)](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master    #2312      +/-   ##\n==========================================\n+ Coverage   43.52%   43.94%   +0.41%     \n==========================================\n  Files         101      101              \n  Lines        8834     8868      +34     \n==========================================\n+ Hits         3845     3897      +52     \n+ Misses       4237     4222      -15     \n+ Partials      752      749       -3     \n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #unittests | `43.94% <97.50%> (+0.41%)` | :arrow_up: |\n\nFlags with carried forward coverage won't be shown. [Click here](https://docs.codecov.io/docs/carryforward-flags#carryforward-flags-in-the-pull-request-comment) to find out more.\n\n| [Impacted Files](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [go/pkg/bertyprotocol/api\\_debug.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2RlYnVnLmdv) | `0.00% <0.00%> (ø)` | |\n| [go/pkg/bertyprotocol/store\\_metadata\\_index.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvc3RvcmVfbWV0YWRhdGFfaW5kZXguZ28=) | `61.87% <ø> (+0.27%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/group.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvZ3JvdXAuZ28=) | `62.86% <100.00%> (+0.31%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/keystore\\_message.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wva2V5c3RvcmVfbWVzc2FnZS5nbw==) | `45.96% <100.00%> (+0.70%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/store\\_message.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvc3RvcmVfbWVzc2FnZS5nbw==) | `78.22% <100.00%> (+16.93%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/store\\_metadata.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvc3RvcmVfbWV0YWRhdGEuZ28=) | `53.75% <100.00%> (+0.72%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/api\\_event.go](https://codecov.io/gh/berty/berty/pull/2312/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2V2ZW50Lmdv) | `46.34% <0.00%> (+3.65%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=footer). Last update [201a183...c58d8aa](https://codecov.io/gh/berty/berty/pull/2312?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-10-05T09:06:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/store_message.go] addToCache must try to open messages in the cache because sometimes, a message is being added into the cache while in another goroutine, the chainkey is registered before this message has finished being added into the cache (so the cache would be empty and the message that will be added would never be opened).",
+        "timestamp": "2020-10-05T10:58:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] ```suggestion\r\n  // WaitContactIsReady returns a stream that will send an event as soon as a contact is ready to receive messages.\r\n  rpc WaitContactIsReady (types.v1.WaitingForContactReady.Request) returns (stream types.v1.WaitingForContactReady.Reply);\r\n```\r\n\r\nbtw, is it really \"contact\", not \"member\" or \"device\" or anything else?",
+        "timestamp": "2020-10-05T11:04:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertytypes.proto] is it `device_pk` or `ContactPK`?",
+        "timestamp": "2020-10-05T11:05:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata.go] ```suggestion\r\n// ContactReady waits until the secrets are sent to the member.\r\n```\r\n\r\n\r\nnot sure whether it's \"Contact\" or \"Member\"",
+        "timestamp": "2020-10-05T11:08:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata.go] ```suggestion\r\nfunc (m *metadataStore) ContactReady(ctx context.Context, memberPK crypto.PubKey) error {\r\n```\r\n\r\nbool is useless here, it's always `err != nil`",
+        "timestamp": "2020-10-05T11:08:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata.go] ```suggestion\r\n\tswitch {\r\n\tcase m.typeChecker(isAccountGroup):\r\n\t\treturn 0\r\n\tcase m.typeChecker(isContactGroup):\r\n\t\treturn m.Index().(*metadataStoreIndex).MemberCount()\r\n\tcase m.typeChecker(isMultiMemberGroup):\r\n\t\treturn m.Index().(*metadataStoreIndex).MemberCount()\r\n\tdefault:\r\n\t\t// FIXME: log \"MemberCount: unsupported type\")\r\n\t\treturn 0\r\n\t}\r\n```",
+        "timestamp": "2020-10-05T11:12:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/group_context.go] the next time, I suggest you to make a quick PR just for this instead of keeping this small change in a long-running PR",
+        "timestamp": "2020-10-05T11:13:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/scenario_test.go] ```suggestion\r\n\t\twaitForContactReady(ctx, t, tps, tps)\r\n```",
+        "timestamp": "2020-10-05T11:14:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/scenario_test.go] not sure if this is a slow or not, but if yes, maybe you can use https://pkg.go.dev/golang.org/x/sync/errgroup",
+        "timestamp": "2020-10-05T11:15:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] not sure if there is already another mutex in a top-level, but this part may be problematic if run concurrently\r\nin general, when managing maps in async environments, always use mutex around the map manipulation",
+        "timestamp": "2020-10-05T11:17:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] ```suggestion\r\n\t\tchannel = make(chan struct{}, 0)\r\n```\r\n\r\nto be tested, but would be better to have an unbuffered channel if possible",
+        "timestamp": "2020-10-05T11:18:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] ```suggestion\r\n \tmappingKey := fmt.Sprintf(\"%s%s\", ownDeviceRaw, memberRaw)\r\n\tchannel, ok := m.chanSentSecrets[mappingKey]\r\n```\r\n\r\nreusable few lines after",
+        "timestamp": "2020-10-05T11:20:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_message.go] can you try finding a more explicit name?",
+        "timestamp": "2020-10-05T11:21:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] In my case, I know the chan will be used only for one message. The buffer will prevent to block `handleGroupAddDeviceSecret` in `store_metadata_index.go` if the channel is not being read.",
+        "timestamp": "2020-10-05T11:42:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] yes handled functions are already protected by a mutex",
+        "timestamp": "2020-10-05T13:06:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[api/bertytypes.proto] typo error?",
+        "timestamp": "2020-10-05T15:13:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_message.go] this block of if statement is redudant?",
+        "timestamp": "2020-10-05T15:14:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_message.go] nit: 10 is so small? how to determine this?",
+        "timestamp": "2020-10-05T15:23:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/store_message.go] oh yes, there was a for loop here, and I forget to remove this block !",
+        "timestamp": "2020-10-05T15:27:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/store_message.go] This buffer is filled when:\r\n1) a new chainkey is registered\r\n2) a new message is put in the cache while the sender's chainkey is not registered yet\r\n\r\nIn a real context, these two events are rare, so I decided to put 10.",
+        "timestamp": "2020-10-05T15:33:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[api/bertytypes.proto] yes, it's `member_pk`, thx",
+        "timestamp": "2020-10-05T15:33:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/api_event.go] WaitSecretsAreSent() is blocking until all secrets are sent to members. if error happen, it will be stopping until sub's context is cancel. But WaitMemberIsReady() normally is called outside via grpc. I'm not sure we have timeout for gprc handler or not. Do you think in request should have a timeout value to control waiting duration?\r\nfor examples, after a timeout, we can try to do a sent missed secrets?",
+        "timestamp": "2020-10-06T04:41:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] > In my case, I know the chan will be used only for one message. The buffer will prevent to block handleGroupAddDeviceSecret in store_metadata_index.go if the channel is not being read.\r\n\r\neven if this is completely possible in some case, by default, **\"I know that it uses only one message\"** and **\"the channel maybe not read\"** in the same phrase seems too much fragile\r\n\r\nCan you double-check and confirm that you really need a buffer, and if so, that a buffer of 1 is a safe value?",
+        "timestamp": "2020-10-06T09:27:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_metadata_index.go] you need to be sure that 100% of the codebase manipulating the map use mutex when manipulating the map",
+        "timestamp": "2020-10-06T09:28:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/api_event.go] `if error happen, it will be stopping until sub's context is cancel.`\r\nI'm not sure to understand. If an error happens on the server-side? In this case, the stream is closed and an error is returned to the client.\r\n\r\n`Do you think in request should have a timeout value to control waiting duration?`\r\nYes, we can set a expiration time to the context. But why? Normally, we don't have to resend secrets after this expiration time unless if there are some replication issues in OrbitDB.\r\n\r\nGRPC is new for me, I've tried to copy what I saw in the code here :)",
+        "timestamp": "2020-10-06T09:30:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/api_event.go] `if error happen, it will be stopping until sub's context is cancel`\r\nmeans that if any abnormal happen, like secret was not sent. so WaitSecretsAreSent() will block forever on waiting data from channel `chanReady`.\r\nAnd I don't see any control over `sub.ctx` - so this function can block forever.\r\nI'm also not quite familiar with GRPC.\r\n@moul : do you have any idea here?",
+        "timestamp": "2020-10-06T10:38:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/pkg/bertyprotocol/api_event.go] The client can call the grpc method with a context.WithTimeout here to cancel : https://github.com/berty/berty/blob/bdd1babf29e06548309e6a125672b17e80bb50c4/go/pkg/bertyprotocol/scenario_test.go#L816",
+        "timestamp": "2020-10-06T10:45:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "phanhuynhquy",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/api_event.go] This context is from client side of GRPC, and WaitMemberIsReady() will be called in server side. I'm not sure ctx of client side impact to server side. :).",
+        "timestamp": "2020-10-06T11:10:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/api_event.go] not sure about the whole discussion, but a thing that is sure, is that we can completely setup a timeout on gRPC, but it may have strange behavior, I prefer each call to have it's own limit so it can decide by itself what is a normal limit and what is not",
+        "timestamp": "2020-10-06T11:16:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/pkg/bertyprotocol/store_message.go] is this limit OK for a conversation of >100 people?",
+        "timestamp": "2020-10-06T11:17:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 2.178.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v2.178.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2020-10-12T11:38:29Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "c58d8aa",
+        "message": "feat: add a message cache\n\nSigned-off-by: d4ryl00 <d4ryl00@gmail.com>",
+        "author": "d4ryl00",
+        "timestamp": "2020-09-14T16:51:29Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#1418",
+    "metadata": {
+      "title": "API - Define chatmodel",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-10-18T15:36:13Z",
+      "reviewers": [
+        "90dy",
+        "aeddi",
+        "moul"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "I prefer that we make this PR standalone of the other PRs (no depends on etc) so we can focus and comment the .proto collectively",
+        "timestamp": "2019-10-10T15:39:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] I personally prefer inline fields\r\n\r\nI like multiline service definitions (in rpc)",
+        "timestamp": "2019-10-14T11:45:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] We could maybe add `toSelf`",
+        "timestamp": "2019-10-15T13:10:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Since our message stack will be based on OrbitDB logs instead of synchronous event sent via 1to1 connection, these parameters seems not relevant anymore.",
+        "timestamp": "2019-10-15T13:17:19Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] What are these fields?",
+        "timestamp": "2019-10-15T13:18:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Should we add a devices list? (maybe just display some icons in the contact card: 1 laptop, 2 smartphones)",
+        "timestamp": "2019-10-15T13:22:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] :+1:",
+        "timestamp": "2019-10-15T14:10:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Conversation badge is defined by the number of new message in the conversation\r\nFor the \"verified\" field, it's related if the contact is verified, so I'm not sure about it, I think we should directly see contact member fields ...",
+        "timestamp": "2019-10-15T14:12:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] These status are defined by the member seen_at field. Didn't we discuss about using pubsub or other to have information about member typing or reading messages ?",
+        "timestamp": "2019-10-15T14:14:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Yes, good idea",
+        "timestamp": "2019-10-15T14:15:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] I updated it to have better lisibility of them, I don't care very much about one or another syntax, but could you tell me why do you prefer inline fields ?",
+        "timestamp": "2019-10-15T14:17:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Failed send couldn't appear sometimes ?",
+        "timestamp": "2019-10-15T14:19:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] For the read receipt its planed and it will be done using message metadata.\r\nFor the \"typing\" indicator, we could implement it using pubsub.\r\n\r\nAbout message state (sending / sent / failed), posting a message will consist of these steps:\r\n- add a new entry to the OrbitDB log (stored in IPFS local repo)\r\n- OrbitDB will notify the change using a pubsub channel\r\n- IPFS will do the rest to replicate the entry among peers\r\n\r\nAll the \"sending\" and \"retry mechanism\" will be done directly by IPFS data replication.",
+        "timestamp": "2019-10-15T14:43:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] > Conversation badge is defined by the number of new message in the conversation\r\n\r\nOk 👍 \r\n\r\n> For the \"verified\" field, it's related if the contact is verified, so I'm not sure about it, I think we should directly see contact member fields ...\r\n\r\nNot sure either, we could see that point during the next meeting",
+        "timestamp": "2019-10-15T14:49:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Maybe we can rename failed with something like \"Timeout\" which means we didn't get the ReadReceipt for a very long time",
+        "timestamp": "2019-10-15T14:50:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Switch to I lined field definitions",
+        "timestamp": "2019-10-15T14:51:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] List of devices, not list of \"light version of device\"",
+        "timestamp": "2019-10-15T14:51:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Enum duplicates :)",
+        "timestamp": "2019-10-15T14:52:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Unclear what it is, please prefix with what was received (contact request, last message)",
+        "timestamp": "2019-10-15T14:52:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Proto3 doesn't support \"required\" / \"optional\"",
+        "timestamp": "2019-10-15T14:53:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "Can you inline all the fields\r\n\r\nApply the few comments you already have\r\n\r\nAnd then organize a whiteboard session so we can collectively finish a draft?",
+        "timestamp": "2019-10-15T14:55:00Z",
+        "source": "review"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] > All the \"sending\" and \"retry mechanism\" will be done directly by IPFS data replication.\r\n\r\nCan't we have event \"ConversationMemberSeenMessage\" ? Or an ack, or whatever ? I think it's important for members to have this information",
+        "timestamp": "2019-10-15T14:59:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] It's an easy way to have non-nullable fields in typescript message deserialization and typescript interfaces",
+        "timestamp": "2019-10-15T15:01:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] :+1:",
+        "timestamp": "2019-10-15T15:01:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] I don't understand, what is duplicated ?",
+        "timestamp": "2019-10-15T15:04:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] > Maybe we can rename failed with something like \"Timeout\" which means we didn't get the ReadReceipt for a very long time\r\n\r\nWhat is the difference since we already have a `send_at = timestamp` and a `read_receipt = false`?\r\n\r\nKnowing that it doesn't make sense to have a retry at chat level. Once the entry is added to the local log, we just have to wait for the peers to sync (through direct connection, other peers or pinning service) and IPFS to do its replication job. Adding the entry again to the local log will not speed up the replication process and will simply duplicate the message.\r\n\r\n> Can't we have event \"ConversationMemberSeenMessage\" ? Or an ack, or whatever ? I think it's important for members to have this information\r\n\r\nAs I said in my previous message: **yes** we will have a read receipt.",
+        "timestamp": "2019-10-15T17:24:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Do you mean that we should display their public key? Or other metadata like their OS (Android, iOS, Windows, etc...)?\r\nIMO it's not relevant to display the device pub key (even a power user can't do anything with it) and about the metadata, it could be yet another data to think and borderline in term of privacy.",
+        "timestamp": "2019-10-15T17:29:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] (Or maybe you meant something else?)",
+        "timestamp": "2019-10-15T17:29:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] the id: `= 1`",
+        "timestamp": "2019-10-16T11:37:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] wow excuse me, I was sure that proto syntax 3 refused completely this keyword, but it seems that `protoc` is able to build without any problem",
+        "timestamp": "2019-10-16T11:39:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] You can filter out any unnecessary field, however, I don't want something like this:\r\n\r\n```proto\r\nmessage Device {}\r\nmessage LightDevice{}\r\n```\r\n\r\nUse a standard `Device` message that you can partially fill depending on the need",
+        "timestamp": "2019-10-16T11:41:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] thx :+1:",
+        "timestamp": "2019-10-16T11:42:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "I was thinking about uint64 vs string for ID\r\n\r\nThere are ways of improvement in term of storage and performance gain, but also risks of complexity and risks of time spent in the app to manage the mapping\r\n\r\nI prefer to take the risk right now because it's a lot easier to revert this optimization in case of failure than to try implementing it later\r\n\r\nSo: LGTM to keep uint64 ids for bertychat and maintain a mapping in bertychat library",
+        "timestamp": "2019-10-16T17:00:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "LGTM for a V1 so we can iterate :)",
+        "timestamp": "2019-10-16T17:09:31Z",
+        "source": "review"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "```console\r\nmoul@fwrz:~/go/src/berty.tech/go (chore-api-chatmodel-def) $ clear; make clean generate\r\nrm -f gen.sum internal/baz/baz.pb.go\r\nshasum ../api/bertychat.proto ../api/protocolmodel.proto ../api/bertyprotocol.proto ../api/chatmodel.proto ../api/baz.proto ../api/internal/foo.proto ../api/internal/sigchain.proto ../api/internal/handshake.proto ../api/internal/bar.proto Makefile | sort -k 2 > gen.sum.tmp\r\ndiff -q gen.sum.tmp gen.sum || ( \\\r\n  set -e; \\\r\n  GO111MODULE=on go mod vendor; \\\r\n  docker run \\\r\n    --user=`id -u` \\\r\n    --volume=\"/home/moul/go/src/berty.tech/go/..:/go/src/berty.tech\" \\\r\n    --workdir=\"/go/src/berty.tech/go\" \\\r\n    --entrypoint=\"sh\" \\\r\n    --rm \\\r\n    bertytech/protoc:19 \\\r\n    -xec 'make generate_local'; \\\r\n    make tidy \\\r\n)\r\ndiff: gen.sum: No such file or directory\r\nwarning: ignoring symlink /home/moul/go/src/berty.tech/go/bazel-bin\r\nwarning: ignoring symlink /home/moul/go/src/berty.tech/go/bazel-genfiles\r\nwarning: ignoring symlink /home/moul/go/src/berty.tech/go/bazel-go\r\nwarning: ignoring symlink /home/moul/go/src/berty.tech/go/bazel-out\r\nwarning: ignoring symlink /home/moul/go/src/berty.tech/go/bazel-testlogs\r\n+ make generate_local\r\n+ protoc -I ../api:../go/vendor:/protobuf '--gogofaster_out=plugins=grpc:/go/src' ../api/baz.proto\r\n+ protoc -I ../api:../go/vendor:/protobuf '--gogofaster_out=plugins=grpc:/go/src' ../api/chatmodel.proto\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: The first enum value must be zero in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nchatmodel.proto: Required fields are not allowed in proto3.\r\nmake: *** [Makefile:56: generate_local] Error 1\r\nMakefile:39: recipe for target 'gen.sum' failed\r\nmake: *** [gen.sum] Error 2\r\nmoul@fwrz:~/go/src/berty.tech/go (chore-api-chatmodel-def) $ \r\n```\r\n\r\n`required` is not supported by proto version 3, I will remove them\r\n\r\n@gponsinet I suggest you to take a look for field attributes to define the requirements (the attributes at the end of a line)",
+        "timestamp": "2019-10-16T17:24:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "In addition to the network and debug settings that might be missing (but we said yesterday that we would see later if I remember correctly) I just thought we had skipped the `ConversationAnnouncement` (`member_id / member_name joined / left the conversation`)\r\n\r\nI don't know where you would like to put it, either as a subtype message that would just be displayed differently in the UI, or as a separate type.",
+        "timestamp": "2019-10-17T10:05:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "> In addition to the network and debug settings that might be missing (but we said yesterday that we would see later if I remember correctly) I just thought we had skipped the `ConversationAnnouncement` (`member_id / member_name joined / left the conversation`)\r\n> \r\n> I don't know where you would like to put it, either as a subtype message that would just be displayed differently in the UI, or as a separate type.\r\n\r\nMaybe we should replace `string text` in ConversationMessage by a oneof Body ?\r\nEDIT: I think that use announcement as a message will be more easy to manage",
+        "timestamp": "2019-10-17T10:26:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Is it `string` or `bytes`?",
+        "timestamp": "2019-10-17T15:34:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] 0 values of enums should be a default value or something indicating that the value wasn't set; here we should just use `Unknown = 0`",
+        "timestamp": "2019-10-17T15:36:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] Avatar should be an uri, so a string\r\nTopic is a string",
+        "timestamp": "2019-10-17T15:36:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/chatmodel.proto] ```suggestion\r\n  enum MutePolicy {\r\n```",
+        "timestamp": "2019-10-17T15:36:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 1.0.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v1.0.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2019-12-23T21:27:04Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b380b31",
+        "message": "chore(api): define chatmodel\n\nSigned-off-by: Godefroy Ponsinet <godefroy.ponsinet@outlook.com>",
+        "author": "Godefroy Ponsinet",
+        "timestamp": "2019-10-10T15:14:56Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#2349",
+    "metadata": {
+      "title": "feat: improve beta bot",
+      "labels": [
+        "enhancement"
+      ],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-09-24T14:30:35Z",
+      "reviewers": [
+        "Jorropo",
+        "moul"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "For improve betabot we have think about some features :\r\n- [x] Scenario of conv with betabot\r\n- [x] The bot have a pull of messages and it will take a random value for send it\r\n- [x] The bot should auto-accept the invitation for multimember conversation\r\n---\r\n- [x] Add modal (js) for betabot\r\n\r\nFor the modal the link for request the betabot was hardcoded in `js/packages/components/modals/AddBetabot.js` line `149`\r\n\r\nSigned-off-by: clegirar <clemntgirard@gmail.com>"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] The event loop being monothread\r\nhttps://github.com/berty/berty/blob/a39a7406523a8c83af81e730a336d3c142b9aa9b/go/cmd/betabot/main.go#L74-L76\r\nYou are effectively blocking the whole loop for 5 seconds.",
+        "timestamp": "2020-09-18T19:12:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "LGTM (I'm not confident, pls get an other review)",
+        "timestamp": "2020-09-20T10:36:13Z",
+        "source": "review"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] I think you should use time.After here",
+        "timestamp": "2020-09-20T11:47:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] I don't think, `time.After` is way costier than `Sleep` and this code is running in a goroutine so no need of it.\r\n\r\nEDIT: To be fair, goroutine +  `time.Sleep` is on par with `time.After` but combining goroutine + `time.After` is overhead combo.",
+        "timestamp": "2020-09-20T11:56:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] That still sync (a chan is async but interacting with it (`<-`) is sync), what is different with chan is you can use them in selects:\r\n```go\r\nselect {\r\ncase value:=<-channel:\r\n  // code executed when a value was red from the channel\r\ncase channel<-valueToWrite:\r\n  // code executed when a value was written from the channel\r\ncase <-time.After(time.Second):\r\n  // code executed if nothing was done after 1s\r\n}\r\n```\r\nWhen a select is done it will first try to to do a non blocking interact with the channels one by one starting from the top (non blocking means if can't interact (due to channel blocked or buffer less) skip the case), if a channel interaction was sucessfull it will execute the case and exit the select with the implied break statement at the end of select and switch case in go.\r\nThen if all non blocking interaction failed the runtime takes the lead, basicaly your goroutine will likely context switch and will be eventualy be wakeup later on a sucessfull case but you can see this as quite random (if your first case would be executable first and then a second one your goroutine might be resumed later with the second or first case).\r\n\r\nNote that if you only want the first part of select (checking all cases one by one) but not the runtime sleepy part (waiting until a case resolve) you can add a default case in your select :\r\n```go\r\nselect {\r\ncase value:=<-channel:\r\n  // code executed when a value was red from the channel\r\ncase channel<-valueToWrite:\r\n  // code executed when a value was written from the channel\r\ndefault:\r\n  // code executed if all other interaction were blocking (we rarely need to put code there but it might be usefull)\r\n}\r\n// Next code\r\n```",
+        "timestamp": "2020-09-21T11:44:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] still missing something there",
+        "timestamp": "2020-09-21T18:24:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] `Wait` ? Wait waits for others to finish, I think you meant `Done` :)",
+        "timestamp": "2020-09-22T09:58:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] The goal of the select is to wait multiples channel (you should maybe `<-s.Recv()` (doesn't work right now)) :\r\n```go\r\ndefer wg.Done()\r\n// Loops and ...\r\nselect {\r\ncase gme, err := <-s.Recv():\r\n  // handle event\r\ncase <-ctx.Done():\r\n  return\r\n}\r\n```",
+        "timestamp": "2020-09-22T10:01:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] you must merge the wg.Done() with the handleEvent :\r\n```go\r\ngo func(){\r\n  defer wg.Done()\r\n  handleEvent(ctx, messengerClient, gme)\r\n}()\r\n```\r\nThe goal of `Done` is to notify when we are ready to finish cleanly.",
+        "timestamp": "2020-09-22T10:02:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] To avoid confusion we usualy try to put the `wg.Add()` right before firing the goroutine (so it's easy to connect the Add and the goroutine) but that just styling, this work just fine.\r\n\r\nEDIT: And here that needed, lets assume `messengerClient.EventStream` return an error you are never gonna do a `Done` (because the return stop the current scope never reaching the `go func(){defer wg.Done() // ...`)",
+        "timestamp": "2020-09-22T13:17:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "LGTM",
+        "timestamp": "2020-09-22T15:04:10Z",
+        "source": "review"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=h1) Report\n> Merging [#2349](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/8ff3b857bc09b176295013efa4800a8086323808?el=desc) will **decrease** coverage by `0.03%`.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/2349/graphs/tree.svg?width=650&height=150&src=pr&token=rBPpNHNNow)](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master    #2349      +/-   ##\n==========================================\n- Coverage   42.83%   42.79%   -0.04%     \n==========================================\n  Files          91       91              \n  Lines        8043     8043              \n==========================================\n- Hits         3445     3442       -3     \n- Misses       3883     3886       +3     \n  Partials      715      715              \n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #unittests | `42.79% <ø> (-0.04%)` | :arrow_down: |\n\nFlags with carried forward coverage won't be shown. [Click here](https://docs.codecov.io/docs/carryforward-flags#carryforward-flags-in-the-pull-request-comment) to find out more.\n\n| [Impacted Files](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [go/pkg/bertyprotocol/api\\_event.go](https://codecov.io/gh/berty/berty/pull/2349/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvYXBpX2V2ZW50Lmdv) | `42.68% <0.00%> (-3.66%)` | :arrow_down: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=footer). Last update [8ff3b85...60fa2c9](https://codecov.io/gh/berty/berty/pull/2349?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-09-23T14:04:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] no need for async here, the protocol will be async, and by removing the go routine, you can simplify this part of the code by removing the cancel() and by handling the errors directly as initialization errors",
+        "timestamp": "2020-09-24T12:51:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] just a note, nothing to do in this PR, but I think we can add an helper in the bertymessenger package for this",
+        "timestamp": "2020-09-24T12:57:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] ```suggestion\r\n\t\t\treturn fmt.Errorf(\"failed to listen to EventStream: %w\", err)\r\n```",
+        "timestamp": "2020-09-24T12:58:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] to improve readability, move this in a dedicated function at the bottom of the file",
+        "timestamp": "2020-09-24T13:00:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] I suggest you to init the seed with `rand.Seed(srand.MustSecure())` at the top of the betabot() function\r\n\r\nthen you can just use `answers[rand.Intn(len(answers))]`",
+        "timestamp": "2020-09-24T13:02:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] replace `if`, `else if`, with `switch` statement",
+        "timestamp": "2020-09-24T13:02:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] I guess an global object would be better and simpler.",
+        "timestamp": "2020-09-24T13:02:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/cmd/betabot/main.go] ```suggestion\r\n\tswitch strings.Lower(s) {\r\n\t\tcase \"y\", \"yes\", \"yes!\":\r\n\t\t\treturn true\r\n\t\tdefault:\r\n\t\t\treturn false\r\n\t}\r\n```",
+        "timestamp": "2020-09-24T13:03:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] ```suggestion\r\n\tls := strings.ToLower(s)\r\n\treturn ls == \"yes\" || ls == \"y\"\r\n```",
+        "timestamp": "2020-09-24T13:05:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] ```suggestion\r\n\t\t\t\t\tdefer wg.Done()\r\n\t\t\t\t\thandleEvent(ctx, messengerClient, gme)\r\n```\r\nSafer in case of panic (defer are executed when a panic occurs)",
+        "timestamp": "2020-09-24T13:07:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] It's really an not important random action so using an unseeded `rand` would be fine.\r\nWhat gosec wants you to do is not seeding it correctly (even if that a good thing) but he wants you to use something like `math/rand#Rand` (obtained with `math/rand#New`), this isolate this random loop from others (avoiding correlation attacks) and allows for concurrent random generation (the way computers generate randomness is sequential, each goroutine having his own random loop allows for concurrency).",
+        "timestamp": "2020-09-24T14:10:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "[go/cmd/betabot/main.go] ```suggestion\r\n\t}\r\n\treturn false\r\n```",
+        "timestamp": "2020-09-24T14:11:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Jorropo",
+        "role": "COLLABORATOR",
+        "body": "SGTM",
+        "timestamp": "2020-09-24T14:12:02Z",
+        "source": "review"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 2.152.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v2.152.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2020-09-24T14:31:45Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b2a8522",
+        "message": "feat: improve beta bot\n\nSigned-off-by: clegirar <clemntgirard@gmail.com>",
+        "author": "clegirar",
+        "timestamp": "2020-09-18T13:51:00Z"
+      },
+      {
+        "sha": "5ad7e7f",
+        "message": "feat: add betabot modal in js and add scenario\n\nSigned-off-by: clegirar <clemntgirard@gmail.com>",
+        "author": "clegirar",
+        "timestamp": "2020-09-18T14:59:09Z"
+      },
+      {
+        "sha": "0f37f81",
+        "message": "feat: auto accept group invitation\n\nSigned-off-by: clegirar <clemntgirard@gmail.com>",
+        "author": "clegirar",
+        "timestamp": "2020-09-24T10:07:05Z"
+      },
+      {
+        "sha": "60fa2c9",
+        "message": "fix: go styling\n\nSigned-off-by: clegirar <clemntgirard@gmail.com>",
+        "author": "clegirar",
+        "timestamp": "2020-09-24T11:12:21Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#1554",
+    "metadata": {
+      "title": "chore(js): setup berty store with redux-saga ",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-01-10T16:32:12Z",
+      "reviewers": [
+        "90dy",
+        "n0izn0iz"
+      ],
+      "changed_files": 13
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "ghost",
+        "role": "NONE",
+        "body": "\nThere were the following issues with this Pull Request\n\n* Commit: c958dc6ee0f2a52a22bdf5a0b4e70b1149dad3b9\n  - ✖ message may not be empty\n  - ✖ type may not be empty\n* Commit: 4f4dd2ca9305995d30dc5cfca4f90db00c1fdb92\n  - ✖ message may not be empty\n  - ✖ type may not be empty\n\n\nYou may need to [change the commit messages][ref] to comply with the repository contributing guidelines.\n\n--------\n\n🤖 This comment was generated by [**commitlint[bot]**][repo]. Please report issues [here][issues].\n\nHappy coding!\n\n[ref]: https://help.github.com/articles/changing-a-commit-message/\n[repo]: https://github.com/z0al/commitlint-bot\n[issues]: https://github.com/z0al/commitlint-bot/issues\n",
+        "timestamp": "2019-12-18T14:31:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=h1) Report\n> Merging [#1554](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/c9f464e43c73ea9783479c6b2278df809998ab7a?src=pr&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/1554/graphs/tree.svg?width=650&token=rBPpNHNNow&height=150&src=pr)](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##           master    #1554   +/-   ##\n=======================================\n  Coverage   65.89%   65.89%           \n=======================================\n  Files          28       28           \n  Lines         950      950           \n=======================================\n  Hits          626      626           \n  Misses        218      218           \n  Partials      106      106\n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=footer). Last update [c9f464e...688f12d](https://codecov.io/gh/berty/berty/pull/1554?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-01-06T14:51:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/index.ts] You need to use saga's `call` to run sagas in a `all`, with current code it only runs this `orchestrator` on init.\r\nSuggestion -> `yield all([proto.orchestrator, stuff.orchestrator].map(call))`",
+        "timestamp": "2020-01-09T20:38:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/conversation.ts] Not important: I wonder why you call your root sagas `orchestrator`, someone not familiar with saga reading the sagas doc might understand the code quicker with the `rootSaga` name",
+        "timestamp": "2020-01-09T20:52:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/member.ts] Not important: I would prefer that we implement our own compose instead of relying on a (palantir) lib for it",
+        "timestamp": "2020-01-09T20:52:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/message.ts] I would prefer to have SSOT for the initial state shared between commandHandler and eventHandler",
+        "timestamp": "2020-01-09T20:54:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "The only requested change is the `all[call(...)]` thing\r\nAlso there is an empty file added: `js/packages/store/chat/commands.ts`",
+        "timestamp": "2020-01-09T20:58:37Z",
+        "source": "review"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/conversation.ts] yes but in saga pattern, the orchestrator is the part that handle the command/events and dispatch events\r\nsee https://blog.couchbase.com/saga-pattern-implement-business-transactions-using-microservices-part/\r\nsee https://dzone.com/articles/microservices-using-saga-pattern",
+        "timestamp": "2020-01-10T12:11:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/index.ts] domain should not have orchestrator but entity/services should,\r\ndomain should only run the se saga via sagaMiddleware\r\nI will update it",
+        "timestamp": "2020-01-10T12:11:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/message.ts] There is only one source of trust since they merge their state\r\nBut if you want, the optimistic mutation could be done by the event handler only",
+        "timestamp": "2020-01-10T12:17:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/message.ts] just to be clear: what I meant is: extract `initialState` in a var and use it for both",
+        "timestamp": "2020-01-10T12:32:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/conversation.ts] but in our implementation it seems to only be a convenient way to run all sagas\r\nIt does not have a reply channel like shown here https://i0.wp.com/blog.couchbase.com/wp-content/uploads/2018/01/Screen-Shot-2018-01-11-at-7.41.06-PM.png?w=1486&ssl=1",
+        "timestamp": "2020-01-10T12:44:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/index.ts] I'm not sure I understand your reply\r\n\r\nIf you don't make this change in the `protocol` orchestrator too: the `instance` orchestrator is never ran and so, when dispatching `instance.start`, the `console.warn` shown below is not executed\r\n```js\r\n// instance.ts\r\ntakeEvery(commands.start, function*() {\r\n    // TODO: do protocol things\r\n    console.warn(\"HELLO SAGA\")\r\n    yield put(events.started())\r\n}),\r\n```\r\nIn other words: even if the `protocol.orchestrator` is run directly with `sagaMiddleware.run` we need to add a `call` like shown below\r\n```js\r\n// protocol/index.ts\r\nexport function* orchestrator() {\r\n    yield all([\r\n        call(instance.orchestrator)\r\n    ])\r\n}\r\n```",
+        "timestamp": "2020-01-10T12:53:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/conversation.ts] In our case we can consider store.dispatch as the MessageBroker\r\nThe reply channel is inside the MessageBroker, the orchestrator need to have a part that manage reply (in fact it is event from other services like MessageSendSucceed)\r\nIf we want to be clear we could have a function* replyChannelHandler() {} in the orchestrator were events will be handle, I don't really care about it, so as you want",
+        "timestamp": "2020-01-10T14:01:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/index.ts] In fact I will let it as it is\r\nBut, for me, it doesn't seem we need to use call,\r\nThe orchestrator are defined as effects since they are generator functions",
+        "timestamp": "2020-01-10T14:05:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/member.ts] I don't care, as you want",
+        "timestamp": "2020-01-10T14:06:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/message.ts] If you want, in fact in reducer, if a state is already initialize it will not reinitialize it",
+        "timestamp": "2020-01-10T14:07:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "[js/packages/store/chat/conversation.ts] I think I'm missing something, maybe it'll be clearer when we add the business logic. Anyway, forget about it ^^",
+        "timestamp": "2020-01-10T14:08:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/index.ts] done :+1:",
+        "timestamp": "2020-01-10T14:44:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "90dy",
+        "role": "MEMBER",
+        "body": "[js/packages/store/chat/conversation.ts] okay 👍",
+        "timestamp": "2020-01-10T14:44:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "n0izn0iz",
+        "role": "CONTRIBUTOR",
+        "body": "LGTM",
+        "timestamp": "2020-01-10T15:38:05Z",
+        "source": "review"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 2.3.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v2.3.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2020-01-13T10:05:51Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "4c70676",
+        "message": "chore: define js internal chat proto\n\nSigned-off-by: Godefroy Ponsinet <godefroy.ponsinet@outlook.com>",
+        "author": "Godefroy Ponsinet",
+        "timestamp": "2019-12-23T11:36:17Z"
+      },
+      {
+        "sha": "688f12d",
+        "message": "chore(chat): setup store\n\nSigned-off-by: Godefroy Ponsinet <godefroy.ponsinet@outlook.com>",
+        "author": "Godefroy Ponsinet",
+        "timestamp": "2020-01-06T14:12:51Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#1908",
+    "metadata": {
+      "title": "feat: add the multipeer connectivity transport",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-05-04T15:46:53Z",
+      "reviewers": [
+        "D4ryl00",
+        "gfanton",
+        "aeddi",
+        "moul"
+      ],
+      "changed_files": 23
+    },
+    "issue_payload": {
+      "body": "Add the multipeer connectivity transport of berty v1 to the master branch of berty\n* [x] add the transport + driver in an internal package"
+    },
+    "discussion_timeline": [
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/logger.gen.go] we're not using this method anymore, but I can help you get rid of this",
+        "timestamp": "2020-04-27T09:21:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.xcodeproj/project.pbxproj] Why did you add this file?",
+        "timestamp": "2020-04-28T08:37:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist] Why did you add a XCode workspace in the Go package?",
+        "timestamp": "2020-04-28T08:39:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist] I comment only this file but this comment is for the entire folder",
+        "timestamp": "2020-04-28T08:40:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/multiaddr/logger.go] Do you need to have a logger in this package?",
+        "timestamp": "2020-04-28T08:44:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n// Transport is a MPConnectivity tpt.transport.\r\n```",
+        "timestamp": "2020-04-28T08:45:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n// NewTransport creates a MPConnectivity transport object that tracks dialers and listener.\r\n```",
+        "timestamp": "2020-04-28T08:46:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n// With MPConnectivity you can only dial a device that is already connected with the native driver.\r\n```",
+        "timestamp": "2020-04-28T08:46:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n\t// MPConnectivity transport needs to have a running listener in order to dial other peer\r\n```",
+        "timestamp": "2020-04-28T08:46:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n\t// remoteAddr is supposed to be equal to remotePID since with MPConnectivity transport:\r\n```",
+        "timestamp": "2020-04-28T08:46:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/transport.go] ```suggestion\r\n\t// With MPConnectivity you can't really dial, only auto-connect with peer nearby.\r\n```",
+        "timestamp": "2020-04-28T08:47:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/connmgr.go] ```suggestion\r\n\t// Creates a MPConnectivity manet.Conn\r\n```",
+        "timestamp": "2020-04-28T08:48:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver/mc-driver.m] ```suggestion\r\n            NSLog(@\"StartMCDriver failed\");\r\n```",
+        "timestamp": "2020-04-28T08:49:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/listener.go] ```suggestion\r\n// Listener is a MPConnectivity tpt.Listener.\r\n```",
+        "timestamp": "2020-04-28T08:49:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/listener.go] ```suggestion\r\n\t\t\t// If the MPConnectivity handshake failed for some reason, Accept won't return an error\r\n```",
+        "timestamp": "2020-04-28T08:50:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/multiaddr/init.go] ```suggestion\r\n// Add MPConnectivity to the list of libp2p's multiaddr protocols\r\n```",
+        "timestamp": "2020-04-28T08:50:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/multiaddr/multiaddr.go] ```suggestion\r\n// MPConnectivity multiaddr protocol definition\r\n```",
+        "timestamp": "2020-04-28T08:50:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist] > Why did you add a XCode workspace in the Go package?\r\n\r\nBecause that was that we did with the ble android package. I thought I should keep it because it's more easy to modify this package with the xcode workspace for everyone.",
+        "timestamp": "2020-04-28T09:05:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist] In v1, the gradle files were included in the Android driver since they were necessary to compile it.\r\n\r\nOn the other hand, there was no XCode file in the BLE iOS driver since XCode was not used and cgo compiles it directly. It is the same for the MPConnectivity driver.",
+        "timestamp": "2020-04-28T10:28:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/logger.gen.go] I've seen in other packages (e.g tinder) that logger is send from main.\r\nFor my package, I don't know how to do easily to give him the logger from main because it's a libp2p's Transporter constructor that constructs my transport.",
+        "timestamp": "2020-04-28T14:55:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "tested, approved, it's super fast and super cool!",
+        "timestamp": "2020-04-29T18:08:25Z",
+        "source": "review"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "NewTransport won't failed if StartMCDriver failed.\r\nReady for review for merge.",
+        "timestamp": "2020-05-04T12:36:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.h] You should return void here if the value returned is ignored by the libp2p transport",
+        "timestamp": "2020-05-04T14:16:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "aeddi",
+        "role": "MEMBER",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/bridge.go] You shouldn't return a bool here if the return of this func is ignored by the transport",
+        "timestamp": "2020-05-04T14:20:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=h1) Report\n> Merging [#1908](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/cc84b9d4bd5d93ec1dcaab77f110e3395eb125a3&el=desc) will **increase** coverage by `0.18%`.\n> The diff coverage is `0.00%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/1908/graphs/tree.svg?width=650&height=150&src=pr&token=rBPpNHNNow)](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master    #1908      +/-   ##\n==========================================\n+ Coverage   58.70%   58.88%   +0.18%     \n==========================================\n  Files          49       49              \n  Lines        3739     3741       +2     \n==========================================\n+ Hits         2195     2203       +8     \n+ Misses       1109     1106       -3     \n+ Partials      435      432       -3     \n```\n\n\n| [Impacted Files](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [go/framework/bertybridge/bridge\\_demo.go](https://codecov.io/gh/berty/berty/pull/1908/diff?src=pr&el=tree#diff-Z28vZnJhbWV3b3JrL2JlcnR5YnJpZGdlL2JyaWRnZV9kZW1vLmdv) | `50.00% <0.00%> (-1.05%)` | :arrow_down: |\n| [go/pkg/bertyprotocol/keystore\\_message\\_utils.go](https://codecov.io/gh/berty/berty/pull/1908/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wva2V5c3RvcmVfbWVzc2FnZV91dGlscy5nbw==) | `60.86% <0.00%> (+0.86%)` | :arrow_up: |\n| [go/pkg/bertyprotocol/store\\_message.go](https://codecov.io/gh/berty/berty/pull/1908/diff?src=pr&el=tree#diff-Z28vcGtnL2JlcnR5cHJvdG9jb2wvc3RvcmVfbWVzc2FnZS5nbw==) | `70.45% <0.00%> (+6.81%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=footer). Last update [cc84b9d...ee63c2e](https://codecov.io/gh/berty/berty/pull/1908?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-05-04T14:22:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "gfanton",
+        "role": "MEMBER",
+        "body": "LGTM 👍",
+        "timestamp": "2020-05-04T14:37:20Z",
+        "source": "review"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/bridge.go] done!",
+        "timestamp": "2020-05-04T14:51:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "D4ryl00",
+        "role": "CONTRIBUTOR",
+        "body": "[go/internal/multipeer-connectivity-transport/driver/mc-driver/mc-driver.h] done!",
+        "timestamp": "2020-05-04T14:51:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 2.55.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v2.55.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2020-05-04T15:48:18Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ee63c2e",
+        "message": "feat: add multipeer connectivity Transport and add it in libp2p\n\nfeat: add multipeer connectivity for mobile devices\n\nfix: fix linux compilation failed\n\nchore: remove old references to BLE\n\nchore: remove xcode project directory\n\nchore: goimports passed\n\nfeat: pass functional logger to the mc transport\n\nchore: improve log message in the mc driver\n\nfix: NewTransport won't failed if StartMCDriver failed\n\nfix: check if the driver is enabled in some methods\n\nchore: change StartMCDriver return type",
+        "author": "remi",
+        "timestamp": "2020-04-23T08:15:50Z"
+      }
+    ]
+  },
+  {
+    "story_id": "berty/berty#1385",
+    "metadata": {
+      "title": "feat(protocol): add berty protocol proto",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-09-27T10:36:13Z",
+      "reviewers": [
+        "moul"
+      ],
+      "changed_files": 6
+    },
+    "issue_payload": {
+      "body": "Protocol frist draft, based on #1375"
+    },
+    "discussion_timeline": [
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Leave is too common, LeaveGroup, LeaveConversation, LeaveSomething",
+        "timestamp": "2019-09-26T05:09:19Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Is the workflow like:\r\n\r\n1.  NewAccountFromExistingDevice or\r\n\r\nOr like:\r\n\r\n1. NewAccount\r\n2. LinkWithExistingDevice\r\n\r\n?",
+        "timestamp": "2019-09-26T05:12:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Same here, is it just this call or a 2-Step action, including a generic NewAccount and an ImportBackup or something like that?",
+        "timestamp": "2019-09-26T07:05:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Thinking that the whole Account Management section should be moved to chatapp",
+        "timestamp": "2019-09-26T07:09:11Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] This is something that should be automatic and transparent for someone using our protocol",
+        "timestamp": "2019-09-26T07:11:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] AcceptContactRequest",
+        "timestamp": "2019-09-26T07:14:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] This should probably move with Account into bertychat",
+        "timestamp": "2019-09-26T07:16:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] The name is ambiguous\r\n\r\nIs it 1 way of enabling the global rendezvous point system or about « enabling » a specific rendezvous point, and of the later, what is « enabling »? \r\n\r\nI know that you plan to add comments but function names shouldn’t be ambiguous",
+        "timestamp": "2019-09-26T07:18:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Ok i think that I know why you are putting everything  related with account in this protobuf, it makes sense to keep the device management in the SDK\r\n\r\nWe should try to make this part more simple, maybe by unifying contact and device (from the SDK point of view), I.e., switch to « NewDevice » and hide the « account<->device » flow internally",
+        "timestamp": "2019-09-26T07:22:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What is that?",
+        "timestamp": "2019-09-26T07:22:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Even if it is implicit (today) I think it will make sense to rename it GetGroupMember, so we are sure to talk about a group membership and not a ContactBookMember, a NetworkClusterMember",
+        "timestamp": "2019-09-26T07:24:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Yes, it should be merged with GroupMember",
+        "timestamp": "2019-09-26T07:25:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Insert Contact",
+        "timestamp": "2019-09-26T07:26:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] can we just return the sigchain with the other contact info?",
+        "timestamp": "2019-09-26T07:51:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] GetContactByID\r\n\r\nand maybe it worths having just GetContact that takes a contact id, an account id, or a device id",
+        "timestamp": "2019-09-26T07:52:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] If this is the action of sending a contact request, you should rename it SendContactRequest\r\n\r\nelse, maybe the name is unclear",
+        "timestamp": "2019-09-26T07:53:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] DiscardContactRequest",
+        "timestamp": "2019-09-26T07:53:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What the diifference with OpenStreamToDevice?",
+        "timestamp": "2019-09-26T07:53:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] RemoveContactRequest",
+        "timestamp": "2019-09-26T07:54:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] duplicate, see line 80",
+        "timestamp": "2019-09-26T07:54:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] why the SDK use should get the group broadcast?\r\n\r\nI think he/she can write on it, read on it, but getting it seems to be an internal implementation detail",
+        "timestamp": "2019-09-26T07:55:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] What is the goal of this call?",
+        "timestamp": "2019-09-26T07:56:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] it's implicit but for the protocol it's important to recall the related entity, here it's a GroupInvitation",
+        "timestamp": "2019-09-26T07:57:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] ?",
+        "timestamp": "2019-09-26T07:57:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] isn't it something internal?",
+        "timestamp": "2019-09-26T07:57:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Before writing all the `MethodRequest` and `MethodReply`, we need to define the main entities:\r\n\r\n* `Account`? (should maybe be merged with `Contact` or be moved in another package)\r\n* `Contact`\r\n  * that embeds the `Device`?\r\n* `Group`\r\n* `ContactRequest`\r\n* `GroupInvitation`",
+        "timestamp": "2019-09-26T08:00:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "moul",
+        "role": "MEMBER",
+        "body": "see comments",
+        "timestamp": "2019-09-26T08:17:36Z",
+        "source": "review"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=h1) Report\n> Merging [#1385](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=desc) into [master](https://codecov.io/gh/berty/berty/commit/90cbf078a91fe92adb4be7867dd3cca468922501?src=pr&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/berty/berty/pull/1385/graphs/tree.svg?width=650&token=rBPpNHNNow&height=150&src=pr)](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##           master    #1385   +/-   ##\n=======================================\n  Coverage   67.85%   67.85%           \n=======================================\n  Files           2        2           \n  Lines          56       56           \n=======================================\n  Hits           38       38           \n  Misses         16       16           \n  Partials        2        2\n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=footer). Last update [90cbf07...0eceeb6](https://codecov.io/gh/berty/berty/pull/1385?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2019-09-26T08:21:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Not sure about this, the protocol should somehow be able to initiate an account (a sigchain, some secrets etc.)",
+        "timestamp": "2019-09-26T08:51:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] Both can be done, but I personnally prefer the first one, how should we manage the fact that the second device AccountID will change, what if you already created/joined conversations, added contacts from the second account before linking it to the first one?",
+        "timestamp": "2019-09-26T08:54:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "glouvigny",
+        "role": "MEMBER",
+        "body": "[api/bertyprotocol.proto] I do not agree with this, this is an option to reset your contact request URL (it resets the rendezvous point seed, it is not related with the periodic rotation based on time) without having to create a new account.\r\n\r\nThe naming might be the real issue here.",
+        "timestamp": "2019-09-26T09:09:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "github-actions",
+        "role": "NONE",
+        "body": ":tada: This PR is included in version 1.0.0 :tada:\n\nThe release is available on [GitHub release](https://github.com/berty/berty/releases/tag/v1.0.0)\n\nYour **[semantic-release](https://github.com/semantic-release/semantic-release)** bot :package::rocket:",
+        "timestamp": "2019-12-23T21:28:37Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d0d8273",
+        "message": "feat(bertyprotocol): add berty protocol proto\n\nProtocol frist draft",
+        "author": "Guilhem Fanton",
+        "timestamp": "2019-09-25T19:54:11Z"
+      },
+      {
+        "sha": "947cfe0",
+        "message": "fix: protocol definition",
+        "author": "Guillaume Louvigny",
+        "timestamp": "2019-09-26T14:25:23Z"
+      },
+      {
+        "sha": "df151c9",
+        "message": "fix(protocol): Add duplex stream on `DeviceOpenStream`\n\nalso remove useless extension",
+        "author": "Guilhem Fanton",
+        "timestamp": "2019-09-26T15:55:13Z"
+      },
+      {
+        "sha": "e83ad09",
+        "message": "chore(protocol): remove useless account_id & clean up",
+        "author": "Guilhem Fanton",
+        "timestamp": "2019-09-26T16:15:41Z"
+      },
+      {
+        "sha": "9e946b5",
+        "message": "feat: proto v1",
+        "author": "Guillaume Louvigny",
+        "timestamp": "2019-09-27T10:24:44Z"
+      },
+      {
+        "sha": "0eceeb6",
+        "message": "chore: make tidy",
+        "author": "Manfred Touron",
+        "timestamp": "2019-09-27T10:32:41Z"
+      }
+    ]
+  }
+]

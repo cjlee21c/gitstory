@@ -1,0 +1,91 @@
+{
+  "story_id": "hashicorp/consul#22932",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "A Security-Motivated Dependency Upgrade for the Consul Website",
+      "body": "The Consul project's public-facing website is built on a modern JavaScript framework stack. Over time, some of the dependencies underpinning that stack had become deprecated or had known security vulnerabilities. A contributor submitted a pull request to address this: removing deprecated packages, adding a missing optimization dependency, and upgrading the underlying framework to a newer major version. The stated goals were to close known security gaps while keeping the website functioning as before. The change touched only two files and was labeled as a documentation-infrastructure concern with no user-facing changelog entry required.",
+      "source_refs": [
+        "issue_payload.body",
+        "pr_metadata.changed_files",
+        "metadata.labels"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Security Urgency vs. Stability Risk of a Major Version Bump",
+      "body": "The core tension in this PR is one familiar to any team maintaining a long-lived product: security vulnerabilities demand timely remediation, but upgrading a dependency across a major version boundary carries real risk of breaking changes. The website's build and rendering pipeline depends on the framework in question, and a major version upgrade could silently alter behavior, break the deployment, or introduce incompatibilities with other parts of the stack. At the same time, leaving known vulnerabilities unaddressed is not a neutral choice. The team had to weigh how confident they were that the upgrade was safe before merging, and who was the right person to make that call — the contributor, the core engineering team, or the documentation team who owns the website content.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — suresh-hashicorp",
+      "body": "A contributor from within the HashiCorp ecosystem reviewed the deployment output and found it looked correct. However, they were not fully comfortable signing off on a major framework version upgrade without input from the team that owns the documentation website day-to-day. Their position was essentially: the surface-level evidence is encouraging, but the risk of a major version bump warrants a domain expert's confirmation before the change is considered safe to merge. They explicitly reached out to the docs team to ask whether upgrading the framework's major version was harmless in this context, signaling that technical correctness alone was not sufficient — organizational ownership and expertise should also be consulted.",
+      "author": "suresh-hashicorp",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — hc-github-team-consul-core",
+      "body": "The automated backport system maintained by the Consul core team took a different kind of position: process compliance. After the PR was merged, the automation repeatedly flagged that the change had not been backported to all required stable release branches. The system's implicit argument is that security fixes of this nature should propagate to all supported versions, not just the main branch. The repeated automated reminders — spanning weeks and then months — highlight a structural concern: merging a security fix to the primary branch without completing the backport work leaves older supported versions still exposed. This is a process and release-management viewpoint rather than a technical one, but it reflects a real architectural principle about how security remediations should be handled across a versioned product.",
+      "author": "hc-github-team-consul-core",
+      "author_role": "COLLABORATOR",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what actually happened: Given that a contributor found the deployment looked fine but wanted docs-team sign-off, and given that the automated system flagged missing backports to multiple older release branches — should the PR have been merged before receiving explicit confirmation from the docs team, and what obligation does the author have to complete backports to all supported versions? What process safeguards would you put in place to prevent a security fix from being stranded on the main branch without propagating to older supported releases?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged Without Explicit Docs-Team Sign-Off; Backports Remain Incomplete for Months",
+      "body": "The pull request was merged on October 14, 2025, shortly after the contributor expressed their desire for docs-team confirmation but apparently without that confirmation being recorded in the discussion. The merge proceeded with the reviewer listed as the external contributor who had submitted the PR. Following the merge, the automated backport system began issuing weekly reminders that the change had not been propagated to at least one older supported release branch. These reminders continued for over three months with no recorded resolution, indicating that the backport work was not completed by the original author and was not picked up by the core team either. The security fix therefore remained absent from at least one supported version of the product for an extended period.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "pr_metadata.reviewers",
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Security remediations should have explicit backport completion as a merge requirement, not a post-merge courtesy: if a vulnerability affects multiple supported versions, the fix is only partially effective until it reaches all of them, and automated reminders alone are insufficient to ensure follow-through.",
+        "When a reviewer explicitly requests sign-off from a domain-owning team before merging, that request should be treated as a blocking condition rather than a soft suggestion — merging before the requested confirmation arrives undermines the review process and can leave unresolved risk.",
+        "Major version upgrades of foundational dependencies deserve a clear ownership handoff: the contributor who proposes the upgrade and the team that owns the affected system should both be on record as accepting the risk, especially when the upgrade crosses a compatibility boundary that could affect build or deployment behavior."
+      ]
+    }
+  ]
+}

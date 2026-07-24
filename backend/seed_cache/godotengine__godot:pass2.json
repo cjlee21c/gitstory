@@ -1,0 +1,1639 @@
+[
+  {
+    "story_id": "godotengine/godot#87081",
+    "metadata": {
+      "title": "Add transform offset to Control nodes",
+      "labels": [
+        "enhancement",
+        "topic:gui"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-03-06T14:16:44Z",
+      "reviewers": [
+        "kleonc",
+        "Calinou",
+        "bruvzg",
+        "Mickeon",
+        "timoschwarzer",
+        "AdriaandeJongh",
+        "AThousandShips",
+        "KoBeWi"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "This is an implementation of my proposal outlined in this discussion: https://github.com/godotengine/godot-proposals/issues/7053#issuecomment-1883816733\r\n\r\n**See the most recent state of this PR here: https://github.com/godotengine/godot/pull/87081#issuecomment-3904492472**\r\n\r\ntl;dr: Currently it's hard and complicated to animate Control nodes without breaking the layout, especially if the Control nodes are in deeply nested layout structures which is often the case. This PR adds new properties to Control nodes that specify a render transform that does not affect and is not affected by layouting (similar to CSS' `transform`). These make UI animations much less pain to work with\r\n\r\n- `render_offset`: translation\r\n- `render_scale`: scale\r\n- `render_rotation`, rotation\r\n- `render_transform_pivot`, pivot for scaling and rotating\r\n\r\n`render_offset` and `render_transform_pivot` are relative to the size of the Control node by default (I think it's a very common usecase to rotate around and scale from the center) but it can be toggled to use absolute pixel values instead.\r\n\r\n[Screencast from 2024-01-11 17-10-13.webm](https://github.com/godotengine/godot/assets/8849554/28f2f723-6b9f-4687-b7de-0e6c06695837)\r\n\r\n## Considerations\r\n\r\n~~Input is currently *not* affected by the render transform. That means if you e.g. apply a render offset to a button, the button is still clickable at its original position but drawn somewhere else. This might need some discussion whether that's desirable or not.~~ There is a toggle for this now.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "I remember Node2D has properties.\r\n\r\nVector2 | position | Vector2(0, 0)\r\nfloat | rotation | 0.0\r\nVector2 | scale | Vector2(1, 1)\r\n\r\nHow are these different?\r\n\r\nEdit:\r\n\r\nWill review the proposal.",
+        "timestamp": "2024-01-11T23:28:19Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "One could argue that both `render_rotation` and `render_scale` are not that useful since (_unless I'm severely mistaken_) Controls already ignore both rotation and scale within containers and when moving anchors/margins.",
+        "timestamp": "2024-01-11T23:51:36Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon this is currently considered a bug: https://github.com/godotengine/godot/issues/19068\r\n\r\nThat's why I added rotation and scale render transforms separately although they have the same result currently :)",
+        "timestamp": "2024-01-11T23:53:45Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "I've gotten so used to the bug it may as well be a feature to me. 5 years ever since it has been reported, too. This \"bug\" does have its advantages in the same exact way as `render_offset` does in the PR. Hmm...",
+        "timestamp": "2024-01-12T00:08:00Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon yeah, that's why I added render_rotation. So if the bug with rotation gets fixed eventually, people who used it for animation can switch to render_rotation and people who want rotated controls to actually use more space can finally do that. Same for scale and render_scale.",
+        "timestamp": "2024-01-12T07:01:37Z"
+      },
+      {
+        "author": "djrain",
+        "role": "NONE",
+        "body": "How this would affect children of the animated node, if at all? In our games we're usually animating whole control-based scenes or Containers, like a playing card or something, frequently containing both Controls and Node2D, so the whole thing needs to be animated as a unit. I currently achieve that by applying an animation transform to the node but only after any parent Container does its layout.",
+        "timestamp": "2024-01-12T19:00:39Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@djrain the current implementation sets the CanvasItem transform of the Control node, so it affects all children as well.",
+        "timestamp": "2024-01-12T19:36:54Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@AThousandShips thanks for the review :raised_hands: applied everything and fixed code style issues",
+        "timestamp": "2024-01-12T19:43:36Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@AThousandShips now it should have everything except the px suffix",
+        "timestamp": "2024-01-12T20:24:13Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "Two things:\r\n- You should add these lines (and ideally roughly document them) in `Control.xml` otherwise [that Linux build](https://github.com/godotengine/godot/actions/runs/8020071560/job/21909161475?pr=87081) will never compile\r\n    <img width=70% src=https://github.com/godotengine/godot/assets/66727710/46bf73b8-abf3-4b2e-872f-d910eacac48b >\r\n- When the PR is in \"Draft\" state it means it is not ready for review. I don't know if this is intentional.",
+        "timestamp": "2024-02-23T18:41:13Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon thanks for noticing, I was aware of it! I had a small fun project using the changes of this PR going on until today hence I didn't write the docs yet and didn't remove the WIP status. I'll get this PR ready in the next days hopefully.",
+        "timestamp": "2024-02-25T10:12:00Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon I added the docs and removed the WIP status so the PR should be ready for review now :slightly_smiling_face: ",
+        "timestamp": "2024-03-04T13:33:11Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "That's good, I... hmm... This is not a review but some thoughts:\r\n- This PR could've used a separate proposal to further discuss potential solutions to the issue.\r\n    - I probably should've recommended this much sooner, but everyone has their own things to worry about.\r\n- The PR as is adds a LOT of properties to all Controls, which is most certainly hefty. It does introduce overhead, yet a grand majority of Control nodes in your standard application are not going to make use of them, or at least not all the time.\r\n    - Because of it, in my opinion, it's worth being careful if this PR is even considered as is. Of course as you can see everyone is desiring _something_ like this, but having it for _every_ Control may be excessive. There may be multiple solutions to the same issue worth evaluating.",
+        "timestamp": "2024-03-04T16:31:46Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon I can only speak for myself, but I've had more use for the newly added properties in contrast to existing `position`, `rotation` and `scale` properties. In addition to that, the point of this PR is to make *all* Controls easily animatable without messing with layouting. I don't see why only some Controls should have the render transform properties and some shouldn't (where would you draw the line here?).\r\n\r\nI didn't measure it but I can't imagine the overhead being even noticable. The final transform is not calculated every frame but is cached iirc.",
+        "timestamp": "2024-03-05T14:41:22Z"
+      },
+      {
+        "author": "conde2",
+        "role": "NONE",
+        "body": "First of all, amazing pull request, indeed very useful.\n\nI would only suggest to check if you're not setting the same value in the setters. To avoid a calling notify and a queue draw.",
+        "timestamp": "2024-03-12T12:41:17Z"
+      },
+      {
+        "author": "markdibarry",
+        "role": "CONTRIBUTOR",
+        "body": "Also, rotation already has limited use with controls since `clip_contents` is not compatible.\r\n![image](https://github.com/godotengine/godot/assets/21325943/fd4e9037-f91c-4542-bea2-4e78401bf8f4)",
+        "timestamp": "2024-03-12T13:33:33Z"
+      },
+      {
+        "author": "filkata",
+        "role": "NONE",
+        "body": "Hoping that this is still going to get merged.",
+        "timestamp": "2024-06-03T12:58:55Z"
+      },
+      {
+        "author": "Calinou",
+        "role": "MEMBER",
+        "body": "@filkata Please don't bump issues without contributing significant new information. Use the :+1: reaction button on the first post instead.\r\n\r\n4.3 is in feature freeze, so any new feature PRs can only be merged in 4.4 *at the earliest*.",
+        "timestamp": "2024-06-03T18:07:58Z"
+      },
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "The general conversation from https://github.com/godotengine/godot-proposals/issues/7053 seems to be the maintainers are divided on adding this. \r\n\r\nWhen there's a clear agreement pull requests get merged quickly, but with disagreement enhancements get stuck.",
+        "timestamp": "2024-09-10T23:26:49Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "I do really appreciate that @timoschwarzer has been keeping this PR rebased and up-to-date as much as possible. I'm not part of the team of interest, but I _am_ one of many Godot users.[My worry is the same as it used to be from the start](https://github.com/godotengine/godot/pull/87081). That is, nodes in general are not exactly light in memory and the additional overhead may prove problematic, given that most **Control** nodes do not need this.\r\n\r\nSo the question to me always remains: is the trade-off worth it? Regardless, the feature is obviously very, very desired.",
+        "timestamp": "2024-09-11T18:17:25Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon would it help to benchmark the actual impact this change would have, especially in UI heavy projects such as the Godot editor itself? I think I could do that.",
+        "timestamp": "2024-09-14T08:14:33Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "I can't say benchmarking would do a lot for the people of interest, because there's still the question of whether **Control** nodes should be capable of this in the first place. \r\nBut it may confirm or deny my own suspicious about the \"unnecessary\" overhead. I do repeat that there _may_ be other ways to accomplish this that could be more satisfactory.",
+        "timestamp": "2024-09-14T19:02:03Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "I will be busy for two weeks now but will try to get some meaningful data then.\r\n\r\n> I do repeat that there *may* be other ways to accomplish this that could be more satisfactory\r\n\r\nI would of course like to see more sophisticated ways to accomplish animations for Control nodes but so far the other solutions I have seen came with limitations and aren't as flexible while I do see and have had use cases to animate both Control and Container nodes. When you say \"more satisfactory\", do you tie that directly to \"not having render transform properties on all Control nodes\"?",
+        "timestamp": "2024-09-15T20:45:59Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@Mickeon I finally did some benchmarks:\r\n\r\n\r\n## Benchmark\r\n\r\nSample 1: Master branch at 1fc82087658066935bed9e1350d62e334c7e0309\r\nSample 2: Same as Sample 1 plus this commit\r\n\r\nFor each sample, I launched the editor into an empty project, let everything load and then closed the editor again. Then I launch the same editor executable with a profiler, let it open and close it again. Each sample was profiled three times, the results per sample were roughly the same.\r\n\r\nSystem:\r\n```\r\nGodot v4.4.dev (48bcad089) - Arch Linux #1 ZEN SMP PREEMPT_DYNAMIC Thu, 12 Sep 2024 17:17:51 +0000 on Wayland - X11 display driver, Multi-window, 2 monitors - Vulkan (Forward+) - dedicated Intel(R) Arc(tm) A770 Graphics (DG2) - Intel(R) Core(TM) i9-9900K CPU @ 3.60GHz (16 threads)\r\n```\r\n\r\nCompiled with\r\n```sh\r\nscons platform=linuxbsd target=editor production=yes linker=mold lto=none debug_symbols=yes\r\n```\r\n\r\nProfiled with:\r\n```sh\r\nvalgrind --tool=massif ./godot.linuxbsd.editor.x86_64 -e --path /path/to/empty/godot/project\r\n```\r\n\r\n\r\n## Results\r\n\r\n*Sample 1 (master branch):*\r\nPeak Heap allocation: 574.13380 MiB - 574.17510 MiB\r\n\r\n*Sample 2 (this PR):*\r\nPeak Heap allocation: 575.23056 MiB - 575.23404 MiB\r\n\r\n*Difference*:\r\n1.05894 MiB - 1.09676 MiB\r\n→ **This PR causes the editor to use approximately 0.18% more heap memory.**",
+        "timestamp": "2024-09-29T10:01:39Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "I think this is the only way to reliably animate Control nodes inside Container with AnimationPlayer when their size is undetermined. Which is nice, but I think such strict requirement is not that common. There are multiple workarounds and if all fails, you can use Tweens.\r\n\r\nThat said, I think there is a way to have this feature without much overhead (currently, aside from memory, it also makes transforming more complex). The `render_*` stuff can be moved to a separate struct, which is null by default. Once any render property is set for the first time, allocate the struct. This limits the additional memory usage to single pointer for most Controls and allows to opt-out from the transform operations when the struct is null. Though not sure if doing this is a good idea 🤔\r\n\r\nOther than that, since this is purely visual, should these properties be serialized in the scene? Especially with the input problem you mentioned? The new properties should have their purpose documented in Control's class description (i.e. that they are meant only for animation). If the usage is optional like I described above, and it's properly documented, I think it *might* be fine to have this feature.\r\n\r\nEDIT:\r\nThough looking at the proposal again, I think this can be a new Container too. The only argument against that was that Control workflow involves lots of nesting, but it's fine in this case, because you'd use this container only for this specific case. Also in a scene with 10 levels of nesting, one extra node is irrelevant.\r\n\r\nEDIT2:\r\nThen again, such container is quite easy to do in GDScript, as even noted in the proposal.",
+        "timestamp": "2024-10-15T13:55:48Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "*Warning: personal opinion and experiences.* :slightly_smiling_face: \r\n\r\n\r\n> I think this is the only way to reliably animate Control nodes inside Container with AnimationPlayer when their size is undetermined. Which is nice, but I think such strict requirement is not that common.\r\n\r\nI must completely disagree with your statement about this not being a common requirement. In every project so far that involves UI, a feature to apply a render transform to Control nodes of different kinds would have made things much easier to create. And it already helped a lot since I use a fork with this PR applied. Yes, I could have used Tweens for many of the things that I animated, but next to not being able to react to transform changes in parent nodes, Tweens just cannot hold up to the iteration speed and quality that AnimationPlayer gives. Being able to change animation easing curves and previewing them with one click - or even using Bezier curves - is a huge reduction in effort that I need to spend to get the same results in comparison to using Tweens. Looking at the reactions to this PR and the proposal, I don't seem to be alone with this opinion.\r\n\r\n\r\n> That said, I think there is a way to have this feature without much overhead (currently, aside from memory, it also makes transforming more complex).\r\n\r\n0.18% more memory usage in the most UI heavy Godot project that I know of (the Editor) still does not sound like much overhead to me, but a solution like you pointed out sounds like a good compromise, if it's really a concern.\r\n\r\n\r\n> Also in a scene with 10 levels of nesting, one extra node is irrelevant.\r\n\r\nI would agree immediately if Godot had some kind of slot mechanism that lets you define where children should be inserted for instanced scenes. Too often have I been at a point where I got screwed by this to be able to agree here right now. I have had dozens of such cases where this deep nesting of controls prevented modularization of logical Control \"components\" into separate scenes. I cannot tell immediately if this would be a problem if render transformation is achieved using Containers.",
+        "timestamp": "2024-10-15T19:00:32Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "> I would agree immediately if Godot had some kind of slot mechanism that lets you define where children should be inserted for instanced scenes.\r\n\r\nSoon: #84018",
+        "timestamp": "2024-10-15T19:27:38Z"
+      },
+      {
+        "author": "torcado194",
+        "role": "NONE",
+        "body": "Just to give my two cents: I think this feature is invaluable, to the point that I had already implemented this myself locally (though just for offset, not rotation). I've been using this PR for several weeks and have found no issues with it.\r\nI very much prefer having these properties on Control, regardless of the memory overhead. I think a dedicated node for render offset is a fine alternative, but I am also of the opinion that I would rather reduce the necessary nesting in the scene tree, at least for something as general as a visible offset.\r\n\r\nMy only feedback is about making the \"relative to size\" toggles default disabled, to keep them in-line with how transforms work everywhere else (that being in absolute pixels), and because positioning in absolute units is much more common in my experience. I agree that rotating around the center is the most common case for the rotation pivot, but at the very least I don't think that decision should effect the transform offset (and should probably also include similar changes to the basic pivot offset unit for consistency).",
+        "timestamp": "2024-10-16T05:24:24Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "For the ones interested in this feature, see and give feedback to the following alternative as well:\r\n- https://github.com/godotengine/godot/pull/98955",
+        "timestamp": "2024-11-08T12:42:52Z"
+      },
+      {
+        "author": "dog-on-moon",
+        "role": "CONTRIBUTOR",
+        "body": "I'd like to keep pushing for this PR a bit, so for anyone reading/catching up, here's my thoughts to try and pull together the current state of things:\r\n\r\n1. The TransformContainer PR is a fine alternative, but my concerns are that it is currently less effective for developing UI than this one (see https://github.com/godotengine/godot/pull/98955#issuecomment-2465908667)\r\n2. I'm unsure how to run or setup appropriate benchmarks for Godot, so if there is anyone interested in testing specifically the editor startup time before and after this PR, that would help validate the performance impact of this change as well!\r\n\r\nAnother major thing standing in the way of this PR is adjusting how the properties are shown in the inspector to make them a bit cleaner. In my opinion, the nicest way to do this would be to format the options to have parity with the existing Transform category for Control:\r\n\r\n![image](https://github.com/user-attachments/assets/2b25c5db-60f5-4aa8-aa9e-512dc1897fd3)\r\n(ninja edit: adding the \"Lock/Unlock Component Ratio\" button on the render_scale vector would be a good bonus, similar to Control's scale property)\r\n\r\nAnd to the extent of supporting parity, I'm tempted to favor removing \"offset_relative_to_size\" and \"transform_pivot_relative_to_size\" as well -- primarily because \"offset_relative_to_size\" can already be false in most cases, and we already expect developers to manually set the Control's pivot offset to `size / 2` in its property documentation for scaling about its center. It's a kind of complex option that I would prefer to be reimplemented via scripting or done manually in most cases.",
+        "timestamp": "2024-12-09T16:08:59Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@dog-on-moon I agree that the inspector properties should be more intuitive to use, like with transform properties.\r\n\r\n> And to the extent of supporting parity, I'm tempted to favor removing \"offset_relative_to_size\" and \"transform_pivot_relative_to_size\" as well -- primarily because \"offset_relative_to_size\" can already be false in most cases, and we already expect developers to manually set the Control's pivot offset to size / 2 in its property documentation for scaling about its center. It's a kind of complex option that I would prefer to be reimplemented via scripting or done manually in most cases.\r\n\r\nI'm not so sure about this one. I feel like rotating and scaling around the center is a very common use case for animations (which this PR mainly targets), if not even the most common use case. Having to manually update the pivot every time the control size changes sounds like a lot of boilerplate that I'd rather not want to be needing to do for every single control. Dynamically sized controls are quite common, e.g. for Labels or Buttons with translated strings.\r\n\r\nIt wouldn't be an issue though if there was something that could keep the pivot at a certain relative position of the control.",
+        "timestamp": "2024-12-11T14:25:59Z"
+      },
+      {
+        "author": "dog-on-moon",
+        "role": "CONTRIBUTOR",
+        "body": "> I feel like rotating and scaling around the center is a very common use case for animations (which this PR mainly targets), if not even the most common use case. Having to manually update the pivot every time the control size changes sounds like a lot of boilerplate that I'd rather not want to be needing to do for every single control. Dynamically sized controls are quite common, e.g. for Labels or Buttons with translated strings.\r\n> \r\n> It wouldn't be an issue though if there was something that could keep the pivot at a certain relative position of the control.\r\n\r\nYea.. I do completely agree with this being the most common use case. I think I have nitpicky concerns either way:\r\n1. if we have pivot offset be in absolute pixels, I think it is more intuitive from the inspector and it shares parity with the existing Control field, but I agree with you that it would be a very inconvenient default field for the common use cases.\r\n2. if we have pivot offset be relative to scale, I think it would be a tad less intuitive than absolute pixels, especially right now where the center offset is Vector2(0.5, 0.5).\r\n\r\nTo try and make point 2 more intuitive, I tried exporting a `Vector2(50, 50)` with the hint string `\"suffix:%\"`. Maybe this is more tacky? Just trying to come up with a inspector view for it that would help express it to users.\r\n\r\n![image](https://github.com/user-attachments/assets/56fa2f64-5b04-43d9-a2d7-6f8044d7237a)\r\n\r\nAfter some thinking I believe I am in favor for breaking parity here and keeping the pivot offset as relative to scale. But I could still go either way, I would like for a maintainer to make the call here.",
+        "timestamp": "2024-12-21T02:48:03Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Another thing where we have relative values similar to these here are anchors, but there we don't present the value as percentages in the inspector.\r\nEither way I think these two at least should match up. If the relative pivot offset is presented as a percentage, anchors should, too.",
+        "timestamp": "2024-12-22T06:15:34Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "Regarding the percentage, we should stick to using values between `0.0` and `1.0`. However that is displayed in the Inspector is worth tackling separately. These are not the only properties affected by this.",
+        "timestamp": "2024-12-22T13:12:25Z"
+      },
+      {
+        "author": "djrain",
+        "role": "NONE",
+        "body": "Please please get this in 4.5, it's long overdue. And I agree pivot offset should be relative to scale for sure.",
+        "timestamp": "2025-06-07T21:59:42Z"
+      },
+      {
+        "author": "popcar2",
+        "role": "NONE",
+        "body": "I gave some feedback on the PR in the original proposal thread: https://github.com/godotengine/godot-proposals/issues/7053#issuecomment-3470974058\r\n\r\nTL;DR: Overall I think this PR would be perfect if the render transform variables were hidden behind a checkbox rather than a regular group (ie https://github.com/godotengine/godot/pull/105272). I also think there should be a variable in code such as `use_render_transform` that can be used to apply or disable all the render transform variables. This would also be really important in code to quickly tell if something is being offset or not, rather than having to check all the render transform variables individually.",
+        "timestamp": "2025-10-31T13:54:15Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "I've made the changes to the PR based on @popcar2 proposal and other suggestions made here\r\n\r\n**Changes**\r\n- Added a bool `enable_render_transform` for toggling render transforms. False as default\r\n- Added PROPERTY_HINT_LINK to the render_scale\r\n- render_offset_relative_to_size is set to false as default (it is confusing to have a relative value as default since the default position does not works this way. I'm also not sure if this is necessary, but it can be useful)\r\n\r\n\r\nhttps://github.com/user-attachments/assets/406e7347-28fd-44a5-a028-a07b8a4d4ede\r\n\r\nI can make a new pull request with this changes if you don't mind, here is the patch:\r\n\r\n[render_transform_toggle.patch](https://github.com/user-attachments/files/23434493/control_transform_renders.patch)\n\nI advocate for (0.5, 0.5) being the default pivot for render transforms, since scaling from the center is much more common than scaling from the sides, afaik",
+        "timestamp": "2025-11-08T21:18:21Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "What's preventing this from being merged? I'm willing to do the necessary work to make this PR part of the engine. Forgive my enthusiasm, but I'm really hyped about this feature for a long time now :)",
+        "timestamp": "2025-11-09T17:20:36Z"
+      },
+      {
+        "author": "Mickeon",
+        "role": "MEMBER",
+        "body": "TL:DR: Memory and performance overhead.\r\nAlbeit it was tested to be small for today's standards, in the most ideal scenario there should be none at all when the new render properties are not used, which is in the grand majority of cases.\r\nThe [proposed **TransformContainer**](https://github.com/godotengine/godot/pull/98955) addresses this problem because:\r\n- it is opt-in (you _have_ to choose where to use it), meaning there's only overhead where necessary\r\n- using a container node is the most fitting for Godot to have this kind of feature, according to some maintainers\r\n\t- > A container does seem more like the Godot-way of doing things\r\n\t- > Wrapping containers is how SwiftUI does it \r\n\r\nHowever, as other users have brought up with their own experience, the container workflow becomes quite inconvenient and tedious for anything more complex than a few nodes. Most notably, everything that _may_ be animated in an UI needs to be wrapped inside one, which makes accessing the underlying node(s) very annoying, even in code.\r\nSee also a [small recent discussion on RocketChat](https://chat.godotengine.org/channel/new-contributors?msg=StLjMYKLaxNbe9Lnt).\r\n\r\nWhat was roughly suggested to address this, and I'm quoting other maintainers here [from a past discussion](https://chat.godotengine.org/channel/core?msg=vmcKidsLgtSGfWjso):\r\n> The way to solve the memory issue is to store a pointer instead of storing the actual data\r\n> The pattern we use in other places in the engine is to wrap the properties in a struct. Then create an instance of that struct when the object is created. The memory for the struct will be stored on its own and the only overhead in the actual object will be the pointer\r\n\r\n> I'd be surprised if it was an inherent property in many UI frameworks. Animatable properties are usually only used temporarily, so creating a permanent performance cost for them isn't great\r\n\r\nHowever, it's really worth noting that memory-wise this may also do not much:\r\n> You would need to profile the code to find out. Memory alignment + size issues are extremely difficult to figure out in advance without profiling\r\n\r\n",
+        "timestamp": "2025-11-09T17:51:22Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "- Rebased\r\n- Added `render_transform_enabled` to toggle whether render transform is applied altogether or not for a `Control` node (thanks @popcar2 !)\r\n- Set default pivot to 0.5/0.5",
+        "timestamp": "2025-11-09T20:12:00Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "I really don't know how to benchmark things well on the engine, so please correct me if something is wrong with my method.\r\n\r\nI've compiled both versions of the engine using the default values (scons -j16)\r\n\r\nGodot 4.5.1-stable\r\n<img width=\"1003\" height=\"727\" alt=\"Captura de tela de 2025-11-10 00-17-39\" src=\"https://github.com/user-attachments/assets/fc886ff8-ca95-4fd5-83dd-ee99143c5785\" />\r\n\r\nGodot 4.6-dev (with render transforms)\r\n<img width=\"1003\" height=\"727\" alt=\"Captura de tela de 2025-11-10 00-18-09\" src=\"https://github.com/user-attachments/assets/0ffe5094-840c-41bc-a48a-e246651a7c3f\" />\r\n\r\nThe benchmark was done by instancing 512x512 ColorRects, changing its color and adding them as children. After the generation, it updates the label to show the time it took to do all this process. It makes use of threads to create the ColorRects.\r\n\r\nI've run this test some times and it does not seem to add a noticeable performance overhead to controls. Maybe there is room for improvement for memory based on the comments of other maintainers.\r\n\r\n[control_render_transforms_2025-11-10_00-22-55.zip](https://github.com/user-attachments/files/23445296/control_render_transforms_2025-11-10_00-22-55.zip)\r\n\r\nAbout the TransformContainer PR, I agree that TransformContainers is the most Godot way to do it. However, render transforms are here to fill in the gaps of a much bigger and breaking problem on Godot Controls: [the lack of transitions and animations](https://github.com/godotengine/godot-proposals/issues/8992).\r\n\r\nAnimations and transitions should be part of Themes. I’m not sure yet how that would be like or implemented, but Themes need motion, one way or another. And while this does not happen, this PR becomes more of a necessity to make animating controls easier, with a better user experience and a less bloated scene tree.",
+        "timestamp": "2025-11-10T04:58:29Z"
+      },
+      {
+        "author": "djrain",
+        "role": "NONE",
+        "body": "So what needs to happen to get this in 4.6? feature freeze is coming up, and this amazing PR is about to be 2 years old. The situation is getting a bit ridiculous :)",
+        "timestamp": "2025-12-02T01:53:51Z"
+      },
+      {
+        "author": "GreenCrowDev",
+        "role": "CONTRIBUTOR",
+        "body": "Even if this doesn't get merged in 4.6, it's still a feature that Godot should have at some point.\r\nTo me it's not about choosing to implement render transform or either `TransformContainer`, we should have both. I understand that Godot sometimes want to have things done in its opinionated way: nodes. But imho they may serve different purposes, and even work differently as far as I understand.\r\nAs @paulovbettio stated, at some point we want to have animations in Theme.\r\n\r\n> Animations and transitions should be part of Themes. I’m not sure yet how that would be like or implemented, but Themes need motion, one way or another. And while this does not happen, this PR becomes more of a necessity to make animating controls easier, with a better user experience and a less bloated scene tree.\r\n\r\nBut in the meantime, render transform is the safest way to implement this (featurewise), considering that it's a something common in other middleware UI frameworks (like NoesisGUI).",
+        "timestamp": "2025-12-02T09:25:57Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "Feature freeze is here!\n\nIt would be nice to have the Godot maintainers to give their verdict on both PRs, we need to close this issue with a good implementation",
+        "timestamp": "2025-12-07T23:11:22Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "I was asked to give my opinion on both proposed solutions for the problems.\r\nFrom my experience making games I absolutely dislike the TransformContainers solution (The \"Godot Way\" is not the good way automatically) and I think this PR here is absolutely the way to go forward.\r\n\r\nI hate the idea that animating an element requires planning and extra Node structure in place.\r\n\r\nMaking games (and animating UI) is an iterative process. Sometimes you want to animate something and the next day you decide the animation is better in some other place or not having it at all. Changing the scene everytime is beyond painful and takes a lot of the joy and ease of use out of the work that Godot excels so much at.\r\n\r\nI don't need to use a \"TransformNode3D\" to animate a 3D node. I don't need a \"TransformNode2D\" to animate a 2D node. Why should the **underlying concept** be different for UI? It is hard to teach and complicated and annoying to use. It could break working scene scripts because of node references that suddenly change because you added an extra node just to add an animation.\r\n\r\n**This PR here is the way to move forward.**",
+        "timestamp": "2026-02-13T08:50:11Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the review!\r\n\r\n~~I'd favor option 2. Option 1 comes with some new factors of ambiguity for me. When I set both an absolute and a relative offset, is the relative offset applied after the absolute offset? If yes and the render scale is set, does it apply the relative offset before or after the render scale etc.?~~\r\n\r\n~~I agree that the term 'Relative' is enough for the option/checkbox.~~\r\n\r\nEdit: Thought more about it and now Option 1 seems more intuitive to me. There is no actual ambiguity.\r\n\r\nI do not care too strongly about the category name, but \"offset\" for me implies mainly positional, maybe rotational offsets. Edit: maybe \"Offset Transform\" could work?\r\n\r\nWhen there's a decision or general direction where this PR is going, I'll happily implement the changes necessary for it to get merged.",
+        "timestamp": "2026-02-13T15:53:34Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "We should follow this approach for pivots imo: https://github.com/godotengine/godot/pull/70646",
+        "timestamp": "2026-02-13T16:18:21Z"
+      },
+      {
+        "author": "clayjohn",
+        "role": "MEMBER",
+        "body": "Just jumping in here to highlight some of the discussions that have happened between a few of us. \r\n\r\nFrom what I can tell, the goal is to allow animating the transform + pivot of control nodes to add a bit of juice (which differs from taking absolute control over the transform and ignoring the parent container). \r\n\r\nIn Godot 3.x this was possible by animating the rotation, scale, position, or pivot directly. \r\n\r\nIn Godot 4.0 we lost that ability. We removed access to the transform + pivot in https://github.com/godotengine/godot/pull/30623 since users were modifying the properties directly in editor, and then losing the modifications when the parent changed layout (due to running the scene, or modifying the parent in editor). It seems that the people involved with this change didn't realize how valuable the existing behaviour was for adding juice and ended up throwing out the baby with the bathwater. \r\n\r\nNow we have two competing PRs to get that behaviour back. Ironically, we can restore the 3.x behaviour with a few lines of code https://github.com/clayjohn/godot/commit/eb0d4459b5736604506acaf30acdfca412cdc1dd (this was provided to me by @BlooRabbit who has been using it in production for awhile). \r\n\r\nThat is to say we actually have 3 competing implementations to choose between:\r\n\r\nThe big factors are:\r\n1. Needs to support animation\r\n2. Performance impact\r\n3. Complexity of implementation\r\n4. Editor UX/workflow\r\n5. Whether input is affected\r\n\r\n**1. Introduce a new transform node**\r\n\r\nPros:\r\n- Builds on the concept of parent/child containers (argued by some to be the \"Godot way\" of doing things)\r\n- Avoids complexity in Control\r\n- Transform survives parent container changes\r\n\r\nCons:\r\n- More complicated workflow (need to add a parent TransformContainer to every Node you want to animate)\r\n- Performance, introduces several transformations on parent re-sort\r\n\r\nThis approach only impacts rendering, input does not move with the object\r\n\r\n**2. Add render_transform properties (this PR)**\r\n\r\nPros:\r\n- Simple UX, simplest workflow\r\n- Transform survives parent container changes\r\n\r\nCons:\r\n- Adds complexity to Control compared to the other approaches (but doesn't add much complexity overall)\r\n- Performance, introduces several transformations each time you edit the transform\r\n\r\nThis approach impacts rendering, input does not move with the object\r\n\r\n**3. animate transform directly (Godot 3.x approach)**\r\n\r\nPros:\r\n- Simplest code change, no added complexity to Control\r\n- Simple UX, simplest workflow\r\n- Lowest performance cost\r\n\r\nCons:\r\n- Affected by parent container layout changes. Modifications will be lost when parent changes\r\n\r\nThis approach impacts both input and rendering. You are actually moving the control node itself\r\n\r\n### Summary\r\n\r\nBased on the feedback here and on https://github.com/godotengine/godot/pull/98955 it is clear that this is the preferred approach between the two. I agree that this PR is preferable. \r\n\r\nHowever, I also see some outstanding disagreement on whether the input area should change in response to the animation. When comparing this PR to the 3.x approach, the biggest differences are in:\r\n1. Whether the animated changes to transform are lost when the parent container changes\r\n2. Whether the input rect is transformed as well\r\n\r\nSo a final question for those involved. **Which behaviour is more important? Is it more important to have the input rect move along with the rendered rect, or is it more important that the animation changes survive any changes to the parent container?**\r\n\r\n_edit: As a final final thought. I believe that we could probably get both behaviours if we wanted to by doing something that is part way in between this PR and the Godot 3.x approach. The important thing for us to understand and agree on is how important it is for input to be affected by the animation transform_",
+        "timestamp": "2026-02-13T21:35:10Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "Pretty sure that transforming input rect is not a desired behavior. If a button e.g. moves on hover, it may result in cursor exiting hover area and janky animation.",
+        "timestamp": "2026-02-13T21:49:27Z"
+      },
+      {
+        "author": "dog-on-moon",
+        "role": "CONTRIBUTOR",
+        "body": "I think it depends on use cases, but if the feature is for exclusively visual flair, the input rect probably shouldn't be transformed. Definitely every hover effect benefits from the input rect being stationary, and larger UI anims (like big pop-ins or pop-outs) it seems best to enable/disable recursive mouse behavior, as not to accidentally interact with something before its in its actual place. The cases where I've wanted a UI's input rect to move with the element (like draggable elements) I've had no issue moving the control's position in the layout directly",
+        "timestamp": "2026-02-13T22:02:00Z"
+      },
+      {
+        "author": "Nolkaloid",
+        "role": "CONTRIBUTOR",
+        "body": "To compare with CSS, the `transform` property is relative to the computed layout (as mentioned by @timoschwarzer) and the input **is also subjected** to the transform. I always found it annoying, it forces you to add another intermediate element in the hierarchy, to  listen to the mouse events without transformation. So IMO the input shouldn't be affected by the visual transform.",
+        "timestamp": "2026-02-13T22:09:23Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "I never needed transforming the input rect yet in the years using what this PR implements. The use case for me was pretty much always to build a UI layout with the existing containers and controls and then build transitions and animations on that layout using render transforms. Not saying that there are no use cases where input transformation would be desired, but I didn't come across one yet.\r\n\r\nOn the other hand \"randomly\" losing transforms because the parent container did re-compute its layout would break some things. E.g. of you have a menu and the currently highlighted item is slightly shifted to the right. I guess to work around that one would need to listen for `NOTIFICATION_SORT_CHILDREN` and re-apply position offsets, which is both a lot of boilerplate and impossible to use with animation players because they don't support animating offset values, let alone relative offset values.",
+        "timestamp": "2026-02-14T02:08:05Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "> On the other hand \"randomly\" losing transforms because the parent container did re-compute its layout would break some things. \n\nIt would break a lot of things. Following the GD3 behavior, if we want to update a HBoxContainer of a deck of cards while the player is hovering one of them, the hovering state position would be discarded. And this would happen to a lot of other similar systems.\n\nOne of the reasons Godot 3 UI was confusing for me at the start was because the containers were not authoritative/explicit, since it is odd for the Controls to reset their position on sibling update. Godot 4 made containers easy to understand and making this behavior return is a huge step back imo.",
+        "timestamp": "2026-02-14T02:50:42Z"
+      },
+      {
+        "author": "torcado194",
+        "role": "NONE",
+        "body": "Chiming in with agreements with all of the recent responses.  \r\nI definitely do not think re-implementing the previously removed 3.x behavior is desirable, I think it's good that those properties are not editable for many reasons (primarily clarity).\r\n\r\nI want to echo the opinions about the input rect not changing. It's absolutely desirable to have a way to change the (visual) position of something without affecting its input rect. I think this behavior is desirable regardless of whether it comes from this PR or otherwise, simply having a way to separate those aspects of a Control node would give a lot of control to the user. It's a bonus that that behavior would be bundled with this feature. Buttons flickering on hover because its rect moves is a very common UI gotcha (in web dev, app dev, anywhere), this would be a nice safety net for a lot of users.\r\n\r\nI also want to highlight another piece of the performance viewpoint that's slightly tangential. A common way to offset control nodes is using a MarginContainer. Notably, animating the properties of this node incurs the same relayouting penalties as moving the position normally, which would also be the case if the 3.x behavior was reverted. This was a big bottleneck for one of my projects, and one that was not easy to benchmark with the builtin tools. Having a way to change the visual position of a control node is inherently a performance boost because there's no simple method to do so that doesn't cause relayouting.\r\n",
+        "timestamp": "2026-02-14T03:11:18Z"
+      },
+      {
+        "author": "kleonc",
+        "role": "MEMBER",
+        "body": "Regarding the memory overhead this adds for every Control, I wonder whether dynamically allocating the data only for Controls actually using the rendering transform would be a good solution. Basically moving the data into a struct and storing only a pointer in the Control:\r\n\r\n```cpp\r\nclass Control : public CanvasItem {\r\n\t...\r\n\r\n\tstruct RenderTransform {\r\n\t\tVector2 offset;\r\n\t\tVector2 scale = Vector2(1, 1);\r\n\t\treal_t rotation = 0.0;\r\n\t\t...\r\n\t};\r\n\r\n\tRenderTransform *render_transform = nullptr;\r\n\t...\r\n```\r\nSuch data could be allocated/deallocated on enabling/disabling render transform for the given Control. This would result in non-locallity of data though, hence not sure if this is a good approach. Just throwing it up for consideration.\r\n(I'm guessing relatively small percent of Controls would use render transforms, so saving the memory probably makes sense.)",
+        "timestamp": "2026-02-14T04:36:13Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "+1 “input should not be affected by the render transform”. it seems like there is consensus on that here, so i think we should continue the conversation on how to improve this PR.\r\n\r\nregarding my UX suggestion on the toggle, here’s a more specific example of what i think is desired behavior **to maintain the position of the rendered offset when toggling**. for a control with a size of 400x400, where relative is enabled and the `render_offset` is `0.2,0.2`, upon toggling to disable relative the `render_offset` should change to `80.0,80.0`. upon toggling relative again, `render_offset` converts back to `0.2,0.2`. this would mean no more disappearing of the control’s graphics. a much better experience for the user.",
+        "timestamp": "2026-02-14T06:55:49Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "Tbh I do not see how the fact of players not being able to click a button where they see it could NOT be a problem. A button's purpose is to be clicked (and hovered). IMO this issue is not trivial.\r\n\r\nIn Godot 3 you could just animate any property for UI juice (typically rotation and scale) and it worked fine if you understood what you were doing. Changing this created issues (hence this PR) and, rather than reverting 10 lines of code, we are considering the addition of new layers of complexity creating new problems.\r\n\r\nThis being said, both things are not incompatible. We can implement this new set of properties for those who want them AND restore the freedom for users to animate and change any property they want, as it was in Godot 3. If restoring freedom is a problem for some, we can even create a \"freedom\" option in the editor settings : \"if this checkbox is clicked, let me be creative and let me do what I want with node properties\".\r\n",
+        "timestamp": "2026-02-14T10:09:37Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "> In Godot 3 you could just animate any property for UI juice (typically rotation and scale) and it worked fine if you understood what you were doing. Changing this created issues (hence this PR) and, rather than reverting 10 lines of code, we are considering the addition of new layers of complexity creating new problems.\r\n\r\nThat I made this PR because the transform properties on Controls were hidden is *not* true. In fact, I used a very similar change in personal projects with Godot 3. The core point here is that the iteration speed on UI animations was and is very slow, regardless of whether \"you know what you are doing\" or not. It requires endless amounts of boilerplate code. Creating transitions without or with only a little amount of code while using containers for layout is currently not possible.\r\n\r\n> Godot 3 you could just animate any property for UI juice (typically rotation and scale)\r\n\r\nIn fact, I use render transforms the most for positional offsets (swipe/slide in/out animations), rather than rotation and scale. Rotation and scale in Godot 3 (and 4) are also a bit special since they do not affect the layout step of the parent container and it's currently not very clear to me whether this is considered a bug or not, but it does not seem intended. (See https://github.com/godotengine/godot/issues/19068 and all linked issues within that issue)",
+        "timestamp": "2026-02-14T11:33:18Z"
+      },
+      {
+        "author": "Landeplage",
+        "role": "NONE",
+        "body": "My two cents: The goal is to facilitate UI animations (show/hide, shakes, twists, bumps, etc). Hence, it would be best to implement it in a way where the layout and the input rect stays untouched - ie; only transforming the visual.",
+        "timestamp": "2026-02-14T13:41:08Z"
+      },
+      {
+        "author": "markdibarry",
+        "role": "CONTRIBUTOR",
+        "body": "After re-reading all the comments, it sounds like having both the visual and the input lined up is desired as an *option* but majority of actual use-cases want them separate. IMO, this PR is the way forward then, since 3.x's behavior would not satisfy the majority of needs, along with the parent container drawbacks making it a non-starter.\r\n\r\nDecisions eventually need made and not everyone will be happy, but I think the most effective solution is to see if any of the performance issues can be mitigated for when this feature is not in use so this isn't seen as a regression to those who don't benefit from it. Then, merging it is a net-positive, and we can explore seeing about having input follow as an option if the demand is there.",
+        "timestamp": "2026-02-14T15:06:54Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "Can someone knowledgeable of this PR's underlying code perhaps elaborate how hard it would be to simply have a checkbox that enables or disables _also_ applying the translations to the input transform? Because I agree these two features don't have to be mutually exclusive.",
+        "timestamp": "2026-02-14T18:07:13Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "I'll take a look at the PR tomorrow",
+        "timestamp": "2026-02-14T19:57:28Z"
+      },
+      {
+        "author": "clayjohn",
+        "role": "MEMBER",
+        "body": "> Can someone knowledgeable of this PR's underlying code perhaps elaborate how hard it would be to simply have a checkbox that enables or disables _also_ applying the translations to the input transform? Because I agree these two features don't have to be mutually exclusive.\r\n\r\nIt wouldn't be too complicated. You would need to add a check to `_get_internal_transform()` and do the transformation there. ",
+        "timestamp": "2026-02-14T20:50:48Z"
+      },
+      {
+        "author": "kitbdev",
+        "role": "CONTRIBUTOR",
+        "body": "I think the bigger issue with input transform is that currently it doesn't even update the mouse state when a Control moves normally:\r\n- https://github.com/godotengine/godot/issues/87203\r\n\r\nSo it needs a mouse move or press to update the hover state.\r\nI think there was performance concerns with updating it every time any control moved.",
+        "timestamp": "2026-02-14T20:54:52Z"
+      },
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "What are our collective thoughts on?\r\n\r\nAdd a mode enumeration:\r\n\r\n1. without a new transform mode to switch between render_transform properties (this PR)\r\n2. with animate transform directly (Godot 3.x approach).",
+        "timestamp": "2026-02-14T22:59:16Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Not sure whether I completely understand the suggestion but if this PR implements a toggle to enable/disable input transformation as well, then it should be strictly better than the Godot 3.x approach because the only difference that I see then would be that this PR is resistant to parent containers messing with the transforms.",
+        "timestamp": "2026-02-14T23:56:30Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "Indeed, the new render_transform properties + an option checkbox to make input area follow rendering, would provide a better final result than the more basic Godot 3 approach.  And even if the new properties will probably be confusing for some, they will provide a solution to a substantial problem that has been out there for a long time now.\r\n\r\n(one thing we could still do is unlock the ability for users to modify pivot and pivot_ratio directly in the main properties panel, because that's unrelated to preserving parent container layout and you don't change that kind of property by mistake.)",
+        "timestamp": "2026-02-15T09:35:13Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Re-reading @AdriaandeJongh's [proposal about relative offset/scale](https://github.com/godotengine/godot/pull/87081#pullrequestreview-3797956199) I now think that option 1 is indeed better.\r\n\r\n~~What do we think about \"Visual Transform\" as category/feature name?~~ Edit: With input transformation that name does not make sense anymore.",
+        "timestamp": "2026-02-15T10:41:18Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "### Changes\r\n\r\n- Rebased on current master branch\r\n- Applied @kleonc's suggestions (thanks!)\r\n- Applied [Option 1 of @AdriaandeJongh's suggestion](https://github.com/godotengine/godot/pull/87081#pullrequestreview-3797956199): There are now separate properties for absolute and relative offsets which are additive; similar to how `pivot` and `pivot_ratio` work but with more descriptive names.\r\n- All render transform properties now reside in their own struct, which is only allocated on demand (when enabling render transform or setting any of the render transform properties). It is never deallocated for a control because that would either come with a big performance penalty (needing to check whether all values are set to the default every time a single value is set) or the issue that all values are silently reset to default, if I would deallocate when disabling render transforms. I think this is a good middle ground because Controls that never use render transforms will never allocate the memory for it.\r\n- There is now a \"Visual only\" toggle (`render_transform_visual_only`) that is on by default. If enabled, it will apply the transform only visually without affecting input, if disabled it will affect the entire transform of the Control.\r\n- Even though \"Offset Transform\" on first hear still sounds like positional transform only to me, it now at least fits better than \"Render Transform\". I have applied the name \"Offset Transform\" in the latest commit for trying it out. The properties are now named as follows:\r\n    - `offset_transform_enabled`\r\n    - `absolute_position_offset`\r\n    - `relative_position_offset`\r\n    - `scale_offset`\r\n    - `rotation_offset`\r\n    - `offset_transform_absolute_pivot`\r\n    - `offset_transform_relative_pivot`\r\n    - `offset_transform_visual_only`\r\n\r\n<img width=\"1541\" height=\"707\" alt=\"image\" src=\"https://github.com/user-attachments/assets/63ff4610-ec39-4cd2-8db2-4d12cdb1463e\" />\r\n",
+        "timestamp": "2026-02-15T13:48:20Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "> Re-reading @AdriaandeJongh's [proposal about relative offset/scale](https://github.com/godotengine/godot/pull/87081#pullrequestreview-3797956199) I now think that option 1 is indeed better.\r\n> \r\n> ~What do we think about \"Visual Transform\" as category/feature name?~ Edit: With input transformation that name does not make sense anymore.\r\n\r\nDo we really need the pivot offsets? Pivot and pivot_ratio could be set by users in the main property panel. Unless I am mistaken the pivot has no reason to be changed by the parent container. That way we reduce the amount of added properties ",
+        "timestamp": "2026-02-15T18:13:14Z"
+      },
+      {
+        "author": "Nolkaloid",
+        "role": "CONTRIBUTOR",
+        "body": "After testing the PR and following @BlooRabbit comment, I was wondering if it wouldn't make more sense to change the \"_layouting_\" behaviour all together, and use the \"render transforms\" instead of the current transform behaviour.\r\n\r\nOr phrased in another way, just have `position` and `size` subjected to _layouting_, be it by containers or anchors.\r\nAnd have transform properties like `scale`, `rotation` and `translation` (aka. position offset)  completely ignored by _layouting_ as in this PRs \"render transforms\".\r\n\r\nThis would for example match the CSS way of doing things. It would simplify the system and improve overall usability.\r\nBut perhaps I'm missing an important use case ?\r\n\r\n",
+        "timestamp": "2026-02-15T22:17:20Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "It depends on a decision whether the `rotation` and `scale` properties not affecting the Control's rect size is considered a bug or not. If it's said that rotation and scale are never used by parent containers and won't be included in the bounding box, then they are redundant. But given the mentioned issues above that question is has not been definitively answered yet and I do think that it's out of scope for this PR to decide on that. We should assume that it it considered a bug, which makes offset rotation and offset scale functionally different from rotation and scale *if* rotation and scale will be included in the bounding box.",
+        "timestamp": "2026-02-16T09:02:00Z"
+      },
+      {
+        "author": "AThousandShips",
+        "role": "MEMBER",
+        "body": "Please use the batch apply feature for suggestions to avoid pinging a lot and repeated run of CI",
+        "timestamp": "2026-02-16T13:02:35Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Will do, sorry",
+        "timestamp": "2026-02-16T13:04:04Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Applied A Thousand Ship's and bruvzg's suggestions. (thank you!)",
+        "timestamp": "2026-02-16T13:13:22Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "Not sure why the CI is failing but it seems to be unrelated to the changes from this PR :thinking: ",
+        "timestamp": "2026-02-16T14:47:30Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "Tried the latest version of this PR and functionally I think this works fantastic. Aside from maybe the funky naming on the pivot properties, I'd say this good in terms of UX. Made this little thing in 3 minutes:\r\n\r\n\r\nhttps://github.com/user-attachments/assets/cc33394c-c481-47d6-91ad-be9e7a291504\r\n\r\n\r\nBut before I approve this PR from a UX perspective, I do have one more thought I wanted to run by ya'll based on @BlooRabbit's and @Nolkaloid remarks and after playing some more with the latest version. It's true that the list of regular transform properties inside containers is just sitting there doing nothing. Of course they show the resulting transform, but none of the properties are editable.\r\n\r\n<img width=\"1911\" height=\"1198\" alt=\"Screenshot 2026-02-16 at 15 25 16\" src=\"https://github.com/user-attachments/assets/6763c4ca-d8ba-442a-b4a0-9531ca661dd5\" />\r\n\r\nTheoretically, we could also introduce a toggle inside that subsection to add an offset transform and replace (or even reuse?!) those fields there? Would that be too confusing, or would it consolidate this feature into the Control node's existing transform at a location where new users would already be looking?",
+        "timestamp": "2026-02-16T14:58:38Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "Clearly it would be less confusing if the \"regular\" properties were editable and would actually have the effect sought by the new set of properties, rather than adding 8 new ones.  \r\n\r\nThis is what I do in my custom version of the engine for production, in which I simply unlocked them (and I have no problems with that because I know that if I modify the parent container it will mess it up - so I just don't). \r\n",
+        "timestamp": "2026-02-16T15:06:11Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "> Clearly it would be less confusing if the \"regular\" properties were editable and would actually have the effect sought by the new set of properties, rather than adding 8 new ones.  \n\nI don't think this is less confusing. You can't give users the freedom of tweaking the transform values if you are going to reset them when the siblings change.",
+        "timestamp": "2026-02-16T15:11:21Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "> I don't think this is less confusing. You can't give users the freedom of tweaking the transform values if you are going to reset them when the siblings change.\r\n\r\nBut precisely it would NOT reset anything, because they would be changing the offset properties not the regular properties. If someone wants to rotate or scale, it means that person needs to do it and you have to provide that possibilty. Blocking people from doing what they want to do is never a good solution from a UX perspective. It's like an invisible wall in a game, everybody hates it.\r\n",
+        "timestamp": "2026-02-16T15:18:09Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "> and I have no problems with that because I know that if I modify the parent container it will mess it up - so I just don't\r\n\r\nThis is exactly the limitation we are trying to solve here. If you animate a Control's `position` property with an AnimationPlayer, you will never be able to change anything in the parent container that would result in a different layout position and size, let alone change the type of the parent container without redoing all animation keyframes and/or curves.",
+        "timestamp": "2026-02-16T15:52:41Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "@AdriaandeJongh A problem with putting it next to the existing \"Transform\" section is that it would be inside the \"Layout\" category then, which the Offset Transform properties clearly do not belong to because their purpose is to be  separate from the layout. I agree that it could be made more clear that the \"Transform\" section is managed by the parent container.",
+        "timestamp": "2026-02-16T16:00:41Z"
+      },
+      {
+        "author": "BlooRabbit",
+        "role": "NONE",
+        "body": "I checked the behaviour of controls when they are managed by a container and pivot_offset and pivot_offset ratio are NOT impacted by modifications of the parent container. So they could be removed from the \"read_only\" list of properties and we could avoid having to create offset properties for them. That is very simple: they just need to be removed from the line of code in control.cpp that gives them the read_only status (\"p_property.usage = PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY;\")\r\n\r\n~~As concerns position, rotation and scale: instead of leaving disabled read_only properties in the inspector and adding new offset properties, maybe we could make the three properties modifiable again but change the set_rotation, set_scale and set_position setter functions that are triggered by those changes to redirect said changes towards the new offset properties whenever the control concerned is the child of a container ? That way, when users want to change those properties, they get a result and that result is not messed up when they change the parent container later on ?~~ \r\n(let's just get this done)\r\n\r\n\r\n",
+        "timestamp": "2026-02-18T18:07:39Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "What if I want to make a container that aligns children in an arc like this? (excuse my paint drawing)\r\n\r\n<img width=\"1767\" height=\"603\" alt=\"image\" src=\"https://github.com/user-attachments/assets/a8d9a885-7213-4de0-b58a-fabc110d0c80\" />\r\n\r\nThen the children control rotation and pivot are managed by the parent container. I know it's a niche use case but I want to make the difference between layout transform and render/offset transform clear. One is managed by the parent container for putting the control where *the container wants it to be* and the render/offset transform is applied on top for e.g. animations that transition to or from that target transform and is completely isolated from the container.\r\n\r\nIf your suggestion is to opaquely map the layout transform properties (the ones that existed before this PR) to the offset transform properties when a control is inside a container then I'm very much against that. Not only messes this up the Layout/Offset Transform distinction further but also makes it more confusing for users what propertly they are currently changing. What happens when I change one of these properties while the control is inside a container and then move it out of a container? Are the offset properties stuck at their current values then and I need to add it to a container again for me to be able to set them?",
+        "timestamp": "2026-02-18T19:24:47Z"
+      },
+      {
+        "author": "Nolkaloid",
+        "role": "CONTRIBUTOR",
+        "body": "> It depends on a decision whether the `rotation` and `scale` properties not affecting the Control's rect size is considered a bug or not. If it's said that rotation and scale are never used by parent containers and won't be included in the bounding box, then they are redundant. But given the mentioned issues above that question is has not been definitively answered yet and I do think that it's out of scope for this PR to decide on that. We should assume that it it considered a bug, which makes offset rotation and offset scale functionally different from rotation and scale _if_ rotation and scale will be included in the bounding box.\r\n\r\nFor as long as I can remember, containers never included rotation and scale in the computation of the bounding box for layouting. Those properties always got reset. So I don't think it would be considered a bug, because by design that information is no taken into account.\r\n\r\nI don't see how is the render transform `scale` and `rotation` different from the base `scale` and `rotation` except that it actually does what is expected. As @BlooRabbit said, before 4.0 those properties were editable and many, myself included, used them with AnimationPlayers. With the really annoying downside of it not surviving layout changes.\r\n\r\nThat would be my argument for modifying today's `scale` and `rotation` behavior to match the one of the \"render\" ones. \r\n\r\nEDIT: Note that I'm not advocating for opaquely mapping layout transform properties to the offset transform properties. I am also very much against that.",
+        "timestamp": "2026-02-18T21:36:05Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "As I outlined above, that is true for the built-in containers that come with Godot but you can make custom containers that also take rotation and scale into account, for example the arc-container I sketched above. I have seen multiple games featuring user interfaces that are not aligned to a 90 degree grid. I'd find it weird if we add this offset transform feature now and a limitation of it is that for rotation and scale it only works when using containers that don't rotate or scale their children.",
+        "timestamp": "2026-02-18T22:00:23Z"
+      },
+      {
+        "author": "Nolkaloid",
+        "role": "CONTRIBUTOR",
+        "body": "Okay I see your point. Makes sense!\n\nIn that case, If I could suggest something for the render transforms: I think it would be nice to have the transformed rect drawn in addition to the layout rect, perhaps in a light orange color or something like that.\nI think it would add a bit of clarity.",
+        "timestamp": "2026-02-19T00:42:48Z"
+      },
+      {
+        "author": "nubels",
+        "role": "CONTRIBUTOR",
+        "body": "Personally, I think this feature is much needed, and I would love to see it in 4.7. The current method of animating control nodes by introducing a Control node as a wrapper is cumbersome and unintuitive.\r\n\r\n\r\n\r\n\r\n\r\n",
+        "timestamp": "2026-02-23T10:19:43Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "I've been thinking about what to do about the range of opinions here. Adding a slew of new properties should never be taken lightly. There appear to be two main trains of thought in the discussions here; one that pleas for new properties that stay away from the existing transform properties, and another that pleas to (re-)use the existing transform properties. They are both, after all, sets of almost identical properties.\r\n\r\nBy current thinking on the mentioned subjects is now as follows:\r\n\r\nI think the transform offset that is proposed here **is** part of the layouting system. After all, offsetting the transform is only useful when you can't set the transform directly because the Control node you're editing is a child of a Container – because if it were not, you could _and should_ just set its transform and anchor properties directly. Following that train of thought, I subsequently think there are two approaches here:\r\n\r\nA) We add the slew of new properties and keep all the functionality as it works today. I _would_ put the Offset Transform category inside the Layout category just like the Transform, entirely underneath the `layout/transform` as part of the Layout category, eg. `layout/offset_transform`, because I continue to believe that the functionality behind this PR is only relevant when working in a layout. As a matter of fact, I would perhaps also only show this whole section when the parent is a Container to further avoid users messing with it outside of containers.\r\n\r\nB) We add a toggle in Layout (eg. `Enable Offset Transform`) to enable using the fields in Layout > Transform for offsetting. If disabled (by default), the transform properties show as they now do in master; as read-only. But if it is enabled, the properties inside Layout > Transform become editable. Like approach A, we should seriously consider only showing the Enable Offset Transform toggle when this control is a child of a container. One funky thing about this approach in general is that you can no longer see the read-only values like position and size, which can be relevant info when designing or debugging your UI. Regardless, I can see multiple ways of implementing approach B:\r\n\r\nB1) We _actually_ reuse the properties of Layout > Transform to determine the offset. The only funky thing with this solution is that the proposed new properties contain one property that the current `layout/transform` category doesn't have, namely the relative position offset, which I think.... would then have to be made visible only when the offset transform toggle is enabled. A bit messy, but workable.\r\n\r\nor\r\n\r\nB2) The toggle swaps out the whole Transform category for the Offset Transform category by hiding the Transform category and showing the Offset Transform category. That way the properties don't _actually_ get reused; it's just that they are not visible when it's not applicable. \r\n\r\nBoth approaches are quite close to each other. You could even argue that A and B2 are basically the same from a user perspective with the only difference being where the `Enable Offset Transform` toggle goes. Regardless, I think these are our three options when it comes to implementation.\r\n\r\nI think I could be swayed to another approach, but I have a slight preference for approach A because it keeps the properties separate and the read-only values visible. Would love to hear other's thoughts. Maybe others here even have another approach to how this could work?",
+        "timestamp": "2026-02-27T15:27:53Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "I still strongly disagree that the feature this PR adds is related to what we are calling the layout. Layout is the process of parent containers specifying where *they* want child nodes to be. This PR's functionality is explicitly distinct from that, because it defines where *the Control itself* should be, *relative* to the \"layout transform\" or whatever you want to call it.\r\n\r\nTaking the CSS example, if you use a Flexbox or Grid container, it decides where the child elements should be, and the `transform` property on the children's defines an offset transform to that.",
+        "timestamp": "2026-02-27T17:09:32Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "whatever you want to group this under, my point is that this offset should only be used when the control is part of the container. to use your own analogy: within flexbox you have css properties that apply to the container and css properties that apply to the item. likewise, in our layout system, this offset transform only applies to the item, but that doesn’t make it less part of the layout system. ",
+        "timestamp": "2026-02-27T17:15:11Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "perhaps you can make a case for the use of this offset transform outside of a container / the layout system? because I don’t see any reason not to prefer simply using the control system and transforms over this offset system in those cases.",
+        "timestamp": "2026-02-27T17:18:01Z"
+      },
+      {
+        "author": "paulovbettio",
+        "role": "NONE",
+        "body": "![xkcd 1801](https://imgs.xkcd.com/comics/decision_paralysis.png)\n\n",
+        "timestamp": "2026-02-27T17:34:09Z"
+      },
+      {
+        "author": "dog-on-moon",
+        "role": "CONTRIBUTOR",
+        "body": "> perhaps you can make a case for the use of this offset transform outside of a container / the layout system? because I don’t see any reason not to prefer simply using the control system and transforms over this offset system in those cases.\r\n\r\nOffset transforms are extremely useful for relative movement to an existing layout, and not all layouts depend on a container parent.\r\n\r\n1. A custom textbox rendered in 3d space. The MarginContainer uses render transform as a relative offset from the origin. The parent of the MarginContainer is a custom zero-size control that calculates an onscreen position from a Node3D. Setting the position of the MarginContainer would be more difficult, as its position is dynamic based on the size of the text label.\r\n\r\nhttps://github.com/user-attachments/assets/1dad7811-cc58-4601-b7de-1fe7ac53622e\r\n\r\n2. A scene where I'm using Controls a bit more artistically, and not necessarily constraining them to a rigid layout -- but still taking advantage of panels and text labels.\r\n\r\n<img width=\"1655\" height=\"704\" alt=\"godot windows editor x86_64_UlrPIoMqpp\" src=\"https://github.com/user-attachments/assets/f9f27d3d-3a39-478d-affd-cc39a5ac2917\" />\r\n\r\n3. The root node of a Control scene is being moved here as a spawn effect.\r\n\r\nhttps://github.com/user-attachments/assets/e8fddca2-a770-4a93-93ad-94cab32ef2f0\r\n\r\nMy team has been using this PR since November 2024. Searching our codebase, the term \"render_offset\" appears 46 times throughout different scripts, and 114 times throughout different scenes, so I'm confident I could find more cases if need be.",
+        "timestamp": "2026-02-27T19:16:01Z"
+      },
+      {
+        "author": "torcado194",
+        "role": "NONE",
+        "body": "> I think the transform offset that is proposed here **is** part of the layouting system. After all, offsetting the transform is only useful when you can't set the transform directly because the Control node you're editing is a child of a Container – because if it were not, you could _and should_ just set its transform and anchor properties directly.\r\n\r\nI think this assumption is the root of the misunderstanding. There are very desirable reasons to want to offset a control without affecting its layout position, completely irrespective of context. Even in a scene with a single control node, there are use cases for this. dog-on-moon's post highlights many good ones. I and others already mentioned several, albeit without videos. e.g. a hover effect for a button that offsets the button. if we can offset the button visually, we can avoid the common \"flicker\" issue where the button moves in and out of cursor contact.\r\nOr another example, a growing/moving outline effect that outlines a child container. Changing the layout of the outline might change where the inner control is. Knowing that these animated effects will not affect any other control is very useful.\r\nIn my eyes, this functionality *is* the purpose of the PR.\r\n",
+        "timestamp": "2026-02-27T19:48:49Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "Fine, I’m not against adding something for the sake of convenience. But I do think it is convoluting to the Control API, as it “solves” more than just the problem that it is impossible to both have a control be part of a container _and_ offset it in a way that is not destructive to the layout that the container enables. It seems that everyone here thinks that’s worth it.\r\n\r\nI’ll test the PR again with a usability perspective tomorrow.",
+        "timestamp": "2026-02-27T19:57:29Z"
+      },
+      {
+        "author": "felinusfish",
+        "role": "NONE",
+        "body": "So excited to see this! Rendering offsets is awesome, definitely will make animation so much easier. Thank you so much for making this PR!!",
+        "timestamp": "2026-03-01T04:13:23Z"
+      },
+      {
+        "author": "timoschwarzer",
+        "role": "CONTRIBUTOR",
+        "body": "I still want to implement @AdriaandeJongh 's suggestions for displaying the original transform in the editor, hopefully today or in the next days.",
+        "timestamp": "2026-03-04T09:37:02Z"
+      },
+      {
+        "author": "AdriaandeJongh",
+        "role": "CONTRIBUTOR",
+        "body": "> I still want to implement @AdriaandeJongh 's suggestions for displaying the original transform in the editor, hopefully today or in the next days.\r\n\r\nGreat!! Note that I only drew a quick mockup and think that the grey bounding box should be drawn _below_ the orange one, not on top of it like in the image.\r\n\r\nRegarding my other suggestions; \r\n- the size offset can easily be a followup feature – if there's demand.\r\n- For compatibility reasons, I _would_ rename the variables now before merging because merging makes them somewhat final. I think my suggestion to bring them in line with the original Layout > Transform makes sense?",
+        "timestamp": "2026-03-04T10:51:52Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "> For compatibility reasons, I would rename the variables now before merging because merging makes them somewhat final.\r\n\r\nThey are final only once the feature freeze is in effect (and in extreme cases when first RC is released).",
+        "timestamp": "2026-03-04T11:09:20Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "c3d96f2",
+        "message": "Add offset transform to Control nodes",
+        "author": "Timo Schwarzer",
+        "timestamp": "2026-02-15T13:47:13Z"
+      }
+    ]
+  },
+  {
+    "story_id": "godotengine/godot#74959",
+    "metadata": {
+      "title": "Overhaul the Curve Editor",
+      "labels": [
+        "enhancement",
+        "topic:core",
+        "topic:editor",
+        "usability",
+        "topic:2d"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-05-29T08:32:07Z",
+      "reviewers": [
+        "anvilfolk",
+        "Geometror",
+        "AThousandShips",
+        "MewPurPur"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "~Currently has issues. I made this PR as though the problem outlined here - https://github.com/godotengine/godot/pull/74927#issuecomment-1469917500 - has been solved. As it stands, the PR can still be merged, but it would have a few irritating issues:~\r\n* ~After using Add Point / Remove Point operations, the selected point would get deselected.~\r\n* ~Adding points would corrupt the Undo.~\r\n\r\nFor now, I added a hacky workaround to fix the above, now it's only pronounced in points getting deselected when you release the left mouse button after adding a point. For this to be fixed, #76985 must be resolved.\r\n\r\nI disabled the \"property_list_changed\" notifications of curve to make the recordings below and show how the PR would ideally behave.\r\n\r\nAnyway, here's what the PR does:\r\n\r\n### Refactoring\r\n\r\nSplits CurveEditor in two: ~CurveEditorRect~ CurveEdit (the area where you edit a curve) and CurveEditor (includes the toolbar).\r\n\r\n![image](https://user-images.githubusercontent.com/85438892/225433677-07f89ca6-dbdf-48a1-8499-ad9a600b3cef.png)\r\n\r\n### Context menu removed\r\n\r\nThe context menu really slows down curve editing. I went for an intuitive control scheme:\r\n* Left click to add a point or drag the point/tangent you're hovering\r\n* Right/Middle click to remove a point or make a tangent linear\r\n* Shift + Left click to drag a tangent individually, like before.\r\n\r\nAs shown, the presets are moved as a button above the curve editor.\r\n\r\n(The recordings below don't show the context menus, probably because the engine treats them as different windows. Use your imagination.)\r\n\r\nOld:\r\n\r\nhttps://user-images.githubusercontent.com/85438892/225438826-571133fa-3b59-4409-bbb3-3e787622c98f.mp4\r\n\r\n\r\nNew:\r\n\r\nhttps://user-images.githubusercontent.com/85438892/225436981-12491925-af99-4948-b714-cdf73aaa073b.mp4\r\n\r\n### Utilities\r\n\r\nAdded a snap button with an adjustable number of divisions. ~`Ctrl + Drag` tricks were removed.~\r\n\r\n<kbd>Shift + Drag</kbd> on points locks them on one axis.\r\n\r\nhttps://user-images.githubusercontent.com/85438892/225436694-bd31f21c-0eeb-42b2-9c43-64078e139056.mp4\r\n\r\n\r\nAnd as you saw in the previews, a bit of text at the top shows the position/angle of the currently selected point or tangent.\r\n\r\n### Enhancements + Bugfixes\r\n\r\n* Visual tweaks\r\n* Adds hover and selection indicators to tangents.\r\n* Makes it harder for tangents to slip outside of the editable area.\r\n![image](https://user-images.githubusercontent.com/85438892/225435930-2b413d8b-f97c-4b10-9edb-02b235b9393a.png)\r\n* No longer forces new points inside the [0, 1] range (Fixes #41083).\r\n* Fixes bug where pressing Delete also attempts to delete nodes.\r\n* \"Hold Shift to edit tangents individually\" help text is only shown when relevant.\r\n* Presets now use the full range.\r\n* Hover areas are now rectangular and stretch out a little further than their indicators to reduce the number of misclicks.\r\n* When clicking in a place with multiple elements, selects the closest one. Tangents get priority.\r\n* Improves the logic for keeping handles selected during operations.\r\n* Stops operations from being committed if they don't change anything.\r\n* Prevents points from sharing an X position (important for snapping).\r\n* Fixes the full-size preview missing some pixels.\r\n* Fixes \"Remove Curve Point\" message when **adding** a point.\r\n* Fixes situation where points may remain hovered if the mouse cursor leaves the editor.\r\n* Tells which tangent was modified when committing actions (left / right / both).\r\n* Fixes cases where the snapping grid from <kbd>Ctrl</kbd> was torn apart at the top and the bottom for certain configurations of min and max values.\r\n\r\n### Misc\r\n\r\n* Adds `Curve.get_range()` (seems generally very useful, used in multiple places throughout the code)\r\n* Code style improvements (i.e. \"p_\" before parameter names, sentence-like comments)"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Rindbee",
+        "role": "CONTRIBUTOR",
+        "body": "Until the mechanism for updating the property tree is modified, a temporary solution is to pass the necessary state data by calling the `set_meta()`/`get_meta()` methods on the curve object.\r\n",
+        "timestamp": "2023-03-17T11:58:59Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "I'll look into it, thanks. I haven't really tinkered with meta before.\r\n\r\nI'm also trying to somehow make an indicator for the snapping positions, but I can't figure anything out as there already is a grid and having a second one would be too busy.",
+        "timestamp": "2023-03-17T14:03:19Z"
+      },
+      {
+        "author": "Rindbee",
+        "role": "CONTRIBUTOR",
+        "body": "I provided a method in #75030 to predict the index of a point after it has been added.",
+        "timestamp": "2023-03-17T14:50:52Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry for force-pushing so much, I just keep noticing little oversights! I think I've ironed out most things by now, though.",
+        "timestamp": "2023-03-17T20:58:32Z"
+      },
+      {
+        "author": "SlugFiller",
+        "role": "CONTRIBUTOR",
+        "body": "I looked at the animations, and noticed something. When adding a new point, tangents should be placed at a third of the distance to the nearest points, not at constant distances. Otherwise, too often, the tangents will go past the next point, which creates a curve that is non-continuous in x. It was actually a common complaint I heard about the animation bezier curve editor from an animator with experience in Blender and Maya.",
+        "timestamp": "2023-03-24T11:38:18Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "The situation you're describing should be rarer now because tangents are a bit smaller. I don't think I can implement this because I don't understand it, for example, what if two points are very close to each other? Would the tangent be shown on top of the selected point? Wouldn't it be confusing to make all tangents differently-sized when their effect is the same?\r\n\r\nI think I'm mostly done with features and enhancements in this PR, but maybe we can discuss this on RC so I can add it later?",
+        "timestamp": "2023-03-24T15:46:44Z"
+      },
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "GDquest’s team has an pr with those stated features. We can unify them.",
+        "timestamp": "2023-03-24T16:32:01Z"
+      },
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "https://github.com/godotengine/godot/pull/64647",
+        "timestamp": "2023-03-24T16:33:52Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "But this is for editing the Curve resource, which that editor doesn't seem to be tied to... the curve resource also only has a Free mode and a Linear mode for its tangents, and it uses Shift+Drag to mimic mirrored or free... :thinking: ",
+        "timestamp": "2023-03-24T17:37:40Z"
+      },
+      {
+        "author": "SlugFiller",
+        "role": "CONTRIBUTOR",
+        "body": "> I don't think I can implement this because I don't understand it, for example, what if two points are very close to each other? Would the tangent be shown on top of the selected point?\r\n\r\nYou can start up Blender and see how they do it. It's free (and open source). But generally, you don't want tangents to go past the point. And if you have to go looking for the tangent, and adjust it after each point, you're going to have a bad time.\r\n\r\nAn alternative would be to somehow let the user set the default tangent length. So, if they have their own expectation on how tight their points are going to be, they can set it accordingly.",
+        "timestamp": "2023-03-24T19:38:35Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @SlugFiller , please don't tell contributors \"go look it up\". If you want development to go in the direction you wish, it's up to you to provide clear specifications and actionable items. I think that auto placing point is an interesting feature but possibly outside of the scope of this PR. The curve resource editor, differently to the animation curve editor, does not offer length adjustment on the tangents.\r\n\r\n@fire Is there a spec somewhere with a list of controls and features? Can you elaborate on \"unifying them\"? Do you mean that we should use the same curve editor for both animations and curve resources? If that's your proposal I think it's an interesting idea but outside of the scope of this PR",
+        "timestamp": "2023-03-25T01:22:41Z"
+      },
+      {
+        "author": "fire",
+        "role": "MEMBER",
+        "body": "I am not able to give good design until I arrive back home. But this photo is from the post I linked. \r\n![](https://user-images.githubusercontent.com/85438892/225435930-2b413d8b-f97c-4b10-9edb-02b235b9393a.png)\r\n\r\nWe worked out the method for handing the problem stated in that thread.\r\n\r\nRelated the point too close to the tangent and restricting the closeness of the point.",
+        "timestamp": "2023-03-25T01:43:00Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "It's actually from my PR :P\r\n\r\nTangent controls are all 36px long, but can automatically shrink down to 18px if they would slide outside of the view area. This prevents you from being unable to grab the tangents of points that are in [Vector2(0, min_value), Vector2(1, max_value)]",
+        "timestamp": "2023-03-25T01:55:35Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "> Until the mechanism for updating the property tree is modified, a temporary solution is to pass the necessary state data by calling the `set_meta()/get_meta()` methods on the curve object.\r\n\r\nDoned! It's better to save this stuff on a per-curve basis anyway, so it's not just a temporal patch.",
+        "timestamp": "2023-03-27T18:27:04Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "@Geometror Thanks a lot for the feedback! Time to iterate, I suppose. Just a few comments on where I plan to take it.\r\n\r\n- Good point about Ctrl, perhaps I'll replace the constraint thingy with quick snapping instead. I'd rather not use Alt because it's better to avoid making Alt+Shift meaningful, but maybe it's not that important.\r\n- I'll increase the height a little more.\r\n- Right-clicking is essential for people on laptops to be able to delete points quickly, would rather not remove it. Right-clicking on tangents to show a context menu makes sense to me as they can't be deleted, I'll have to play around with it.\r\n- Adding a point would eventually allow you to directly adjust it, but it's not up to my PR to fix this. Also this is why I increased the size of the hoverable areas so much.\r\n\r\nOn the additional points:\r\n- Current rendering code is a hot mess because of the transform applied, so I'll stick to primitives unless I think up of something\r\n(look what happened when I put a quad lmao) ![image](https://media.discordapp.net/attachments/1084102979902251048/1084581618678763581/image.png)\r\n- I really want to have better grid alignment, but have been unable to think of anything that doesn't make the editor too busy. There's the main grid, possibly a secondary one, and the numbers on the bottom which shouldn't overlap...\r\n- Good point, I'll try to improve the usability of tangents with Shift.",
+        "timestamp": "2023-03-31T12:11:00Z"
+      },
+      {
+        "author": "AThousandShips",
+        "role": "MEMBER",
+        "body": "> While left-click for adding a new point is great, I noticed that it can become a bit annoying when you quickly want to select a point but accidently create a new one because you didn't click precisely. (but that's just a minor inconvenience)\r\n\r\nThis is arguably an accessibility consideration as opposed to inconvenience ",
+        "timestamp": "2023-03-31T14:27:16Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "A snapping grid just makes this too busy IMO\r\n\r\n![image](https://user-images.githubusercontent.com/85438892/229188203-439b1ac2-c5c2-4a58-b375-db7668a2ec87.png)\r\n\r\nSo I didn't implement it. Added quick snap with CTRL though and increased the height a little more.",
+        "timestamp": "2023-03-31T17:54:28Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "> When the tangents are edited individually, grabbing one tangent handle without Shift pressed will make them collinear again, which is quite annoying to me.\r\n\r\nI made it so when you press Shift, it restores the old angle of the opposite tangent. I also removed the hover indicator for the opposite tangent in case it's linear.",
+        "timestamp": "2023-04-03T14:23:24Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "QUAD LINES YES\r\n![image](https://user-images.githubusercontent.com/85438892/229570402-a660c5a4-e281-4369-870f-b2d670d22cd5.png)\r\n\r\nWell, this file is now free of FIXMEs :)",
+        "timestamp": "2023-04-03T16:26:38Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "> I'm not sure whether the context menu should be completely removed: the function for making a tangent linear was well discoverable, but I suppose no one is going to guess without looking in the docs that middle clicking on a tangent handle does that (maybe a hint would suffice like the one for dragging tangents individually). I know, reintroducing the context menu would mess up the of the new control scheme, but maybe we find a way to combine them.\r\n\r\nI don't like hints.\r\n\r\n* They are really spread out. Some people will have the inspector pretty squished, and the curve editor will often be 1 or 2 subresources deep. When hints are forced to be more than 2 lines long, they look very ugly and take a lot of the cramped space.\r\n* Localization is needed to be useful for some peeps. It may make them even more spread out.\r\n\r\nI removed the \"Right Click to Add a Point\" one because beside the above reasons, it only showed up if there were no points. If there were already points and I wanted to add more, the editor didn't provide help on how to access the context menu and do anything other than move points around.\r\n\r\nI thought of everything else before deciding to keep this single one with tangents and Shift.\r\n\r\nAs for reintroducing the context menu, I have an idea that should bring back its useful aspects in a better way, but it's pretty heavyweight, so I want to do it in a follow-up.\r\n\r\nWith this said, I think the feedback has been addressed now, I'm once again going dormant here :P",
+        "timestamp": "2023-04-04T19:34:03Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Actually added one more thing to address feedback I got over Discord that getting accustomed to the new control scheme can be confusing at first. Now there's a + that shows where new points would be added, making it obvious what LMB does. Also clamps the value inside the editable rect and addresses the snap divisions, as shown below. I think it's nice to have in general.\r\n\r\n![image](https://user-images.githubusercontent.com/85438892/230821805-633b28d1-5be7-4e07-934a-1db6a6ab61fe.png)\r\n\r\nSo yeah, *now* I'm going dormant before the next batch of requests.",
+        "timestamp": "2023-04-10T03:52:42Z"
+      },
+      {
+        "author": "Iniquitatis",
+        "role": "CONTRIBUTOR",
+        "body": "> Now there's a + that shows where new points would be added, making it obvious what LMB does.\n\n~Either~ I'm misunderstanding something, ~or this last change feels like an overkill, because mouse pointer itself should point to an exact point on the screen, otherwise it just doesn't function properly.~\n~... That's my _point_, I guess.~",
+        "timestamp": "2023-04-10T07:04:23Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "@Iniquitatis It's pretty standard for editors to show something that will be placed when you use LMB (i.e. tilemap), but I believe it's better to judge on a case by case basis. So if you think it's bothersome, please do tell me.\r\n\r\n> because mouse pointer itself should point to an exact point on the screen\r\n\r\nIt does, in the above example the cross is a bit away because snapping is enabled.",
+        "timestamp": "2023-04-10T07:36:23Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "```cpp\r\nVector2i grid_steps = Vector2i(0, 0);\r\nif (snap_enabled || Input::get_singleton()->is_key_pressed(Key::CTRL)) {\r\n\t// If snapping, find an appropriate grid size.\r\n\tif (snap_count == 2) {\r\n\t\tgrid_steps = Vector2i(2, 2);\r\n\t} else if (snap_count == 3 || snap_count == 6 || snap_count == 9) {\r\n\t\tgrid_steps = Vector2i(3, 3);\r\n\t} else if (snap_count % 5 == 0) {\r\n\t\tgrid_steps = Vector2i(5, 5);\r\n\t} else if (snap_count % 4 == 0) {\r\n\t\tgrid_steps = Vector2i(4, 4);\r\n\t}\r\n}\r\n\r\nif (grid_steps == Vector2i(0, 0)) {\r\n\t// Use a default/fallback value.\r\n\tgrid_steps = Vector2i(4, 2);\r\n}\r\n```\r\n\r\nI tried the \"adjust grid based on snap divisions\" suggestion with this code and it looked worse with it than without it. Not implementing it.",
+        "timestamp": "2023-04-15T21:04:38Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "What's the status on this? Can we review&merge soon?",
+        "timestamp": "2023-05-03T12:16:10Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "I removed the green cross because a bug unrelated to my PR made it jump around erratically (and I wasn't sure about it anyway, so being unable to provide a nice user experience with it was enough for me to axe it). It would also be really nice to solve the problems outlined in https://github.com/godotengine/godot/pull/74927#issuecomment-1469917500 first so that UndoRedo doesn't get bugged.\r\n\r\nOther than that, I think it's ready for someone to take another look :)",
+        "timestamp": "2023-05-03T18:20:13Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "The worst occurrences of the \"inspector rebuilding on inopportune moments\" bug have been fixed with a hack inside Curve and a FIXME linking to the above issue.\r\n\r\nI think it's ready.",
+        "timestamp": "2023-05-17T01:25:01Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks to the review! Here's my review on the main points of your review:\r\n\r\n### get_offset_without_collision()\r\n\r\nNot sure what to do with this function, while I like the utility it gives to add points right next to each other, I agree its implementation is very sus.\r\n\r\n### Scaling parameter instead of transforms\r\n\r\nThis is only done for one of the transforms, the one used for drawing the curve, and I document why this transform is so weird. In a nutshell, the curve itself must be transformed, because `set_draw_transform()` breaks quad lines when the scaling is non-uniform.\r\n\r\nThis is fundamental, not a bug. Picture a transform that scales something by making it 2 times wider. Such a transform would make horizontal lines 2 times longer, and vertical lines two times fatter. So I don't think there's a better solution if we want antialiased curves.\r\n\r\n### The hover rect doesn't appear centered\r\n\r\nNo idea how to address this.\r\n\r\n### Shift after adding a point is weird\r\n\r\nFixed.",
+        "timestamp": "2023-05-18T02:45:28Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "I'd also prefer we merge this since it's definitely an improvement overall, refinement can be done later.",
+        "timestamp": "2023-05-24T17:24:35Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Just a little note about Geometror's request for editing tangents easily: I wasn't sure the idea would be approved, so I didn't implement it here, but I wanted to make a popup for tangent editing that shows up when double-clicking a point. This would be similar to the gradient editor, which allows to edit a color when double-clicking a handle. Either way that would be a separate PR and I can't guarantee I'll manage to implement it in a good enough way to be approved.",
+        "timestamp": "2023-05-27T21:57:27Z"
+      },
+      {
+        "author": "Calinou",
+        "role": "MEMBER",
+        "body": "I'm testing this PR locally (rebased against latest `master` https://github.com/godotengine/godot/commit/06ccbfe8eec6e840db3df2360dc2804386f940b8) and can notice the points are offset from the drawn line:\r\n\r\n![image](https://github.com/godotengine/godot/assets/180032/10aef1af-f586-4d3b-805a-886445f8515f)\r\n\r\nThis only occurs if **Min Value** and **Max Value** are different from `0.0`. Creating curves in a CPUParticles2D node will automatically set the default **Min Value** and **MAx Value** to non-zero values for many properties, such as **Radial Accel** or **Curve**.",
+        "timestamp": "2023-05-27T23:38:01Z"
+      },
+      {
+        "author": "anvilfolk",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you for catching that! I don't believe I tested changing the range a lot. Was there anything specific you did (other than `min != 0 && max != 0`), or does it always happen? Does the same thing happen when editing the curve directly vs editing an \"inline\" curve on some other resource?\r\n\r\nRebasing everything and will try to do some testing also!",
+        "timestamp": "2023-05-28T02:52:55Z"
+      },
+      {
+        "author": "anvilfolk",
+        "role": "CONTRIBUTOR",
+        "body": "Nope, you're right, can confirm it also happens without the curve being inline:\r\n\r\n![image](https://github.com/godotengine/godot/assets/1133892/a3bc19b4-7885-4eef-8b18-f73fc98fd549)\r\n\r\nThis might be because of those scaling parameters used to place points or draw lines - two different methods are used to place one vs the other. I think this speaks a little to the need to make changes in the readability/maintainability of rendering. Though as @MewPurPur suggested, due to availability/capacity concerns, the best way to address this might be to fix the bug in this PR and then do a further PR refactoring the refactor :)",
+        "timestamp": "2023-05-28T03:05:22Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Oh man, how did I manage to miss this... TY for catching it, I'm on it.",
+        "timestamp": "2023-05-28T10:47:52Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Phew it's a super simple fix.",
+        "timestamp": "2023-05-28T11:22:40Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "Oh, and while testing negative values, I encountered a bug that seems to also be present in the old CTRL snapping, which I hadn't fixed... but now have! So that's cool! This PR fixed like 10 bugs at this point lmao, anyway, documented this stuff in the PR description.",
+        "timestamp": "2023-05-28T11:34:12Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "After this is merged, the toolbar at the top can easily have its Presets button changed into a dropdown menu with common functionalities.",
+        "timestamp": "2023-05-28T18:57:37Z"
+      },
+      {
+        "author": "akien-mga",
+        "role": "MEMBER",
+        "body": "Thanks!",
+        "timestamp": "2023-05-29T08:32:12Z"
+      },
+      {
+        "author": "golddotasksquestions",
+        "role": "NONE",
+        "body": "This is exactly the kind of UI improvement the Godot Editor needs! Thank You!",
+        "timestamp": "2023-06-01T20:50:17Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a3c4a4b",
+        "message": "Overhaul the Curve Editor",
+        "author": "VolTer",
+        "timestamp": "2023-03-13T22:03:36Z"
+      }
+    ]
+  },
+  {
+    "story_id": "godotengine/godot#55387",
+    "metadata": {
+      "title": "Turbulence/Noise for ParticleMaterial (2D / 3D)",
+      "labels": [
+        "enhancement",
+        "topic:rendering"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-08-01T07:38:55Z",
+      "reviewers": [
+        "Chaosus",
+        "QbieShay",
+        "Calinou",
+        "clayjohn",
+        "akien-mga",
+        "samsface",
+        "RPicster"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "It's a feature I miss a lot and brings much more life and interesting patterns to almost any Particle System.\r\n\r\nI uploaded a longer demo video showing the features and parameters in action:\r\nhttps://www.youtube.com/watch?v=oTsEaKpzseE\r\n\r\n**Here are some small examples:**\r\n\r\nhttps://user-images.githubusercontent.com/9423774/161746807-e6ada9fb-2381-45cd-95d0-717283b7ed3a.mp4\r\n\r\nhttps://user-images.githubusercontent.com/9423774/161746822-3a38f111-6bc1-4df4-a0bf-5b399a324ed4.mp4\r\n\r\nhttps://user-images.githubusercontent.com/9423774/161746837-5c6121e2-f5aa-41f0-9e6e-436919daff65.mp4\r\n\r\nhttps://user-images.githubusercontent.com/9423774/161746903-785a67c8-c566-4c04-99dc-b053bbcf6bde.mp4\r\n\r\nhttps://user-images.githubusercontent.com/9423774/161746914-aff4973a-729e-412b-8a28-e7e9ee0644b8.mp4\r\n\r\n\r\n**It comes with the following parameters**\r\n- Turbulence Mode: Control if turbulence will be used and the turbulence style.\r\n- Turbulence Noise Contrast: Controls the contrast of the turbulence noise.\r\n- Turbulence Noise Scale: Controls the overall scale of the turbulence noise pattern\r\n- Turbulence Noise Speed: Controls the movement speed of the turbulence noise pattern (vec3)\r\n- Turbulence Noise Speed Random: Randomizes the Noise Speed - this helps to break up visual patterns if they are visible.\r\n- Turbulence Influence over life : This controls how much each particle will be influenced by the turbulence over it's lifetime\r\n- Position Influence : How much the turbulence influences each particles position (translation)\r\n- Velocity Influence : How much the turbulence influences each particles velocity\r\n- Color Ramp : Offers the option to multiply each particles color with this ramp depending on the turbulence direction\r\n\r\n![turbulence_options](https://user-images.githubusercontent.com/9423774/161747519-bb753465-2f4c-499c-bbe8-534f02e56470.jpg)\r\n\r\n(The original pull request also had rotation and scale influece, those were removed to reduce complexity)\r\n\r\n\r\nI also took care that **collisions** look good and happen in a way that makes sense (no further turbulence gets applied after a collision).\r\n\r\nThe newly added code snippets for the noise in the shader have been checked with the original authors and both gave their (very friendly) approval to be included in the engine code.\r\n\r\n\r\n**TO DO:**\r\n- [x] Find out if licensed code parts are ok to use (Got feeback from Inigo Quilez that it's no problem)\r\n- [x] Fix problems that Inigo Quilez mentioned: *I'd however recommend against the use of 43758.5453123, it's a too large number and will fail in lower GPUs such as in Intel cards, VR headsets and other mobile GPUs. I'd also not use sin() within the hash function for the same reason. fract(fratct()) instead of fract(sin()) is often a better options.* \r\n- [x] Save the original EMISSION_TRANSFORM in a persistent way to make it looking good when moving the particle system around\r\n- [x] Find the most important parameters, get rid of parameters that will probably never be used (candidates: rotation, color)\r\n- [x] Prepare demo content for parameters\r\n- [x] Find reason for biased, directional movement of particles"
+    },
+    "discussion_timeline": [
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "What is the license of the noise? I couldn't find it",
+        "timestamp": "2021-11-28T16:24:07Z"
+      },
+      {
+        "author": "Calinou",
+        "role": "MEMBER",
+        "body": "> What is the license of the noise? I couldn't find it\r\n\r\nThe PR description says:\r\n\r\n> As you can see in the implementation, the shader code for the 3D noise is by Fabrice Neyret & Inigo Quilez, the code is CC-BY, so it should be no problem\r\n\r\nI would prefer if we were explicitly allowed to use the code under the MIT license, as CC BY is more restrictive than MIT overall (CC BY has stricter requirements for attribution). Feel free to contact Inigo Quilez about this :slightly_smiling_face: ",
+        "timestamp": "2021-11-28T16:40:41Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> > What is the license of the noise? I couldn't find it\r\n> \r\n> The PR description says:\r\n> \r\n> > As you can see in the implementation, the shader code for the 3D noise is by Fabrice Neyret & Inigo Quilez, the code is CC-BY, so it should be no problem\r\n> \r\n> I would prefer if we were explicitly allowed to use the code under the MIT license, as CC BY is more restrictive than MIT overall (CC BY has stricter requirements for attribution). Feel free to contact Inigo Quilez about this 🙂\r\n\r\nI used this shader code because it is compact and works well.\r\n\r\nAs I tried different shaders in my research, I have a couple of alternatives if the license is not too great.\r\n\r\nA shader with MIT license that I tried and worked perfectly with some super small modifications is this one:\r\nhttps://github.com/ashima/webgl-noise/blob/master/src/noise3D.glsl\r\n\r\nI could swap it without a big problem - it's just more code - but with some space saving actions it can be reduced to a moderate level.\r\n\r\nI also just did a performance test and I couldn't make out any difference compared to the current code of this PR (tested with 12x1mio particle systems).",
+        "timestamp": "2021-11-28T19:12:52Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry for the oversight, I was looking for it into the code.\r\n\r\nThanks a lot @RPicster for the work!\r\nI have pulled and tested the PR and I have a few observations about it.\r\n\r\nMy first observation is that I find this fairly complex to use. The knobs require a lot of tuning and there are a lot of configurations that won't work. I'd like to understand if we can reduce the knobs on turbulence to obtain something more \"plug and play\".\r\nCompared with Niagara's curl noise for example, it's way more complex to use and tune.\r\nhttps://www.youtube.com/watch?v=tAtny_0E2Is\r\n![Screenshot_2021-11-29_11-44-28](https://user-images.githubusercontent.com/7917475/143854021-59a88d0f-0835-4a03-8f8c-7125a573391c.png)\r\n\r\nAnother issue that I had is that power and size behave in very counter intuitive ways. With power set to 0.07, my particles are still accelerated very very far, and I also observed a some flickering and I'm not sure if it's something I am doing wrong, or if there's some bugs?\r\nhttps://gfycat.com/enormousimmediateglobefish\r\n\r\nI'm happy to chat about this on rocket chat if you wish. Thanks again for looking into this!!",
+        "timestamp": "2021-11-29T10:45:00Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for looking into the PR and for your feedback!\r\n\r\nI'm a friend of giving the user a lot of control with good default settings.\r\nAs a user I love \"plug and play\" checkboxes - I click it and it looks great.\r\n\r\n**So that is something that could definetely be improved a lot on this PR - the default settings aren't great.**\r\n\r\nOn the other hand, as a user, I love to experiment around with settings to get a big variety of effects.\r\nWith the option of always coming back to the default settings, this is a great way of finding new, cool effects.\r\n\r\nThe comparison to Niagara is a bit \"apples and pears\" because Niagara is built up entirely different. \r\nA user can combine different systems like Vertex Fields and Noise  - That's what I try to replicate in a small scale with color, scale, rotation, position and velocity.\r\n\r\nIf you like to compare this PR to what Unreal offers you need to compare it more to Vertex Fields instead of Curl Noise.\r\n\r\n**Anyway, to make the long story short**: I love systems that offer great default settings so a beginner can activate the checkbox and have a great experience and an advanced user can play around and even achieve effects like lightning, fire, and all kind of effects.\r\n\r\nEventually it would make sense to only offer these two parameters and hide the rest behind a \"advanced settings\" checkbox.\r\n![turbulence-default](https://user-images.githubusercontent.com/9423774/143859860-497ea611-18a4-483e-bf09-645fd29560aa.jpg)\r\n\r\n\r\nAbout your flickering issue: I guess it has to do with the scale settings.",
+        "timestamp": "2021-11-29T11:26:44Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "@RPicster right now with these new systems we want to move towards giving more control through the visual particle shaders, and having the default one be tunable but not too advanced.\r\n\r\nI would perhaps remove a number of settings, specifically color, rotation influence (that could be achieved by using orient to velocity), scale influence. I didn't fully understand the difference between velocity influence and position influence (I didn't read the code yet).\r\nI love that you have three different modes for noise (I don't think other engines do?) and I'd like to keep that.\r\n\r\nSo perhaps\r\n1. mode\r\n2. power\r\n3. noise panning (I'm edging more towards a float than a vec3 but I'm open to either)\r\n4. scale\r\n\r\nFor all the complex behaviours like tying the turbulence value to a color ramp, I'd expect the user to use a visual shader. \r\n\r\nWhat do you think?",
+        "timestamp": "2021-11-29T15:51:11Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "I don't like taking power away and say: if you want cool stuff you have to use a more complicated tool.\r\n\r\nI rather hide the advanced settings behind a checkbox.\r\n\r\nDumbing down tools often makes them borderline useless for many cases ending up in people going back to customized shaders - at least that's what people in my network do (fellow good Godot users).\r\n\r\nThe difference between velocity and position is that position directly influences the particles position and velocity influences velocity (oh man that sounds dumb).\r\n\r\nEg. With position you can theoretically build a lightning bolt because the particle will be forced to a certain position offset.\r\nVelocity influences the position inderectly / in the future.\r\n\r\nMy suggestions for simple settings would be:\r\n- Mode\r\n- Scale\r\n- Speed/Panning (as float)\r\n- Velocity Influence \r\n\r\nWhen extending the settings, Speed is switched to a Vector3 (makes a lot of sense to e.g. make a fire that makes it look more like moving upwards).\r\n\r\nAnd the rest of the settings are shown.\r\n\r\n\r\nAs said above, I want to empower the user and give a system that is flexible out of the box - saying \"just use nodes\" is really not a good solution imho as setting up a particle system with nodes is much more time consuming.",
+        "timestamp": "2021-11-29T16:37:02Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @RPicster, I understand where you're coming from but it is a current goal to expand more on what can be done with nodes rather than putting everything in the default particle system.\r\n\r\nI fully agree on the statement of dumbing down the system, but this isn't what I'm suggesting. I believe advanced users should be able to harness the potential of it, and i believe that newcomers shouldn't have too much on their plate.\r\nWe align on the goal of not removing options from the users, but in this case the advanced option *is the visual shader*, where people have way more control and can fully make use of the output of the turbulence node.\r\n\r\nI'm not sure you've seen it, but I'm referencing this work: https://github.com/godotengine/godot/pull/42248\r\n",
+        "timestamp": "2021-11-29T16:56:50Z"
+      },
+      {
+        "author": "Chaosus",
+        "role": "MEMBER",
+        "body": "> As said above, I want to empower the user and give a system that is flexible out of the box - saying \"just use nodes\" is really not a good solution imho as setting up a particle system with nodes is much more time consuming.\r\n\r\nIn my opinion, the particle system especially and (some) other shader effects are much easier and support advanced effects if used through visual shaders. If you cannot do it yourself - I can take and implement turbulence to them myself later (after merging) but saying that is not a good solution is a bit hastily.",
+        "timestamp": "2021-11-29T17:13:32Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "I think it is an absolute must have inside the visual shaders. I totally agree with you there. I love the idea, approach and power of the system.\r\n\r\nI just also have the opinion that a user wanting to create a good looking standard effect should not be reliant on visual shader nodes.\r\n\r\nIt is much more complicated for a beginner and intermediate user compared to playing around with some sliders.\r\n\r\nGiving the user only the 3-4 parameters will create another set of options that are just quite not powerful enough to create high quality assets with that System.\r\n\r\nWhat is speaking against hiding advanced options behind a checkbox? It is not the same as having to use an entirely different setup.",
+        "timestamp": "2021-11-29T17:30:25Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "> What is speaking against hiding advanced options behind a checkbox?\r\n\r\nIt's inconsistent with the rest: options that are deemed advanced are a target for the visual shader.\r\n\r\n> I just also have the opinion that a user wanting to create a good looking standard effect should not be reliant on visual shader nodes.\r\n\r\nI'm confident that the standard can look good enough for most use cases ^^\r\n\r\nI wanted to ask about something else: in my tests i noticed that there was a strong directional push, even with scrolling noise (most particles aligning on a tube along a diagonal on the zy plane). Is this intended?",
+        "timestamp": "2021-11-29T17:39:05Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Then I would rather not hide / dumb options down and keep them in the way they are.\r\nI don't feel that users should be forced to use another tool for just some cool look.\r\n\r\nVisual Shaders / Nodes have their use cases, but I think for such basic things (imho) it shouldn't be neccessary.\r\n\r\nAbout the directional push: I noticed that too and still try to find ways to reduce it / get rid of it.\r\n\r\nBy the way - I totally disagree that Visual Shader Nodes should be considered _the_ exclusive tool for advanced users and cool looking features should be limited to that.",
+        "timestamp": "2021-11-29T17:57:30Z"
+      },
+      {
+        "author": "marcosa65",
+        "role": "NONE",
+        "body": "I think it's a powerfull feature! and will be a shame to not have it , it can be more simple, true, but you can easily just have some default and advanced options, in order to keep it simple and allow more advanced use at the same time.",
+        "timestamp": "2021-11-29T18:09:05Z"
+      },
+      {
+        "author": "Zireael07",
+        "role": "CONTRIBUTOR",
+        "body": "> and will be a shame to not have it\r\n\r\nWho said it won't be merged?",
+        "timestamp": "2021-11-29T18:23:30Z"
+      },
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "> Visual Shaders / Nodes have their use cases, but I think for such basic things (imho) it shouldn't be neccessary.\r\n\r\nI don't think that this should be decided here, in this specific PR. If the design goal of the particle team is to move complexity and possible permutations to the visual shaders, then the new additions must adhere to the existing principles. Options can always be added later (new options with matching defaults don't break compat), but it's much harder to remove them (removing stuff always breaks compat).\r\n\r\nIf you find the overall goals of the particle team to be misguided, it's worth a dedicated discussion, and likely a proposal suggesting an alternative. Do keep in mind, though, that node-based systems seem to be the most popular trend in the digital art these days, so visual shaders would probably come more natural to a lot of people.",
+        "timestamp": "2021-11-29T18:46:41Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> \r\n\r\nI would gladly take part in that discussion (I'm on the rocket chat) and I agree that node based systems are popular in certain software packages.\r\nBut Godot is not a visual effect package and should not be compared to Houdini or Blender in that regard.\r\nOther Game Engines I used do not require the user to setup a Node Based setup to get advanced results.\r\n\r\nA node system certainly does not come more natural, they require a lot of knowledge which nodes can be plugged where, which nodes exists to even start with etc. Learning a new node based system is a complex task.\r\nI have used Stardust very extensively which is a node based Particle System - and it takes a long time to learn even for vfx professionals.\r\n\r\nThese people are not the typical Godot users - in my experience it's game devs.\r\n\r\n**Anyway - my personal next step with this PR will be to**\r\n- Improve the default parameters\r\n- Improve the max/min values of the parameters\r\n- Prepare examples why I think the more complex / unneccesary parameters have an important role\r\n\r\n\r\nAs said, we can gladly meet up and discuss Particle Systems in voice or in some channel!",
+        "timestamp": "2021-11-29T18:58:40Z"
+      },
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "@RPicster I think you've made your point, but you can of course provide more examples if you think that they would swing the opinions of the particle team. However, if they don't, are you prepared to comply with the reviews and requirements from maintainers of the area even if you don't agree on the rationale?",
+        "timestamp": "2021-11-29T19:05:39Z"
+      },
+      {
+        "author": "djrain",
+        "role": "NONE",
+        "body": "> options that are deemed advanced are a target for the visual shader.\r\n\r\nBut parameters for rotation or scale influence can hardly be called \"advanced options\". They are no more advanced or complex than one for velocity. I would wager that most users using the turbulence at all would like to tune these as well. Therefore, to limit the influence to velocity only would be quite arbitrary, IMO.\r\n\r\n\r\n",
+        "timestamp": "2021-11-29T19:06:42Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Oh well, that sounds to me like the pistol on the chest - I don't hope that's what you try to say 😉😘\r\nI would rather have the dedicated discussion that you suggested with the particle team before making any changes that I personally don't stand behind to this PR.",
+        "timestamp": "2021-11-29T19:12:12Z"
+      },
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "> I would rather have the dedicated discussion that you suggested with the particle team before making any changes that I personally don't stand behind to this PR.\r\n\r\nThat's what prompted me to ask. Because you are already having it here, with @QbieShay and @Chaosus. I felt that the discussion was entering an uncomfortable area where the maintainers had voiced their concerns, you disagreed and none were willing do give in. The problem is, if maintainers of the area are not convinced, I don't see how a PR can be merged. They seem to support your initiative and goal, but not the entirety of your solution. So my question is still valid.\r\n\r\nIf you think it's worth discussing it on RC with them instead of GitHub, then by all means. But I wanted to make sure this is not going to end up a stalemate because you won't accept the reviews, and they won't accept your PR as is. It would be nice to have this feature merged after all.",
+        "timestamp": "2021-11-29T19:18:40Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "I'm not against having these properties in the particle material, but so far they seem more niche than the overall turbulence.\r\nI don't  imagine it as a common usecase to want to influence color with it (can be done with lifetime instead?) and rotation (which can be influenced by using the align_y option). I don't see a practical use for scale either but I'll be happy to change my mind when presented one.\r\n\r\nFor reference, this (old and discontinued) PR https://github.com/godotengine/godot/pull/22254 achieves some visually interesting results without having many options.\r\n\r\nI think your approach @RPicster of supplying examples is a good way to move this PR forward and assess which one of those properties should stay in particle material and which ones should be deferred to custom visual shaders.\r\n\r\nI agree with @pycbouh that discussing wheter or not the particle material should have full feature parity with the nodes in the visual shader is beyond the scope of this PR.",
+        "timestamp": "2021-11-29T19:19:25Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "@pycbouh I was referencing a discussion about the overall direction how particle systems are seen and developed. Anything about this PR in specific should be discussed here.\r\n\r\nAnd I am not disagreeing with everything that was said here - A lot of good feedback was collected and I will implement it in my next iteration.\r\n\r\nI will prepare the examples hoping this will bring the discussion forward and not let this run in circles 👍\r\n\r\n@QbieShay Rotation influence is not the same as rotating toward the moving direction - It rotates a particle based on the influence of the noise, it is independent of the movement direction of the particle.\r\n\r\nAlso color influence is not replaceable by any other parameter ParticleMaterial offers, it is not linked to lifetime of the particle.\r\nYou can see in my examples how particles change color depending on the noise influence.\r\nThis is extremely useful to create effects like fire, sparks or similar particles.\r\nIt can be combined with HDR values in the gradient to make it extra interesting 😉",
+        "timestamp": "2021-11-29T19:32:35Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Sounds good :+1: \r\n\r\nThanks again @RPicster for looking into this, I think turbulence is a great addition and I really want to see it merged!",
+        "timestamp": "2021-11-29T19:38:31Z"
+      },
+      {
+        "author": "azagaya",
+        "role": "CONTRIBUTOR",
+        "body": "In my humble opinion, I would love to see this merged. I think visual shader editor is great for tech artists, but simple coders like me would really appreciate this features to be present in the node. Many solo devs or small indie teams are using godot, if not the majority of the users. And visual editors is not something we commonly know.\r\nHaving this power in the node would really make a difference for a lot of us.",
+        "timestamp": "2021-11-29T20:08:59Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "@azagaya note that i never said \"I don't think we should have this feature\"\r\n\r\nWhat I want to do is to avoid putting a lot of cognitive load on users by giving them too many knobs to understand that they then don't use 80% of the time.\r\n\r\nI really love this turbulence work and i want to see it merged too ^^",
+        "timestamp": "2021-11-29T20:11:00Z"
+      },
+      {
+        "author": "azagaya",
+        "role": "CONTRIBUTOR",
+        "body": "> @azagaya note that i never said \"I don't think we should have this feature\"\r\n> \r\n> What I want to do is to avoid putting a lot of cognitive load on users by giving them too many knobs to understand that they then don't use 80% of the time.\r\n> \r\n> I really love this turbulence work and i want to see it merged too ^^\r\n\r\nOf course, i know you didn't. Sorry if what i said sounded like that. I read the conversation thoroughly before comenting. And i really understand your point of view and it is a concern to me as an user also. Because when features become too complex, it becomes frustrating instead of easy to use. However, i really think in this particular case the power this adds would boost a lot the ability to make stunning particles for solo devs or small teams. ",
+        "timestamp": "2021-11-29T20:15:45Z"
+      },
+      {
+        "author": "GuyUnger",
+        "role": "NONE",
+        "body": "I agree that the particle emitter shouldn't get over complicated, but i'd consider noise essential to a decent particle emitter. there's a huge variety of effects you can create if it has more control. i think it needs more testing to see if any of them create more complexity than necessary, but the ones proposed each seem to add a lot of value",
+        "timestamp": "2021-11-29T21:17:30Z"
+      },
+      {
+        "author": "fire-forge",
+        "role": "CONTRIBUTOR",
+        "body": "This looks great! Having noise parameters built-in is a huge step forward for particle systems in Godot.\r\n\r\nMy opinion is that the functionality should stay in the inspector as it currently is, rather than moving it to visual nodes. If having too many properties becomes a problem, perhaps they could be dynamically shown and hidden (similar to how Environment properties are hidden based on background type, or pycbouh's new inspector design for Control node layouts).",
+        "timestamp": "2021-12-01T04:15:40Z"
+      },
+      {
+        "author": "mhilbrunner",
+        "role": "MEMBER",
+        "body": "PR review meeting: We like the PR, but it needs to be reviewed in depth, potentially needs to be trimmed down to common options and remove the uncommon/less used ones from UI to avoid too much complexity",
+        "timestamp": "2022-01-04T12:21:15Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Alright!\r\n\r\nIt took a while, but some things take a little longer 😉\r\n\r\nI found a flaw in the original PR, the noise that resulted from the function wasn't real 3D noise - the vectors had no velocity towards a new position. That resulted in this \"bias\" towards a certain direction that always emerged.\r\n\r\nSome more time has been spent working on the shader code while I was working on my game `Beat Invaders` where I used the newer and updated code at a lot of places.\r\n\r\nI also found that some critique in the original PR was right, `rotation influence` and `scale influence` were never used by myself in a real life scenario.\r\n\r\nSo, after more than three month on `Beat Invaders` I thought the time was right to come back to this PR and update it with the things I learned from my real-life project.\r\n\r\nI added another parameter, because when using certain settings (that are not uncommon, I often had this problem), it was easily observable how the noise pattern is moving across the particle system.\r\nThis new parameter is `Turbulence Noise Scale Random`.\r\nI also renamed the parameters to be more easy to differentiate which parameters have influence on the noise pattern (scale, speed, contrast) and the rest of the parameters that influence how the noise is interacting with the particles.\r\n\r\nIt's still not a \"one click turbulence\" - but I can say with confidence that these are the setting that one needs to create a ton of effects with as little parameters as possible.\r\n\r\nI thought about throwing out \"color\", but I really found it super useful a lot of times.\r\n\r\nThe updated PR also includes new shader code to correctly calculate the noise - this really nice code snippet is by Isaac Cohen and he gave the friendly permission to use it in the engine. So license wise, this PR is all good.",
+        "timestamp": "2022-04-05T12:01:59Z"
+      },
+      {
+        "author": "mhilbrunner",
+        "role": "MEMBER",
+        "body": "We reviewed this in today's PR review meeting and as can be seen decided we need @QbieShay and @clayjohn to give this a deeper look - it looks good.\r\n\r\nI just wanted to comment and thank you for all this work and for updating and improving it with your real life use cases. :)",
+        "timestamp": "2022-04-05T12:15:02Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "It looks like there is something fishy going on with scale: scale seems to have the 0 around 9-10? may depend on contrast value too.\r\nI have tested with a scene that displays a vector field for particles\r\n![Screenshot from 2022-04-11 12-08-15](https://user-images.githubusercontent.com/7917475/162717468-ef8a9c88-e9ae-44f8-8e4a-e029cd4be97b.png)\r\nYou can download the test scene:\r\n[testturbulence.zip](https://github.com/godotengine/godot/files/8463092/testturbulence.zip)\r\n\r\n\r\n\r\nScale 5\r\n![Screenshot from 2022-04-11 12-04-28](https://user-images.githubusercontent.com/7917475/162717612-a218f9f4-bdc7-43eb-b656-f5d9b61b6b62.png)\r\n\r\nScale 15\r\n![Screenshot from 2022-04-11 12-04-35](https://user-images.githubusercontent.com/7917475/162717656-1ebf2f30-1b15-422f-925c-69de623bfc82.png)\r\n\r\n\r\nScale 8.9 \r\n![Screenshot from 2022-04-11 12-04-41](https://user-images.githubusercontent.com/7917475/162717707-74133a8b-acf7-4c02-b85f-f4f4bfbe5827.png)",
+        "timestamp": "2022-04-11T10:11:41Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "The contrast parameter seems to also influence the velocity inflluence, this should probably be addressed,\r\n\r\nAlso, orient on y velocity doesn't work with turbulence. This is something that can be addressed in a later PR, because i think the way the velocity orientation is done is not beneficial for anything that affects only position.\r\n\r\nI think we should save the position at the beginning of the frame in a variable, and at the end calculate the orientation based on the delta position rather than the velocity vector specifically.",
+        "timestamp": "2022-04-11T10:13:20Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks a lot for the feedback here and on Discord - super helpful!\r\nAlso, this kind of visualisation is extremely smart and great for debugging the shader.\r\nI already fixed most of the issues in the shader - and yes, orientation is problematic.\r\n\r\nAnd I also think it should be handled in a separate PR as it influences other things too and not just Turbulence.\r\n\r\nAlthough, eventually it makes sense to save the \"translation\" in a variable and apply it to the velocity on the next frame - but I am not quite sure about that.",
+        "timestamp": "2022-04-11T12:12:40Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "We did some more tests with @RPicster, here's some results:\r\n\r\nhttps://user-images.githubusercontent.com/7917475/162754614-34191a6a-41b5-4fb7-b83d-72abf8055cfb.mp4\r\n\r\n\r\nhttps://user-images.githubusercontent.com/7917475/162754622-36b418ce-ee1a-41b4-ab6d-b824f67b9fe8.mp4\r\n\r\n\r\nhttps://user-images.githubusercontent.com/7917475/162754632-634a2762-ab0d-42c2-9216-26481657677e.mp4\r\n\r\n\r\n",
+        "timestamp": "2022-04-11T13:53:33Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Small wishlist addition: expose noise seed to material",
+        "timestamp": "2022-04-11T14:00:21Z"
+      },
+      {
+        "author": "golddotasksquestions",
+        "role": "NONE",
+        "body": "I think this PR is nothing short but a game changer for the visual fidelity of future Godot games. Especially in combination with the already implemented particle collision.\r\n\r\nBesides being a great game, Beat Invaders is a fantastic proof of concept for the countless ways you _can_ and _should_ add turbulence particles to visual effects. It's everywhere and it should be everywhere! Particle turbulence plays a major role why (for me at least) Beat Invaders looks current-gen, compared to so many other released Godot games.\r\n\r\nUsing some more sliders in the Particles Material is infinitely more simple and approachable than learning how shaders work. Visual Shaders are a huge step up in the difficulty curve here for new developers, compared to particles material sliders.\r\n\r\nI really hope this PR gets merged soon so a broader group of people can test if out in the Godot4 Alpha builds!\r\n\r\n",
+        "timestamp": "2022-05-03T11:54:06Z"
+      },
+      {
+        "author": "kongxin-zhu",
+        "role": "NONE",
+        "body": "I really like and look forward to this feature, it's so powerful, what fun and meaningful things can be made! So much so that I check every few days to see if it's been merged, like I'm expecting an alpha update.",
+        "timestamp": "2022-05-04T01:31:52Z"
+      },
+      {
+        "author": "spiderbyte87",
+        "role": "NONE",
+        "body": "I know this adds zero real value to the conversation, but I just want to say this PR is a MASSIVE step forward, for my game specifically and for the engine in general.\r\n\r\nI'm excited to see this getting the attention it deserves!!\r\n\r\nI'm excited for this to say the least.",
+        "timestamp": "2022-05-10T18:51:11Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Today we had a chat with @RPicster and the conclusion is:\r\n\r\nRework this PR to use velocity alignment, remove position influence (has problems with align to velocity and interpolation)\r\n\r\nFinal parameters expected on the particle material:\r\n- turbulence noise contrast (f)\r\n- turbulence noise scale (f)\r\n- turbulence velocity influence min (f)\r\n- turbulence velocity influence max (f)\r\n- turbulence noise speed (v3)\r\n\r\nFuture expansions:\r\n- add turbulence to the start position (noncontroversial, can PR)\r\n- visual shader node for turbulence ( needs proposal )\r\n- supplying your own 3D texture for noise ( needs proposal ), possible integration with vector fields generated in blender, or even tools for generating vector fields from particle attractors.",
+        "timestamp": "2022-06-28T10:29:44Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Alright! Finally I continued on this. First of all, the PR was also rebased to a much more recent state.\r\nThanks again to @QbieShay for:\r\n*a) kicking my ass\r\nb) helping a ton with the PR itself.*\r\n\r\nAs @QbieShay already posted, we agreed one those parameters - the other parameters were axed.\r\nWe just forgot one parameter that I left in this PR that is actually really important: **turbulence influence over lifetime**.\r\n\r\nAnother parameter that is still in there, but was changed is turbulence mode - now there are only two modes, enabled and disabled. One could argue about this, but the turbulence functionality adds a lot of code to the shader. I wanted to avoid that if it is not neccessary, so I left this in.\r\n\r\nSo, in this state the **position influence** was completely removed from the code and thus, the PR works perfectly fine with **particle interpolation**. It now works entirely with manipulating the particles velocity instead of also manipulating the transform.\r\n\r\nThe shader code had small but significant changes in how the turbulence is applied to the velocity which results in a much more predictable (and better) behaviour.\r\n\r\n**These are the parameters now:**\r\n![image](https://user-images.githubusercontent.com/9423774/176923522-3e06944b-e57a-4679-b6ba-54f11db49ff7.png)\r\n\r\n\r\nAnd of course, as it is a very \"visual\" PR, some more experiments of this iteration:\r\n\r\nhttps://user-images.githubusercontent.com/9423774/176923572-e9db034d-c208-4916-8213-f0b0b4431cca.mp4\r\n\r\n\r\nhttps://user-images.githubusercontent.com/9423774/176923583-486be936-36ea-46fb-8117-79fa6a33095a.mp4\r\n\r\n\r\n",
+        "timestamp": "2022-07-01T15:24:34Z"
+      },
+      {
+        "author": "golddotasksquestions",
+        "role": "NONE",
+        "body": "Awesome, I can't wait to play around with this! ❤️\r\n\r\nWhy was the `Color Ramp` axed? Now we on only seem to have the option is to change color over lifetime (using the existing Color setting of the ParticleMaterial), but not use the turbulence noise any more for color.\r\n\r\nI imagined the Color Ramp over turbulence to be very useful. For example to make particles glow more intensively with a stronger color as they twirl around faster or in tighter corners due to the turbulence noise map.\r\n\r\nThe previous \r\n\r\n> \r\n> Position Influence : How much the turbulence influences each particles position (translation)\r\n> Velocity Influence : How much the turbulence influences each particles velocity\r\n\r\nAlso seemed to me a lot more clear and descriptive compared to the \"Influence min\" and \"Influence max\". Is this just a name change, or did the code for these change as well? If so how is the Infulence min/max now different?",
+        "timestamp": "2022-07-02T16:43:36Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> Awesome, I can't wait to play around with this! ❤️\r\n> \r\n> Why was the `Color Ramp` axed? Now we on only seem to have the option is to change color over lifetime (using the existing Color setting of the ParticleMaterial), but not use the turbulence noise any more for color.\r\n> \r\n> I imagined the Color Ramp over turbulence to be very useful. For example to make particles glow more intensively with a stronger color as they twirl around faster or in tighter corners due to the turbulence noise map.\r\n> \r\n> The previous\r\n> \r\n> > Position Influence : How much the turbulence influences each particles position (translation)\r\n> > Velocity Influence : How much the turbulence influences each particles velocity\r\n> \r\n> Also seemed to me a lot more clear and descriptive compared to the \"Influence min\" and \"Influence max\". Is this just a name change, or did the code for these change as well? If so how is the Infulence min/max now different?\r\n\r\nThe color option was removed because the Godot team overall wanted less parameters and in practical application, the color option was a lot less useful than it seemed on paper. I did a lot of experiments and the turbulence influenced color was almost never something that \"made or break\" the whole particle system.\r\n\r\nIn the long term, such things should be possible via Particle Nodes / Visual Shaders and in short term, if it's something that is absolutely neccessary for an individual particle system, you can always convert to shader and adjust it to your needs.\r\n\r\nThe naming on Position/Velocity influence was changed because there is now only on parameter that influences tha particle.\r\nPosition was just not a good solution, it was axed for a good reason and the rename was done to just have it more straight forward. There is only one particle that controls how the turbulence influences the particle - might as well call it `Influence`.\r\n\r\n",
+        "timestamp": "2022-07-02T18:12:42Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "While working on the PR, I had two more thoughts.\r\n1) After renaming \"constrast\" to \"strength\", I'm also thinking about renaming \"scale\" to \"frequency\". It's the terms Unity uses which could lead to a easier understanding of the parameters for users coming from Unity. Using frequency instead of scale would \"invert\" the current way how the scale value works (small value = big patterns, big value = small patterns.\r\n\r\n2) @QbieShay mentioned \"add turbulence to the start position (noncontroversial, can PR)\" as one of the upcoming feature extensions for the Turbulence. It's really just 5 lines of extra shader code and two parameters ( not sure about the name though) to add it directly from the start. I tested it when playing around and it really does add a lot of extra value.\r\nShould I bring this back to the PR?\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178119435-abb80d0d-d7a9-40e3-8746-82ad2fc314a6.mp4\r\n\r\n(Video of an example \"spawn position influence\")\r\n",
+        "timestamp": "2022-07-09T19:04:27Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "spawn positions noise: ok for me, as long as we can quickly agree on names (merging fast for me is more important than spawn noise)\r\nfrequency vs scale: I'm fought with this one because if on one side i think there's value in using the same name as unity, i find scale more intuitive. Plus, i think there is a double-inversion needed and when you divide variables things behave nonlinearly. So I think scale is better..\r\n\r\nFor spawn position noise: can you control the length of the displacement? in that case i'd call it displacement size (min/max?)",
+        "timestamp": "2022-07-09T19:16:50Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Alright, another Update to the PR.\r\n**Changes from the last version:**\r\n- Style nitpicks and suggestions by clayjohn fixed/implemented.\r\n- Some more smaller things fixed that I found while working on it (unnesseccary casts, unused vars).\r\n- Added \"initial displacement\" (min + max) which I found extremely useful to build nice effects (a lot of things are not possible without this, that is why I wanted to add it right away).\r\n- Renamed \"contrast\" to \"strength). By the way, here is a small image showing what \"strenght\" is doing exactly:\r\n![image](https://user-images.githubusercontent.com/9423774/178155457-6f706c05-8c83-4097-a0c4-243b46d0131e.png)\r\n- Scale is now calculated in c++ and send directly to the shader.\r\n- I removed `VELOCITY.z = 0.0;` in 2D mode as it greatly interferes with the turbulence and from my understanding makes no difference when also setting `TRANSFORM[3].xyz = vec3(0);`. Is there any good reason I don't understand?\r\n\r\n\r\nI also looked into the suggested hashing function. While it looked great on a first look,\r\nI noticed that it has a lot of problems when \"zoomed in\".\r\n\r\nFor a pure white noise, when coordinates are in the thousands, the suggested hashing function are better, but for this practical use case, the function that I use right now works perfectly fine. The problem that patterns emerge is one that is a) probably never going to happen anyway in a particle system and b) even if it happens, it's very unlikely that it is visible as in a pure render of the noise.\r\n\r\n**Original hash function:**\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178155685-c676d75a-5e40-4b3d-a18f-f6f4d4e8041e.mp4\r\n\r\n\r\n**Suggested hash function (Hash33 by David Hoskins)**\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178155690-68676bab-9f66-477f-8ab4-b97caa865863.mp4\r\n\r\n\r\nAnd by the way... even this crazy jumping and stuttering is not very obvious when used inside a particle system as the velocity is usually not changing that drastically from one frame to another.\r\n\r\n\r\nAnd... as always... some eye candy 🥳\r\n\r\n## Example with rotation aligned with velocity (watch out, there is a discord sound in there 😵)\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178155790-4f1a67db-8961-4bfe-a71f-3ef065a51b8b.mp4\r\n\r\nIn this example it's especially interesting to closely observe the movement of the capsules as it used the hash33 by david hoshkins. If observing closely it is sometimes possible to spot erratic movements of the particles..... Still looks very cool 😁\r\n\r\n\r\n## An example why the `initial displacement` is so important.\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178155880-92a2cee4-e2a7-4cb0-996a-afc5c79d710f.mp4\r\n\r\n\r\n## Another generic example making use of all new turbulence settings.\r\n\r\nhttps://user-images.githubusercontent.com/9423774/178165202-50927c85-c938-43bd-a36a-b40d5fecbf0d.mp4\r\n\r\n\r\n",
+        "timestamp": "2022-07-10T22:56:27Z"
+      },
+      {
+        "author": "golddotasksquestions",
+        "role": "NONE",
+        "body": "> Renamed \"contrast\" to \"strength). By the way, here is a small image showing what \"strenght\" is doing exactly:\r\n> https://user-images.githubusercontent.com/9423774/178155457-6f706c05-8c83-4097-a0c4-243b46d0131e.png\r\n\r\nBy the looks of it, I find \"contrast\" to be much more accurate and more descriptive name for a setting of what is shown here.\r\nA \"contrast\" setting may have a slider or value to set the strength of that contrast. But just calling it \"strength\" does not really say much of what it does. Strength of what?",
+        "timestamp": "2022-07-11T21:20:59Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> > Renamed \"contrast\" to \"strength). By the way, here is a small image showing what \"strenght\" is doing exactly:\r\n> > https://user-images.githubusercontent.com/9423774/178155457-6f706c05-8c83-4097-a0c4-243b46d0131e.png\r\n> \r\n> By the looks of it, I find \"contrast\" to be much more accurate and more descriptive name for a setting of what is shown here. A \"contrast\" setting may have a slider or value to set the strength of that contrast. But just calling it \"strength\" does not really say much of what it does. Strength of what?\r\n\r\nThe property is named `noise strength` in the inspector. Not just strength.\r\n\r\nI find it pretty descriptive, even though I agree that technically, contrast is more correct.",
+        "timestamp": "2022-07-11T21:28:14Z"
+      },
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "Removed the PR meeting label because it basically needs a review from @clayjohn specifically. Great work, btw <3",
+        "timestamp": "2022-07-12T13:33:23Z"
+      },
+      {
+        "author": "Norrox",
+        "role": "CONTRIBUTOR",
+        "body": "> Removed the PR meeting label because it basically needs a review from @clayjohn specifically. Great work, btw <3\r\n\r\nLets hope we can have this merged before the feature freeze 💯 \r\nThanks @RPicster ",
+        "timestamp": "2022-07-12T23:36:23Z"
+      },
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "> Lets hope we can have this merged before the feature freeze 💯\r\n\r\nFeature freeze is irrelevant for the ongoing PRs, don't worry.",
+        "timestamp": "2022-07-13T00:34:35Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Hello @RPicster ,\r\n\r\nThere seems to be a bug where activating turbulence dampens the speed of the particles",
+        "timestamp": "2022-07-26T19:40:14Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the feedback @clayjohn and @QbieShay ! I'll take care asap.\r\n\r\nAbout the hash function: I won't implement the function you suggested earlier due to multiple reasons.\r\n[You can read about the details here.](https://github.com/godotengine/godot/pull/55387#issuecomment-1179816246)",
+        "timestamp": "2022-07-27T08:28:12Z"
+      },
+      {
+        "author": "clayjohn",
+        "role": "MEMBER",
+        "body": "> Thanks for the feedback @clayjohn and @QbieShay ! I'll take care asap.\r\n> \r\n> About the hash function: I won't implement the function you suggested earlier due to multiple reasons. [You can read about the details here.](https://github.com/godotengine/godot/pull/55387#issuecomment-1179816246)\r\n\r\nThanks for pointing me there, somehow I missed that comment! I'll try to reproduce the issue myself locally. There is no reason why the proposed hash function should behave like in the video, it looks like it might be a mistake in the expected range or something. \r\n\r\n_Edit:_ When you tried out the \"Hash33\" implementation I sent, did you edit it to return in the range -1 to 1, or did you leave it as is?\r\n\r\nFor reference, this is the code I posted:\r\n```\r\nvec3 hash33(vec3 p3) {\r\n    p3 = fract(p3 * vec3(.1031, .1030, .0973));\r\n    p3 += dot(p3, p3.yxz+33.33);\r\n    return fract((p3.xxy + p3.yxx)*p3.zyx);\r\n}\r\n```\r\nBut to use it in the noise function you have it should be modified to return -1 to 1 like so:\r\n```\r\nvec3 hash33(vec3 p3) {\r\n    p3 = fract(p3 * vec3(.1031, .1030, .0973));\r\n    p3 += dot(p3, p3.yxz+33.33);\r\n    return 2.0 * fract((p3.xxy + p3.yxx)*p3.zyx) - 1.0;\r\n}\r\n```\r\nIf you used the first snippet, it would explain the artifacts you got. ",
+        "timestamp": "2022-07-27T23:14:49Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> Thanks for pointing me there, somehow I missed that comment! I'll try to reproduce the issue myself locally. There is no reason why the proposed hash function should behave like in the video, it looks like it might be a mistake in the expected range or something.\r\n> \r\n> _Edit:_ When you tried out the \"Hash33\" implementation I sent, did you edit it to return in the range -1 to 1, or did you leave it as is?\r\n> \r\n> For reference, this is the code I posted:\r\n> \r\n> ```\r\n> vec3 hash33(vec3 p3) {\r\n>     p3 = fract(p3 * vec3(.1031, .1030, .0973));\r\n>     p3 += dot(p3, p3.yxz+33.33);\r\n>     return fract((p3.xxy + p3.yxx)*p3.zyx);\r\n> }\r\n> ```\r\n> \r\n> But to use it in the noise function you have it should be modified to return -1 to 1 like so:\r\n> \r\n> ```\r\n> vec3 hash33(vec3 p3) {\r\n>     p3 = fract(p3 * vec3(.1031, .1030, .0973));\r\n>     p3 += dot(p3, p3.yxz+33.33);\r\n>     return 2.0 * fract((p3.xxy + p3.yxx)*p3.zyx) - 1.0;\r\n> }\r\n> ```\r\n> \r\n> If you used the first snippet, it would explain the artifacts you got.\r\n\r\nThe hash function you posted is not behaving nicely in this practical application. When used to create noise with a very high frequency, it produces the better and more even noise - that is correct.\r\n\r\nBut in this application where the noise patterns will be visible and aren't as high frequency, it produces artifacts - even with the version ranging from -1 to 1.\r\n\r\nHere are example videos visualising the problems and artifacts.\r\n\r\nI just see no **real, practical** benefit from changing the original hash function.\r\nIf you point me to a _working_ alternative and a real world example where the original hash function produces real problems, I am happy to switch it out. (maybe the license would play another role. The original function just has a \"add me to the shader code and everything is fine\" while a MIT license would require equal treatment to FreeType, mbed TLS, etc.)\r\n\r\nhttps://user-images.githubusercontent.com/9423774/181462240-027fc264-1187-4bb6-ae07-e40e1c2957a8.mp4\r\n\r\nIn the following video the problems are very visible.\r\n\r\nhttps://user-images.githubusercontent.com/9423774/181463397-0c1455fc-b9fd-4980-9603-fa7fe962b73d.mp4\r\n\r\n\r\n",
+        "timestamp": "2022-07-28T08:46:56Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> Hello @RPicster ,\r\n> \r\n> There seems to be a bug where activating turbulence dampens the speed of the particles\r\n\r\nI looked into it and I also noticed the behaviour that you are describing as damping.\r\n\r\nI was very confused at first and checked the shader code... but if you think about it, it actually makes sense.\r\nIf you have a initial velocity and this velocity is modified by the turbulence, then of course the initial velocity is modified and due to the nature of the turbulence it can even be completely \"negated\" or even point into another direction.\r\n\r\nI added a bit of code to compensate for it a bit... but I won't be able to \"negate\" it... as it would also make no sense from my understanding.\r\n\r\nAt least this was my conclusion... if you add some linear acceleration it behaves very differently.\r\nIf you think my conclusion is wrong or that we need to do changes... I'm totally open for it 😁\r\n\r\nPlease also check it again as I said: I changed some shader code and it could also have been another bug I found with the noise scale.",
+        "timestamp": "2022-07-28T08:55:21Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @RPicster , I don't know why it doesn't show in this page but I think that it would be enough to normalize the resulting normal vector of the velocity (I commented on the code)",
+        "timestamp": "2022-07-28T10:03:56Z"
+      },
+      {
+        "author": "clayjohn",
+        "role": "MEMBER",
+        "body": "> I just see no real, practical benefit from changing the original hash function.\r\nIf you point me to a working alternative and a real world example where the original hash function produces real problems, I am happy to switch it out. (maybe the license would play another role. The original function just has a \"add me to the shader code and everything is fine\" while a MIT license would require equal treatment to FreeType, mbed TLS, etc.)\r\n\r\nThe current noise breaks down if positions are greater than ~100 units. So a particle system located 100 units away from the origin would start to show issues and one that is located 1000s of units away from origin will really start to break down. \r\n\r\nThat being said, I can't figure out why Hash33 is causing problems in your case. It should be ideal for this situation and in my testing it is working fine. Unfortunately I won't have time anytime soon to really dig into this.\r\n\r\nSince you have tested very thoroughly and haven't run into any issues, I am fine merging with the hash function you have now. If the issues I anticipate arise we can easily switch out the hash function later. ",
+        "timestamp": "2022-07-28T16:19:12Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "After testing it turns out that noise and turbulence actually looks better if particles lose velocity when changing directions harshly.\r\nHere's video comparison\r\nhttps://gfycat.com/fittingfakeamericanrobin\r\n\r\nrightmost is with \"dampened\" turbulence, left is my own \"fix.",
+        "timestamp": "2022-07-28T16:35:07Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> The current noise breaks down if positions are greater than ~100 units. So a particle system located 100 units away from the origin would start to show issues and one that is located 1000s of units away from origin will really start to break down.\r\n> \r\n> That being said, I can't figure out why Hash33 is causing problems in your case. It should be ideal for this situation and in my testing it is working fine. Unfortunately I won't have time anytime soon to really dig into this.\r\n> \r\n> Since you have tested very thoroughly and haven't run into any issues, I am fine merging with the hash function you have now. If the issues I anticipate arise we can easily switch out the hash function later.\r\n\r\nI tested this again as it did keep me up at night... 🤯\r\nI could not observe any break down or changes in the turbulence at positions or 100/1.000/10.000/100.000 (xyz) of the emitter (of course with `local_coords=false`, otherwise the transform used by the hash function would always be small).\r\n\r\nSo... I think in a practical application it still works with the slightly not-perfect noise.\r\nMy suggestion would be to merge and see if real problems come up in applications - and if they do, we can still change the hash function and invest more time into researching why the suggested hash33 is causing those artifacts.",
+        "timestamp": "2022-07-29T08:05:22Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "@clayjohn @RPicster what's your hardware specs? graphic cards?",
+        "timestamp": "2022-07-29T13:54:38Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> @clayjohn @RPicster what's your hardware specs? graphic cards?\r\n\r\nI'm on a NVidia RTX 2080.\r\nIf you ask for performance reasons, I've been using more or less the same code in Beat Invaders which runs pretty solid, even on the Steam Deck ✌",
+        "timestamp": "2022-07-29T14:43:52Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "@RPicster nono, i was asking because you said there are discrepancies between your results and clay's. Perhaps it's a driver issue",
+        "timestamp": "2022-07-29T15:34:05Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "> @RPicster nono, i was asking because you said there are discrepancies between your results and clay's. Perhaps it's a driver issue\r\n\r\nTo be sure that we test the same way, we would need the same test first.",
+        "timestamp": "2022-07-29T20:07:07Z"
+      },
+      {
+        "author": "reduz",
+        "role": "MEMBER",
+        "body": "Code looks good on my side, so if @QbieShay gives it the go, it should be fine.",
+        "timestamp": "2022-07-31T12:46:07Z"
+      },
+      {
+        "author": "QbieShay",
+        "role": "CONTRIBUTOR",
+        "body": "go gogogoogogogogoogo",
+        "timestamp": "2022-07-31T13:34:56Z"
+      },
+      {
+        "author": "akien-mga",
+        "role": "MEMBER",
+        "body": "Thanks! Amazing work :)",
+        "timestamp": "2022-08-01T07:39:06Z"
+      },
+      {
+        "author": "RPicster",
+        "role": "CONTRIBUTOR",
+        "body": "Now... The question of questions. Should I backport thisto 3.x? It's not too much work.",
+        "timestamp": "2022-08-05T06:38:34Z"
+      },
+      {
+        "author": "kleonc",
+        "role": "MEMBER",
+        "body": "> Now... The question of questions. Should I backport thisto 3.x? It's not too much work.\r\n\r\nI think there's no \"you should\". But if you can/want I think there's nothing against it. This PR looks like a pure enhacement. I don't see any breaking changes or usage of some new features not available in 3.x. So I'd say just give it a go.\r\n\r\nAlso, don't you know the new motto? :smile:  \r\n\r\n![j97awYgaCV](https://user-images.githubusercontent.com/9283098/184552368-4fb92df4-c4fe-4104-9dcf-9ee44051eed2.png)",
+        "timestamp": "2022-08-14T20:05:39Z"
+      },
+      {
+        "author": "Calinou",
+        "role": "MEMBER",
+        "body": "I think this is worth backporting for 3.6 :slightly_smiling_face: ",
+        "timestamp": "2022-08-14T21:38:54Z"
+      },
+      {
+        "author": "KdotJPG",
+        "role": "CONTRIBUTOR",
+        "body": "Just seeing this now. Great idea and great work! It does seem like it could be done with significantly fewer noise calls, though. Right now it's using 12 (or 18 if the compiler doesn't optimize away the unused ones) plus one for time.\r\n\r\nJust two 4D simplex noise evaluations with gradient / partial derivative vector support ([this](https://github.com/ashima/webgl-noise/blob/master/src/noise4D.glsl) with the output vector feature from [this](https://github.com/ashima/webgl-noise/blob/master/src/noise3Dgrad.glsl)) should do the trick:\r\n```\r\nvec3 curl_3d(vec3 p, float time) {\r\n    vec4 gradA, gradB;\r\n    snoise(vec4(p, time), out gradA);\r\n    snoise(vec4(p, time) + SOME_OFFSET, out gradB);\r\n    return normalize(cross(gradA.xyz, gradB.xyz));\r\n}\r\n```\r\n\r\nThis would also reduce visible directional bias, because it's using more isotropic noise through a more isotropic formula.\r\n\r\nI'm currently working on a proof-of-concept for this, and perhaps making a follow-up PR. If such an update does get merged, I think it would be good to do so before including a backport in a 3.X release, so that there isn't a change in patterns in the official versions.",
+        "timestamp": "2022-08-15T23:11:39Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "9137ba7",
+        "message": "Turbulence Noise for Particle Material",
+        "author": "Raffaele Picca",
+        "timestamp": "2021-11-26T14:18:46Z"
+      }
+    ]
+  },
+  {
+    "story_id": "godotengine/godot#72680",
+    "metadata": {
+      "title": "Improvements to SplitContainer including a drag bar background StyleBox",
+      "labels": [
+        "enhancement",
+        "feature proposal",
+        "topic:gui"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-09-17T19:06:58Z",
+      "reviewers": [
+        "Koyper",
+        "AThousandShips",
+        "KoBeWi",
+        "kitbdev"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "Improves `SplitContainer` in a number of ways making it much easier to script, and tidies up the code as follows:\r\n\r\n- A new `split_bar_background` `StyleBox` allows solid color, gradients or textures to fill in the split bar behind or in place of the grabber icon.\r\n- An essential new property `drag_area_scrollbar_offset` is required if one of the child controls has a scrollbar or other selectable control up against the split bar, in order to prevent the drag area from blocking mouse selection of the scroll bar or control.\r\n- New signals `drag_started` and `drag_released` make it easier to script saving and restoring the `split_offset`\r\n- A new property `dragging_enabled` separates dragging from `dragger_visibility` so the appearance of the drag bar is independent from whether dragging is enabled or not.\r\n- A new method `get_drag_area_control` returns the `Control` so buttons or any other type of `Control` can ride along with the split bar (see demo video below).\r\n- New properties `drag_area_margin_begin` and `drag_area_margin_end` allow for scripting the long-axis size of the drag area and background, which makes some nice uses like drawers simple to script (see video below).\r\n- A new `drag_area_highlight_in_editor` property allows you to see the drag area during development.\r\n\r\n<del>- A new virtual method `_splits_ready()` with a corresponding signal so a script knows when the split container children have been resized after the initial sort. This was a big problem because formerly, `SplitContainer._ready()` was called before the children had been fit to the container, and there was no easy way to get that information.</del>\r\n\r\nThis PR also fixes this issue and adds the theme fix: https://github.com/godotengine/godot/pull/71862  and https://github.com/godotengine/godot/issues/71861\r\n\r\nAdds this enhancement https://github.com/godotengine/godot/issues/61534\r\n\r\nhttps://user-images.githubusercontent.com/33969780/216680051-759ef971-ccf9-4601-a3d6-096fac0a4939.mov\r\n\r\nThis is all the GDScript neccessary for the buttons:\r\n```\r\nfunc _ready():\r\n\tvar button := $Button\r\n\tvar button_right := $ButtonRight\r\n\tremove_child(button)\r\n\tremove_child(button_right)\r\n\thsplit.get_drag_area_control().add_child(button)\r\n\thsplit.get_drag_area_control().add_child(button_right)\r\n\tbutton.position.y = -150 \r\n\tbutton_right.position.y = -50\r\n```\r\nhttps://user-images.githubusercontent.com/33969780/216681485-67b85ff1-5e9f-4876-816f-30a5ecb51ba8.mov\r\n\r\n\r\nhttps://user-images.githubusercontent.com/33969780/216682037-9279d71b-3014-4049-a2cc-19ae316425ae.mov\r\n\r\nHere's the editor with the drag areas visible:\r\n\r\nhttps://user-images.githubusercontent.com/33969780/216685254-c85713c1-e70b-4a71-8698-8932742ba855.mov\r\n\r\n_Production edit:_ Closes https://github.com/godotengine/godot/issues/61534, closes https://github.com/godotengine/godot-proposals/issues/6230 and closes https://github.com/godotengine/godot-proposals/issues/6231."
+    },
+    "discussion_timeline": [
+      {
+        "author": "YuriSizov",
+        "role": "CONTRIBUTOR",
+        "body": "That's a lot. It needs a proposal, or several, to explain various enhancements. Probably better done as several PRs too, but that would be more obvious after the proposals.",
+        "timestamp": "2023-02-03T20:13:23Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "Okay. I’ll put the proposal together and follow up as necessary.\n\n> On Feb 3, 2023, at 2:13 PM, Yuri Sizov ***@***.***> wrote:\n> \n> \n> That's a lot. It needs a proposal, or several, to explain various enhancements. Probably better done as several PRs too, but that would be more obvious after the proposals.\n> \n> —\n> Reply to this email directly, view it on GitHub <https://github.com/godotengine/godot/pull/72680#issuecomment-1416353927>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AIDFM5F5VVVVTRXIMFRQZWDWVVRG7ANCNFSM6AAAAAAUQR3F4M>.\n> You are receiving this because you authored the thread.\n> \n\n",
+        "timestamp": "2023-02-03T20:24:47Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "Needs rebase.\r\n\r\n> A new virtual method _splits_ready() with a corresponding signal so a script knows when the split container children have been resized after the initial sort.\r\n\r\nYou can also connect `sort_children` with CONNECT_DEFERRED and CONNECT_ONE_SHOT for the same result I think. Or `ready` with CONNECT_DEFERRED.",
+        "timestamp": "2023-05-23T22:24:59Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> You can also connect `sort_children` with CONNECT_DEFERRED and CONNECT_ONE_SHOT for the same result I think. Or `ready` with CONNECT_DEFERRED.\r\n\r\nI just tried these, and `sort_children` emits too early, but `ready` with CONNECT_DEFERRED seems to work. The problem I was trying to solve invloves child `Controls` that are expensive to fit, which unpredictably cause `SplitContainer` `_ready()' to be called too early.\r\n\r\nIf there are still issues with the `ready` approach I will eventually know about it, so I could remove the proposed `_splits_ready()` and accompanying signal from the PR and put a new PR together later if an ugly head arises?",
+        "timestamp": "2023-05-24T13:17:52Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "> If there are still issues with the ready approach I will eventually know about it, so I could remove the proposed _splits_ready() and accompanying signal from the PR and put a new PR together later if an ugly head arises?\r\n\r\nYeah right now the signal is not needed for anything. It's also inconsistent with other containers which don't expose anything like this.",
+        "timestamp": "2023-05-24T13:23:34Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "This push included a rebase and removed the `_splits_ready()` virtual method and related signal.",
+        "timestamp": "2023-05-24T15:29:25Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "> An essential new property drag_area_scrollbar_offset is required if one of the child controls has a scrollbar or other selectable control up against the split bar, in order to prevent the drag area from blocking mouse selection of the scroll bar or control.\r\n\r\nCan you show an example when this is useful? The child nodes of SplitContainer can't be shrunk past their minimum size, so it's impossible to overlap scrollbars and drag area.\r\n\r\n> New signals drag_started and drag_released make it easier to script saving and restoring the split_offset\r\n\r\nIsn't `dragged` signal enough?\r\n\r\n> New properties drag_area_margin_begin and drag_area_margin_end allow for scripting the long-axis size of the drag area and background, which makes some nice uses like drawers simple to script (see video below).\r\n\r\nWhich video?\r\n\r\n> A new drag_area_show_drag_area property allows you to see the drag area during development.\r\n\r\nShouldn't this be editor-only? Also the double `drag_area` in name is awkward.",
+        "timestamp": "2023-05-24T21:21:42Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "Disabling `dragging_enabled` makes the split area frozen:\r\n\r\nhttps://github.com/godotengine/godot/assets/2223172/27125b3e-7aaf-49f8-ba9b-cdccba483227\r\n\r\nAt runtime it's at wrong position, different than in the editor.\r\n",
+        "timestamp": "2023-05-24T21:27:23Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Can you show an example when this is useful? The child nodes of SplitContainer can't be shrunk past their minimum size, so it's impossible to overlap scrollbars and drag area.\r\n\r\nHere's an exaggerated example with a `minimum_grab_thickness` of 50px and a separation of 1 with the grabber hidden. The first one has `drag_area_scrollbar_offset` set to `0`. The drag area is covering the `TextEdit` scrollbar so you can't interact with it using the mouse. A typical desired grab thickness is around 13px, whereas a dragger is often around 7px, so it gets covered.\r\n\r\nThe second video has `drag_area_scrollbar_offset` set to 25px, which shifts the drag area off the scroll bar. This is of course exaggerated and with a grab thickness of 13px, a shift of 5px works well to give both an easy-to-grab area, and access to the scrollbar.\r\n\r\nThe greenish areas are from turning on `show_drag_area`.\r\n\r\nhttps://github.com/godotengine/godot/assets/33969780/84f9d350-af5c-460d-967e-1cb12803fcc0\r\n\r\nhttps://github.com/godotengine/godot/assets/33969780/dc47f51a-fd9f-47db-a6d0-1fbdb9d36b1d\r\n\r\n\r\n\r\n\r\n\r\n",
+        "timestamp": "2023-05-24T22:15:36Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "Hmm I suppose it makes sense 🤔\r\nBut are the exaggerated examples supported by some real use-cases?",
+        "timestamp": "2023-05-24T22:19:37Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Isn't `dragged` signal enough?\r\n\r\n`dragged` emits the offset `int` continuously, so you should use de-bouncers for every `SplitContainer` you were trying to handle at release or start, which gets extremely clumsy with lots of `SplitContainers`. You could argue the start and release are convenience signals, but they are like one short line of code each and make life very much better.",
+        "timestamp": "2023-05-24T22:25:11Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> But are the exaggerated examples supported by some real use-cases?\r\n\r\nI wind up needing the shift for almost every `SplitContainer, both vertical and horizontal. I can show you the same example with the real-life sizes if you want to see that.",
+        "timestamp": "2023-05-24T22:26:53Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Which video?\r\n\r\nHere's the video. The drawer is made from three `SplitContainers`, the two horizontal ones that define the sides having their grabber area shortened using `drag_area_margin_end` to fit the middle vertical container. Very simple to script.\r\n\r\nhttps://user-images.githubusercontent.com/33969780/216682037-9279d71b-3014-4049-a2cc-19ae316425ae.mov",
+        "timestamp": "2023-05-24T22:35:50Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> But are the exaggerated examples supported by some real use-cases?\r\n\r\nHere's a typical configuration: 13px wide drag area offset by 5px. Dragger is hidden and separation is zero.\r\n\r\n\r\nhttps://github.com/godotengine/godot/assets/33969780/e8e05829-4232-4a09-821c-030cfbb3c8a9\r\n\r\n\r\n\r\n",
+        "timestamp": "2023-05-24T22:42:58Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Shouldn't this be editor-only? Also the double `drag_area` in name is awkward.\r\n\r\nYou're sure right about the awkward double `drag_area` - should it be `drag_area_show`?\r\n\r\nI think it's primarily useful for a user laying out an interface, because they don't have to attach a script to each `SplitContainer` to shade the grabber area while figuring out the best drag area width and offset.\r\n\r\nYou could argue that with `get_drag_area_control` you can easily script shading the drag area as needed, so if you advise I can remove `drag_area_show`.",
+        "timestamp": "2023-05-24T22:51:05Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "> The drawer is made from three SplitContainers, the two horizontal ones that define the sides having their grabber area shortened using drag_area_margin_end to fit the middle vertical container. Very simple to script.\r\n\r\nCould you share the scene? 👀\r\n\r\n> You could argue that with get_drag_area_control you can easily script shading the drag area as needed, so if you advise I can remove drag_area_show.\r\n\r\nNo, I mean that the drag area shouldn't draw at runtime. Unless it has use outside the editor?",
+        "timestamp": "2023-05-24T22:55:30Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> No, I mean that the drag area shouldn't draw at runtime. Unless it has use outside the editor?\r\n\r\nOh, okay. Correct, it is not indended to draw at runtime. What is the recomended test for detecting runtime, not in the editor?",
+        "timestamp": "2023-05-24T22:58:58Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "`Engine::get_singleton()->is_editor_hint()`",
+        "timestamp": "2023-05-24T23:05:28Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Could you share the scene? 👀\r\n\r\nTry this out:\r\n\r\n[pull_down_drawer_example.zip](https://github.com/godotengine/godot/files/11559827/pull_down_drawer_example.zip)\r\n",
+        "timestamp": "2023-05-24T23:12:00Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> Disabling `dragging_enabled` makes the split area frozen:\r\n\r\nI'll fix this and make the other changes...",
+        "timestamp": "2023-05-24T23:28:43Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "This push fixes the frozen split area and incorporates all the other change suggestions. It also fixes a bug where the icon was following the drag area, not the split display area, and now prevents `separation` values less than 0.\r\n\r\nThe drag area highlight color is now set to red if `dragging_enabled` is set to false, and does not draw at runtime as we discussed.\r\n\r\n\r\nhttps://github.com/godotengine/godot/assets/33969780/8ebbb796-8ebb-48a3-91e2-790af5546e80\r\n\r\n",
+        "timestamp": "2023-05-25T15:19:39Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "This push removed `DRAGGER_HIDDEN_USE_SEPARATION` and added notes to the documentation regarding the empty `ImageTexture` workaround for hairline split separations. Also a few small code tweaks and other doc improvements.\r\n\r\nThe prior push had also replaced all occurances of `get_theme_constant(SNAME(\"autohide\"))` with `theme_cache.autohide`.",
+        "timestamp": "2023-06-02T18:07:56Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> I left some comments that should be addressed, but the added functionality works fine. \r\n\r\nJust pushed the changes per your last comments - thank you for all the excellent feedback!\r\n\r\n> Approving the implementation; most of the additions don't seem to have linked proposals though.\r\n\r\nThere are two linked proposals that have all the additions and that this PR closes: [#6230](https://github.com/godotengine/godot-proposals/issues/6230) and [#6231](https://github.com/godotengine/godot-proposals/issues/6231)",
+        "timestamp": "2023-06-02T21:50:40Z"
+      },
+      {
+        "author": "Calinou",
+        "role": "MEMBER",
+        "body": "> A new virtual method _splits_ready() with a corresponding signal so a script knows when the split container children have been resized after the initial sort. This was a big problem because formerly, SplitContainer._ready() was called before the children had been fit to the container, and there was no easy way to get that information.\r\n\r\nSee also https://github.com/godotengine/godot/issues/76349#issuecomment-1576967395.",
+        "timestamp": "2023-06-05T16:58:30Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "Rebased to 4.2dev5.",
+        "timestamp": "2023-09-23T17:40:20Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "@AThousandShips I'm not familiar with the doc classes error that occured with the last push - can you advise on the correct remedy? Thanks!",
+        "timestamp": "2023-09-28T17:55:37Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "Some theme properties were recently moved from HSplitContainer and VSplitContainer to SplitContainer. You seem to have added them back. Run doctool and check if the generated XML includes all properties you have added.",
+        "timestamp": "2023-09-28T17:59:26Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "So there are conflicts to resolve even though there is no difference between the two doc files.\r\n\r\nIs there a way to simply remove those docs from the PR, or how do you resolve the conflict?",
+        "timestamp": "2023-09-28T18:42:10Z"
+      },
+      {
+        "author": "KoBeWi",
+        "role": "MEMBER",
+        "body": "If you rebase you should see an option to resolve conflicts.",
+        "timestamp": "2023-09-28T19:39:56Z"
+      },
+      {
+        "author": "MewPurPur",
+        "role": "CONTRIBUTOR",
+        "body": "I was thinking about removing the SplitContainerDragger node as a whole and having its behaviors built into the SplitContainer. This would help with performance, since the control doesn't seem to be used for spacing whatsoever, only to draw and detect mouse entering/exiting.\r\n\r\nBut with the added functionalities, I guess it makes more sense to keep it as a control. I'm saying this because once you expose API for fetching the control, it will be more-or-less impossible to do what I thought of.",
+        "timestamp": "2023-11-23T18:09:11Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "Can this be merged now into 4.3?\r\n\r\nThis PR makes the `SplitContainer` code easier to maintain and modify, and IMO should be merged prior to any of the other split container PR's, as it will simplify how those PR's can be implemented.",
+        "timestamp": "2024-04-26T13:34:24Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "@kitbdev All the changes we discussed were made - thanks for the excellent suggestions!",
+        "timestamp": "2024-04-27T14:36:15Z"
+      },
+      {
+        "author": "akien-mga",
+        "role": "MEMBER",
+        "body": "Sorry for the delay following up.\r\nWe're now in feature freeze for 4.3, so I'm moving this to the 4.4 milestone. My understanding is that it's ready to go otherwise, so we can merge early on in the 4.4 dev cycle. It will need a rebase to solve present merge conflicts.",
+        "timestamp": "2024-05-28T15:08:39Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> We're now in feature freeze for 4.3, so I'm moving this to the 4.4 milestone. My understanding is that it's ready to go otherwise, so we can merge early on in the 4.4 dev cycle. It will need a rebase to solve present merge conflicts.\r\n\r\nSounds good. I will take care of the conflicts shortly.",
+        "timestamp": "2024-05-28T15:20:57Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "In reference to #90411, there is quite a bit of overlapping effort (and similar thinking) in cleaning up `SplitContainer`, even before any additional features are implemented. Would it be easier to implement #90411 on top of this PR, since this PR addresses some more fundamental deficiencies? What is the sensible way to merge the efforts?",
+        "timestamp": "2024-09-04T22:12:10Z"
+      },
+      {
+        "author": "akien-mga",
+        "role": "MEMBER",
+        "body": "> In reference to #90411, there is quite a bit of overlapping effort (and similar thinking) in cleaning up `SplitContainer`, even before any additional features are implemented. Would it be easier to implement #90411 on top of this PR, since this PR addresses some more fundamental deficiencies? What is the sensible way to merge the efforts?\r\n\r\nCC @kitbdev ",
+        "timestamp": "2024-09-05T15:09:26Z"
+      },
+      {
+        "author": "kitbdev",
+        "role": "CONTRIBUTOR",
+        "body": "I don't think there is much overlap in cleaning up SplitContainer, besides some minor doc issues. #90411 just needs to touch a lot of things due to logic changes. Where they do clean up, they clean up different things like `_get_sortable_child` `SortableVisbilityMode`, `#include`s, or `_get_separation()`. \r\n\r\n#90411 needs some fixes to properly handle changing child visibility, so it isn't ready yet, and I don't want to hold up other PRs. \r\nI don't mind rebasing on top of this. Though I would suggest some changes like moving draw back to the dragger. ",
+        "timestamp": "2024-09-05T16:13:51Z"
+      },
+      {
+        "author": "Koyper",
+        "role": "CONTRIBUTOR",
+        "body": "> I don't think there is much overlap in cleaning up SplitContainer, besides some minor doc issues. #90411 just needs to touch a lot of things due to logic changes. Where they do clean up, they clean up different things like `_get_sortable_child` `SortableVisbilityMode`, `#include`s, or `_get_separation()`.\r\n>\r\n> #90411 needs some fixes to properly handle changing child visibility, so it isn't ready yet, and I don't want to hold up other PRs. I don't mind rebasing on top of this. Though I would suggest some changes like moving draw back to the dragger.\r\n\r\nThanks for offering to rebase on top of this. I did put the draw back into the dragger, and I see now why it needs to be there so you can have multiple dragger instances with more than two children. Each dragger now also saves its stylebox `Rect2`, so you should be able to keep an array of draggers and have them all update correctly. I believe the `SortableVisbilityMode` is also now there per a prior PR that hadn't yet been rebased here. Thanks for your comments, and I look forward to the multi-child improvements!",
+        "timestamp": "2024-09-06T00:56:53Z"
+      },
+      {
+        "author": "akien-mga",
+        "role": "MEMBER",
+        "body": "Thanks!",
+        "timestamp": "2024-09-17T19:07:09Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f7005de",
+        "message": "Improvements to SplitContainer including a drag bar background StyleBox.",
+        "author": "Koyper",
+        "timestamp": "2023-02-03T17:14:22Z"
+      }
+    ]
+  }
+]

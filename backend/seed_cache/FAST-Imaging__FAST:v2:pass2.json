@@ -1,0 +1,231 @@
+[
+  {
+    "story_id": "FAST-Imaging/FAST#142",
+    "metadata": {
+      "title": "Bug fix regarding import/export not being executed",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-03-08T15:19:19Z",
+      "reviewers": [
+        "smistad",
+        "andreped"
+      ],
+      "changed_files": 26
+    },
+    "issue_payload": {
+      "body": "1. Added fix to ensure that import/export of low and high-res images are being properly exported in C++.\r\n2. Added small fix for RGB/BGR switch in ImageExporter.\r\n**3. Added option to set attributes through text pipelines for a selection of classes.**\r\n**4. Added method to set the tissue acceptance threshold (which was hard-coded to 0.5).**\r\n**5. Lowered the image pyramidal plane size threshold to accept lower image planes in the stitcher, which were relevant in a study. I left a comment in the code if we want to switch back and compare in the future.**\r\n**6. Also did some minor refactoring to keep the code more consistent on a selection of files.**\r\n\r\nTested this using FastPathology on Ubuntu, both through C++ and runPipeline. Both worked fine.\r\n\r\n(1) The bug was found comparing the specific classes against HDF5TensorExporter/HDF5TensorImporter, which seemed to work great. Using these two scripts as reference I noticed some minor differences.\r\n\r\nI found that adding `setModified(true)` was quite important. I'm not really sure why not just using `mIsModified=true` did not work. Perhaps there was something I forgot to add to the header. Now there are occasions where I am using both `setModified(true)` AND `mIsModified=true`, where the latter is then probably redundant? Perhaps it is easier for you to say what is correct, so I just left it like this for you to evaluate.\r\n\r\nI am also assuming that there should be an `override` for the execute method if the parent class has an execute method already. I noticed that this was done for the HDF5TensorExporter, and not the specific scripts I was working with. However, in this case it did not really seem to matter.\r\n\r\n(2) I noticed that when creating thumbnail images from WSIs, that the exported images had swapped RGB channels. I proposed a simple fix that I have used earlier, but perhaps there is a more elegant solution. This should reproduce the bug:\r\nauto importer = WholeSlideImageImporter::New();\r\nimporter->setFilename(path_to_wsi);\r\nauto currImage = importer->updateAndGetOutputData<ImagePyramid>();\r\n\r\nauto access = currImage->getAccess(ACCESS_READ);\r\nauto input = access->getLevelAsImage(currImage->getNrOfLevels() - 1)\r\n\r\nauto exporter = ImageExporter::New();\r\nexporter->setFilename(path_to_output.png);\r\nexporter->setInputData(input);\r\nexporter->update();\r\n\r\n**(5) Perhaps this threshold should even be a hyperparameter one could set? But for now, I just manually lowered them. Did not notice any real difference using runPipeline and FastPathology on Ubuntu, for A05.svs and a larger 40x WSI from a local cohort. But perhaps overall runtime of high-res models will be slower? Right? But perhaps this is okay for now?**\r\n\r\nLet me know if there are any requests."
+    },
+    "discussion_timeline": [
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "Adding mIsModified=true has no effect, because it \"shadows\" the original variable from the ProcessObject class.\r\nThe correct use is setModified(true); in functions that modify the PO.\r\n\r\nIt is true that openslide reads data as BGR, however that should be handled in the getLevelAsImage function: https://github.com/smistad/FAST/blob/master/source/FAST/Data/Access/ImagePyramidAccess.cpp#L182",
+        "timestamp": "2021-03-03T12:33:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "andreped",
+        "role": "CONTRIBUTOR",
+        "body": "I agree. I have adjusted for your comments in the most recent commit.",
+        "timestamp": "2021-03-03T13:25:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "andreped",
+        "role": "CONTRIBUTOR",
+        "body": "I have made some futher modifications. I have marked the new changes in **bold** in the initial comment.",
+        "timestamp": "2021-03-03T18:04:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "[source/FAST/Algorithms/ImagePatch/PatchStitcher.cpp] I think this is too low, and may cause issues for your other WSI pipelines. Like patch-wise classification. If the resulting image of patch-wise classification is higher than 1024x1024, then that pipeline will fail for the same reason as it failed for \"high\"-res segmentation with 8192x8192 resolution. \r\nAlso, creating an image pyramid for a 1024x1024 image is very overkill.\r\n\r\nI think a better solution to your problem is to merge the SegmentationRenderer and the SegmentationPyramidRenderer so that it accepts both Image and ImagePyramid data objects.",
+        "timestamp": "2021-03-04T14:11:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "[source/FAST/Data/ImagePyramid.cpp] This may affect performance",
+        "timestamp": "2021-03-04T14:13:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "[source/FAST/Algorithms/ImagePatch/PatchGenerator.cpp] Think more general. The mask doesn't have to be tissue...\r\n\"Mask threshold\", \"Threshold, in percentage, for how much of the candidate patch must be inside the mask to be accepted\"\r\n\r\nAnd \"mask-threshold\" is probably a better name.",
+        "timestamp": "2021-03-04T14:18:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "[source/FAST/Algorithms/ImagePatch/PatchGenerator.hpp] setMaskThreshold?",
+        "timestamp": "2021-03-04T14:18:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "smistad",
+        "role": "COLLABORATOR",
+        "body": "See comments please",
+        "timestamp": "2021-03-04T14:21:00Z",
+        "source": "review"
+      },
+      {
+        "author": "andreped",
+        "role": "CONTRIBUTOR",
+        "body": "[source/FAST/Algorithms/ImagePatch/PatchStitcher.cpp] I agree that merging them would be the ideal solution, but that is outside the scope of what I think I would be able to do with the time I have available. Seems like a lot of work and directly affects all those that are regularly using SegmentationRenderer. Perhaps this is something you could do when you get time? \r\n\r\nOne of our end-users need to be able to run inference on image plane = 2, for the images he is using, and there it seems that 8192x8192 is too large. I believe the resultant image plane he was using was somewhat in the order of 2k x 4k, just below the 2048 mark for the WSI I was testing on.",
+        "timestamp": "2021-03-04T14:52:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "andreped",
+        "role": "CONTRIBUTOR",
+        "body": "[source/FAST/Data/ImagePyramid.cpp] Yes, but for the same reason above, it seemed necessary for the specific use case mentioned. The image plane I was testing on had dimensions in the order of 2k x 4k.",
+        "timestamp": "2021-03-04T14:55:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "andreped",
+        "role": "CONTRIBUTOR",
+        "body": "I have adjusted for the comments above.",
+        "timestamp": "2021-03-04T15:27:06Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a82539d",
+        "message": "Fixed bugs in View and PipelineHighlighter classes. In View class fixed removeRenderer method. Added FAST_EXPORT to PipelineHighligher class in PipelineEditor to be able to use it other places. Also did some refactoring.",
+        "author": "André Pedersen",
+        "timestamp": "2020-11-27T16:14:56Z"
+      },
+      {
+        "sha": "202fe24",
+        "message": "Merge branch 'master' of https://github.com/smistad/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2020-12-07T13:28:59Z"
+      },
+      {
+        "sha": "066fac3",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2020-12-11T10:20:16Z"
+      },
+      {
+        "sha": "42e500b",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-02-25T09:24:02Z"
+      },
+      {
+        "sha": "be717c1",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-02-25T15:56:57Z"
+      },
+      {
+        "sha": "c290884",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-02-26T09:54:44Z"
+      },
+      {
+        "sha": "937b50c",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-02-27T14:11:19Z"
+      },
+      {
+        "sha": "5cde2f9",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-03-02T09:21:37Z"
+      },
+      {
+        "sha": "cd03414",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into master",
+        "author": "André Pedersen",
+        "timestamp": "2021-03-02T14:06:26Z"
+      },
+      {
+        "sha": "01034d4",
+        "message": "Fixed minor bug in the image importer/exporter for both low and high-res, to ensure that they are properly executed. Also did some minor refactoring.",
+        "author": "andreped",
+        "timestamp": "2021-03-03T09:23:44Z"
+      },
+      {
+        "sha": "52acdde",
+        "message": "Fixed BGR/RGB switch bug in ImageExporter. Also did some minor refactoring.",
+        "author": "andreped",
+        "timestamp": "2021-03-03T10:14:57Z"
+      },
+      {
+        "sha": "497c58a",
+        "message": "Proper fix for the RGB/BGR export issue. Removed redundant mIsModified from respective classes, and did some minor refactoring.",
+        "author": "andreped",
+        "timestamp": "2021-03-03T13:23:22Z"
+      },
+      {
+        "sha": "c15582e",
+        "message": "Added options to set attributes through text pipelines for various methods. Added option to set acceptance tissue threshold in patch generator, and changed both overlap threshold to a more natural range of [0, 1]. Also lowered the image pyramid plane size threshold to accept smaller planes.",
+        "author": "andreped",
+        "timestamp": "2021-03-03T17:54:02Z"
+      },
+      {
+        "sha": "0e30c25",
+        "message": "Changed back to the original image pyramid plane/patch size limits. Renamed some names of methods and variables in the PatchGenerator.",
+        "author": "andreped",
+        "timestamp": "2021-03-04T15:10:48Z"
+      },
+      {
+        "sha": "96a4db3",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST",
+        "author": "andreped",
+        "timestamp": "2021-03-04T15:13:59Z"
+      },
+      {
+        "sha": "2e79e89",
+        "message": "Changed back to the original image pyramid plane/patch size limits. Renamed some names of methods and variables in the PatchGenerator.",
+        "author": "andreped",
+        "timestamp": "2021-03-04T15:15:12Z"
+      },
+      {
+        "sha": "ec50bdb",
+        "message": "Fixed bug with TensorToSegmentation when segmentation is 3D",
+        "author": "Erik Smistad",
+        "timestamp": "2021-03-04T15:25:11Z"
+      },
+      {
+        "sha": "b8a5020",
+        "message": "Disabled qtInterop example for now. Not working due recent changes in ComputationThread",
+        "author": "Erik Smistad",
+        "timestamp": "2021-03-08T15:06:56Z"
+      },
+      {
+        "sha": "d482e9a",
+        "message": "Improvements to LinePlotter + added the addHorizontalLine feature.",
+        "author": "Erik Smistad",
+        "timestamp": "2021-03-08T15:07:54Z"
+      },
+      {
+        "sha": "8815053",
+        "message": "Merge branch 'master' of https://github.com/andreped/FAST into andreped-master",
+        "author": "Erik Smistad",
+        "timestamp": "2021-03-08T15:12:16Z"
+      },
+      {
+        "sha": "04bec7a",
+        "message": "Fixed some changes that did not make sense",
+        "author": "Erik Smistad",
+        "timestamp": "2021-03-08T15:16:05Z"
+      }
+    ]
+  }
+]

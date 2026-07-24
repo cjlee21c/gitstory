@@ -1,0 +1,91 @@
+{
+  "story_id": "OpenRA/OpenRA#20398",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: AutoCarryall Is Too Autonomous",
+      "body": "In OpenRA's Dune 2000-inspired gameplay, carryall units can be configured to automatically ferry harvesters around the map. The existing system offered two modes: a fully manual carryall that only responds to player orders, and an AutoCarryall that operates entirely on its own initiative. The trouble was that AutoCarryall, true to its name, refused all manual pickup orders from the player — it would simply ignore commands to go pick up a specific unit. This became a real pain point for third-party mod authors and players alike. If a harvester was caught in a dangerous situation and the player wanted to manually direct the carryall to rescue it, there was no way to do so without first switching the unit to a completely different trait configuration. The PR author proposed making AutoCarryall behave more like the AutoTarget system: a unit that can act autonomously by default but still accepts and prioritizes explicit player orders when given.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[0]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Should AutoCarryall Accept Manual Orders, or Should the Traits Stay Strictly Separated?",
+      "body": "The core tension in this PR is a question of trait responsibility and naming semantics. One camp argued that the 'Auto' prefix in AutoCarryall implies a clear contract: this trait is for autonomous behavior only, and mixing manual control into it muddies the design. The cleaner solution, from this perspective, would be to make the two existing traits — manual Carryall and AutoCarryall — individually toggleable via conditions, letting mod authors compose the behavior they want by enabling or disabling each trait independently. The opposing camp argued that this separation is impractical: because AutoCarryall inherits from Carryall, you cannot have both active simultaneously without triggering errors, and making either trait fully condition-switchable introduces nasty edge cases around what happens to cargo that is already reserved or being carried when a trait is suddenly disabled mid-flight. The practical alternative, they argued, was to follow the AutoTarget precedent — allow the autonomous trait to be overridden by explicit player orders, and let a separate condition toggle the auto-behavior on and off entirely.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — abcdefg30",
+      "body": "abcdefg30, a project member, initially pushed back on the idea of blending manual control into AutoCarryall. Their reasoning was rooted in naming clarity and separation of concerns: if a trait is called AutoCarryall, its job is automation, and manual pickup behavior belongs in the base Carryall trait. Their suggested architecture was to make both traits independently conditionable, so that a mod author could grant or revoke each one based on game state, effectively composing the desired behavior from two clean, single-purpose building blocks. After hearing the practical counterarguments — particularly the inheritance problem and the edge cases around in-flight cargo — abcdefg30 acknowledged that the AutoTarget analogy was reasonable and that a unit which usually acts autonomously but can still be directed by the player is a coherent and useful design.",
+      "author": "abcdefg30",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[6]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — dnqbob",
+      "body": "dnqbob, the PR author and a contributor, argued from both a player-experience and a technical feasibility standpoint. On the player side, they described a concrete scenario: a harvester ambushed near a resource field needs immediate evacuation, and forcing the player to switch trait configurations mid-battle is unintuitive and frustrating. On the technical side, they explained why the 'make both traits conditionable' approach was not straightforward — the inheritance relationship between the two traits means they cannot coexist on the same actor, and disabling a trait mid-operation raises unresolved questions about reserved or in-transit cargo. Their proposed solution modeled AutoCarryall after AutoTarget: autonomous by default, but responsive to explicit player commands, with a condition-based toggle to fully suspend the automatic behavior when the player wants direct control.",
+      "author": "dnqbob",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing the outcome: given the inheritance constraints, the edge cases around in-flight cargo, and the AutoTarget precedent, do you think the right call was to blend manual-order support into AutoCarryall, or to insist on strict trait separation even if it required a larger refactor? What risks does each path carry for mod authors and for the long-term maintainability of the trait system?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged: AutoCarryall Gains Manual Order Support and Condition-Based Toggle",
+      "body": "The PR was merged on August 18, 2023, after a long review cycle that included rebasing against two other related PRs that landed first. The final implementation followed the AutoTarget analogy: AutoCarryall was updated to accept explicit player pickup orders, overriding its autonomous behavior when the player intervenes directly. Additionally, the automatic behavior can be suspended entirely via a condition, giving mod authors a clean way to let players toggle between fully autonomous and fully manual modes — for example, by binding the toggle to a deploy action or a unit stance. A bug discovered during review — where issuing a new manual pickup order while the carryall was already en route to an automatic pickup would result in the cargo being dropped at the wrong destination — was identified by reviewer PunkPun and subsequently fixed before the merge. The D2000 carryall, which cannot be selected by players, was unaffected by the change.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]",
+        "discussion_timeline[12]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When a trait's name implies a strict behavioral contract, it is worth examining whether that contract is actually serving users or just enforcing an internal convention. Here, the 'Auto' prefix was initially read as 'never accept manual input,' but the AutoTarget precedent showed that 'auto' can reasonably mean 'autonomous by default, but overridable' — a much more useful contract for players.",
+        "Inheritance relationships between traits can make seemingly simple composition strategies — like toggling two traits independently via conditions — far more complex than they appear, because disabling a trait mid-operation can leave the system in an inconsistent state. Recognizing these hidden edge cases early is essential before committing to a refactor path.",
+        "Long review cycles that block on other in-flight changes are a real cost, but they can also improve the final result: waiting for related PRs to land first meant the rebased version could be written against a cleaner, more stable foundation, reducing the risk of introducing regressions across interacting systems."
+      ]
+    }
+  ]
+}

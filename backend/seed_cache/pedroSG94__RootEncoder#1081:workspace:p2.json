@@ -1,0 +1,29 @@
+{
+  "story_id": "pedroSG94/RootEncoder#1081",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged with Owner Refinements",
+      "body": "The owner accepted the contribution, applied bug fixes and refactoring before merging on April 3, 2022. The design introduced an abstraction layer for recording so third-party muxers could be plugged in without touching core library code. The default implementation remained unchanged, preserving backward compatibility.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[0]",
+        "discussion_timeline[1]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Introducing an abstraction layer for a concrete subsystem lets external contributors extend behavior without forking or modifying core code.",
+        "Accepting a contribution while reserving the right to refactor before merging balances community openness with codebase quality standards.",
+        "Supporting all partial-input modes (audio-only, video-only, both) from the start prevents fragile assumptions that break real-world edge cases."
+      ]
+    }
+  ]
+}

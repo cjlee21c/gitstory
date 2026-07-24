@@ -1,0 +1,29 @@
+{
+  "story_id": "fairy-stockfish/Fairy-Stockfish#200",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged with Pragmatic Validation Scope",
+      "body": "The PR was merged on 2020-10-21 after the contributor added castling-contradiction checks, touching-kings detection, and royal-king-count validation as requested. The team explicitly accepted that the validator would not catch every possible invalid FEN, prioritizing a low false-negative rate over exhaustive coverage. The maintainer noted residual concerns about how variant-specific conditions were defined but approved the merge, intending to refine those conditions later.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[5]",
+        "discussion_timeline[8]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Shipping an imperfect validator that avoids false negatives is often more valuable than delaying for exhaustive correctness, especially for user-input validation.",
+        "Variant-rich domains force validators to reason about rule prerequisites bottom-up rather than filtering by known variant names, which is more robust and maintainable.",
+        "When a contributor lacks deep domain knowledge, merging with documented limitations and a clear path for incremental improvement beats blocking on perfection."
+      ]
+    }
+  ]
+}

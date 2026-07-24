@@ -1,0 +1,90 @@
+{
+  "story_id": "OpenRA/OpenRA#18443",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Adding Support for a New Container Format from Remastered Assets",
+      "body": "OpenRA, an open-source real-time strategy engine, was working toward supporting assets from the Command & Conquer Remastered Collection. A contributor opened a pull request to introduce a loader for the Meg V3 file format — a container format used to package the remastered game's assets. The contributor had already validated the approach by successfully extracting a music file and playing it locally, and the PR was linked to a broader tracking issue for remaster support.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history",
+        "metadata.title"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Far Should This PR Reach?",
+      "body": "Once the container loader was working, the contributor discovered that the audio files inside the Meg archives used a compression format (ADPCM) that OpenRA did not yet support. This raised a key architectural question: should this PR expand its scope to also implement audio decoding so that the feature could be demonstrated end-to-end in-game, or should it remain narrowly focused on just the container format and leave audio playback, filesystem integration, and UI concerns to separate, future pull requests? The tension was between proving the work is complete and useful versus keeping changes small, reviewable, and decoupled from unfinished surrounding systems.",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[1]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — ocdi",
+      "body": "The contributor initially leaned toward expanding scope because in-game audio playback felt tantalizingly close. After discovering the ADPCM blocker, they pivoted to a pragmatic middle ground: rather than shipping broken in-game playback, they added standalone command-line utilities to list and extract files from Meg archives. This approach let the loader code be exercised and proven correct without depending on unfinished game systems. The contributor also surfaced a real bug in an existing stream abstraction discovered during this testing, demonstrating that the expanded validation effort had concrete value.",
+      "author": "ocdi",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[2]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — pchote",
+      "body": "A project member pushed back on scope expansion, arguing that full in-game audio playback required several other large, unfinished pieces: dynamic detection of the Steam installation directory, reworked music and notification systems to distinguish remaster versus classic content, and new user-facing UI. Attempting to wire all of this together in a single PR would create an unmanageable, hard-to-review change. The right engineering discipline was to keep this PR strictly about the Meg container format and let each surrounding concern be addressed independently. The member confirmed the loader worked correctly by verifying that the filesystem layer could read mounted Meg file contents, then focused review energy on coding style and commit hygiene.",
+      "author": "pchote",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the Meg loader works correctly in isolation but the surrounding systems needed to use it in-game are incomplete, was it the right call to merge this PR now rather than waiting until a more complete end-to-end experience could be delivered? What are the risks and benefits of merging incremental infrastructure that cannot yet be exercised by end users?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged with Narrow Scope After Extended Review and Cleanup",
+      "body": "The pull request was merged on December 15, 2020, roughly five months after it was first opened. The final merged change was a single-file addition implementing only the Meg V3 container loader, consistent with the project member's guidance to keep scope narrow. Over the review period the contributor rebased multiple times, squashed fixup commits, and adopted newer language features that became available as the project's language version target was updated. A second project member left a changelog reference immediately after merge, confirming the change was tracked in the project's release notes. The decision validated the principle that infrastructure components can and should be merged independently of the higher-level features that will eventually consume them.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "pr_metadata.changed_files",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Scope discipline pays off in long-running projects: when a new capability depends on multiple unfinished surrounding systems, merging only the well-defined, independently testable layer keeps the codebase moving forward without creating a tangled, hard-to-review mega-change.",
+        "Proving correctness without full integration is a valid engineering strategy: using standalone utilities or test harnesses to exercise new code when the production call path is not yet ready lets reviewers gain confidence in correctness while avoiding premature coupling to incomplete systems.",
+        "Long review cycles require active maintenance hygiene: a PR that stays open for months must be kept current through regular rebases and commit squashing, and the contributor's willingness to do this work repeatedly was essential to eventually landing the change."
+      ]
+    }
+  ]
+}

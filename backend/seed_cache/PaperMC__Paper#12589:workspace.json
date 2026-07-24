@@ -1,0 +1,89 @@
+{
+  "story_id": "PaperMC/Paper#12589",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: A Blunt, Inaccurate Outdated-Build Warning",
+      "body": "Paper's server software had a startup check that warned administrators when their build might be outdated. The old mechanism was crude: it compared timestamps or build numbers against a fixed threshold and would fire the warning even when the server was actually running the latest available build for its Minecraft version. This produced false alarms and eroded trust in the warning. Separately, the API endpoint the checker relied on was being deprecated in favor of a new versioned API called Fill, which required a proper User-Agent header and offered richer, more structured responses. The pull request aimed to fix both problems at once: replace the blind time-based heuristic with a real API query that returns authoritative build status, and migrate the entire version-fetching subsystem to the new Fill API. The check would fire asynchronously after the server finishes loading, classify the server's state into one of four categories (outdated build and version, outdated build only, latest build but newer Minecraft version available, or fully up to date), and could be suppressed via a system property.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Much Should the Check Tell Administrators — and When?",
+      "body": "Two intertwined design tensions emerged during review. First, what should the check say when a server is on the latest build for its current Minecraft version but a newer Minecraft version exists? The old behavior always nudged administrators to upgrade, which was arguably correct even for 'latest' builds, but the new API-driven approach would naturally go silent in that case. Silencing the warning entirely risks leaving administrators unaware that a major version upgrade is available. Showing a persistent warning risks being noisy and ignored. Second, how should the feature be controlled? The original proposal used a JVM system property to disable the check, which is fine for scripted environments but awkward for server operators who configure everything through config files. A config-file option is more discoverable but adds surface area to the configuration schema. The team had to decide how much nuance to surface in the messages, how to handle the 'latest build but old Minecraft version' edge case, and what the right opt-out mechanism should be.",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "issue_payload.body",
+        "discussion_timeline[22]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — Owen1212055",
+      "body": "Owen1212055, a project member, argued that the check should still encourage administrators to upgrade even when they are on the latest build for their current Minecraft version. The reasoning was that being 'latest' on an older Minecraft version is not a desirable end state — administrators running, say, the newest build of a version that is two releases behind should still be nudged toward the current Minecraft release. Simply going silent when the API reports 'latest build' would remove a meaningful signal. The implication was that the messaging needed to distinguish between 'you are fully up to date' and 'you are on the best available build for an outdated version,' and that the latter case still warranted some form of advisory output.",
+      "author": "Owen1212055",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — MiniDigger",
+      "body": "MiniDigger, also a project member, weighed in late in the review cycle and took a pragmatic stance on the opt-out mechanism. Rather than relying solely on the JVM system property that the contributor had already implemented, MiniDigger added a configuration-file option as well, reasoning that config files are the natural home for server operator preferences and are easier to manage in many deployment environments than JVM flags. MiniDigger also raised a forward-looking concern: the check was hardcoded to query only the stable release channel, but operators running test servers or those who want early visibility into beta or alpha builds might reasonably want to be notified about those channels too. MiniDigger acknowledged this was out of scope for the current PR but flagged it as a natural follow-on, framing it as a future enhancement rather than a blocker.",
+      "author": "MiniDigger",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[22]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing the final outcome: How would you resolve the tension between being informative and being noisy? Should a server on the 'latest build for an old Minecraft version' receive a warning, a neutral notice, or silence? And which opt-out mechanism — system property, config file, or both — best serves the range of operators who run Paper servers? What tradeoffs does each choice carry for discoverability, scriptability, and maintenance burden?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: API-Driven Check with Nuanced Messaging and Dual Opt-Out",
+      "body": "The pull request was merged on January 2, 2026, after roughly seven months of iterative refinement across multiple Minecraft version rebases. The final design queries the Fill v3 API asynchronously after server startup and classifies the result into distinct states, each producing a tailored message: a server that is behind on both build number and Minecraft version gets the most urgent warning; one that is behind only on build number gets a moderate warning; one that is on the latest build for its version but a newer Minecraft version exists gets an informational notice (addressing Owen1212055's concern that silence would be misleading); and a fully up-to-date server produces no output. The opt-out was implemented as both a JVM system property and a configuration-file entry, satisfying both scripted and manually configured deployment styles. The API migration to Fill v3 was completed, including a properly formatted User-Agent header. MiniDigger's suggestion about making the monitored release channel configurable was acknowledged but deferred as a future enhancement. The PR touched five files and went through numerous rounds of formatting fixes, logic cleanups, and rebases before landing.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[22]",
+        "discussion_timeline[0]",
+        "issue_payload.body",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Replacing a heuristic with an authoritative API call is almost always worth the added network dependency when the heuristic produces false positives that erode operator trust — but the API migration must be treated as a first-class concern, not an afterthought, especially when the old endpoint has a known deprecation deadline.",
+        "When a feature has multiple distinct user personas (scripted deployment pipelines versus hands-on server operators), providing more than one opt-out mechanism — even if it adds a small amount of duplication — is often the right call, because the cost of the duplication is low and the usability gain for each audience is high.",
+        "Distinguishing between 'fully up to date' and 'latest for an outdated version' in user-facing messaging is a meaningful product decision, not just a cosmetic one: going silent in the latter case removes a real signal, while treating both cases identically overstates urgency. Investing in the extra classification logic pays dividends in operator trust and actionability of the warnings."
+      ]
+    }
+  ]
+}

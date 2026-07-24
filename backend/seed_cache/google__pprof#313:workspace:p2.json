@@ -1,0 +1,28 @@
+{
+  "story_id": "google/pprof#313",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Fix Merged After Iterative Hardening",
+      "body": "The PR was merged on February 9, 2018, after the contributor added macOS-specific tests that themselves uncovered additional bugs in symbol parsing and address resolution logic. The reviewer accepted the fix with the Mac test temporarily skipped pending a proper CI environment, acknowledging the broader symbolizer compatibility issues as separate follow-up work.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[11]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Tests written to validate a fix often expose latent bugs elsewhere, making them valuable beyond their immediate scope.",
+        "Platform-specific behavior differences between CI environments and developer machines can mask test failures that are real and reproducible.",
+        "Accepting a fix with a temporarily disabled test is a pragmatic tradeoff when the core correctness improvement is clear and the test infrastructure gap is a known, separable problem."
+      ]
+    }
+  ]
+}

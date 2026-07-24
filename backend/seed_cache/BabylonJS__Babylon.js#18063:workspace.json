@@ -1,0 +1,93 @@
+{
+  "story_id": "BabylonJS/Babylon.js#18063",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "A Native Base64 API Arrives in the Browser Platform",
+      "body": "An ES2026 stage-proposal introduces a native, browser-implemented base64 encoding and decoding API directly on typed arrays. A contributor (kzhsw) proposes integrating this into Babylon.js's string utilities module. The motivation is straightforward: benchmarks shared on the Babylon.js forum show the native API is measurably faster than the existing pure-JavaScript implementation, particularly for payloads around 1 MB and above. The PR aims to transparently swap in the faster path when the native API is available, while falling back to the existing JavaScript implementation for environments that do not yet support it.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Should a Library Adopt a Not-Yet-Universal Platform API?",
+      "body": "The core tension is how a widely-used 3D engine should responsibly adopt a browser API that is still a proposal and not universally available. Several sub-questions emerge: Should the code actively detect and exclude polyfills (from libraries like core-js or es-shims) to ensure only the truly native implementation is used? How should TypeScript type declarations for the new API be structured so they do not break existing build pipelines? And should the feature-detection logic run as a module-level side effect, or should it be deferred to call time to remain compatible with tree-shaking? Each of these choices involves a tradeoff between correctness, build-system compatibility, and bundle-size hygiene.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]",
+        "commit_history[7]",
+        "commit_history[12]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — kzhsw",
+      "body": "The original contributor argues that the polyfill-detection logic is important for correctness: if a user's environment has shimmed the native API with a JavaScript polyfill, using that shim would not deliver the performance benefit the feature is designed for, and could even introduce subtle behavioral differences. The initial approach therefore explicitly checks at module load time whether the API is genuinely native, excluding known polyfill signatures from core-js and es-shims. The contributor also initially uses a global type declaration pattern to inform TypeScript about the new API's types, which is a common approach for augmenting the global environment.",
+      "author": "kzhsw",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "commit_history[0]",
+        "commit_history[1]",
+        "issue_payload.body"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — ryantrem and RaananW",
+      "body": "Core team members push back on several of the implementation choices. On polyfill detection: they argue that Babylon.js should not be in the business of second-guessing whether a user's environment is 'native enough.' If a user has deliberately polyfilled the API, that is their choice, and the library should simply trust the presence of the API rather than trying to detect its provenance. This simplifies the code and avoids a fragile dependency on the internal signatures of third-party polyfill libraries. On type declarations: the global augmentation approach breaks at least one internal build target, so the team requests moving declarations to a dedicated type definition file instead. On module-level side effects: a reviewer flags that running feature detection eagerly at module load time harms tree-shaking, because bundlers cannot statically eliminate the module if it has observable side effects; the fix is to move the check inside the function call path.",
+      "author": "ryantrem",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "commit_history[7]",
+        "commit_history[9]",
+        "commit_history[12]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what was actually merged, consider: Should a library ever try to distinguish between a native platform API and a JavaScript polyfill of that same API? What are the risks of doing so, and what are the risks of not doing so? And separately, when adopting a not-yet-universal API, how should a library balance eagerness to use the fast path against the need to remain compatible with diverse build toolchains and bundler optimizations?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: Native API Adopted Without Polyfill Discrimination, With Build and Tree-Shaking Fixes",
+      "body": "The pull request was merged on 2026-03-27. The final implementation adopts the native base64 API when it is present in the environment, but the polyfill-detection logic was removed entirely in response to reviewer feedback — the library simply checks for the API's existence and uses it, trusting the environment rather than trying to audit whether the implementation is 'truly native.' The TypeScript type declarations were moved out of inline global augmentations and into a dedicated declaration file, resolving the build breakage in the inspector package. The feature-detection check was also restructured from a module-level side effect into a runtime branch inside the relevant functions, preserving tree-shaking compatibility. The fallback to the original JavaScript implementation remains in place for environments where the API is absent.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history[7]",
+        "commit_history[9]",
+        "commit_history[12]",
+        "commit_history[15]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "A library should generally trust the environment it runs in rather than trying to audit the provenance of platform APIs. Attempting to distinguish a native implementation from a polyfill creates a fragile dependency on third-party library internals and adds complexity that is hard to maintain as those libraries evolve.",
+        "Module-level side effects — even seemingly innocuous ones like a feature-detection check — can silently defeat tree-shaking in modern bundlers. Deferring such checks to call time, inside the functions that actually need them, is a low-cost way to preserve bundle-size hygiene without sacrificing the optimization.",
+        "When adopting a proposal-stage platform API, the fallback path is as important as the fast path. A clean, well-tested fallback ensures that the change is a pure improvement for users on modern environments and a no-op for everyone else, making the adoption low-risk regardless of how quickly the API achieves universal support.",
+        "Build-system compatibility is a first-class concern in large, multi-package repositories. A type declaration approach that works in one package may silently break another; changes to shared type infrastructure should be validated across all build targets before merging."
+      ]
+    }
+  ]
+}

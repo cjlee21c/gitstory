@@ -1,0 +1,30 @@
+{
+  "story_id": "Aleph-One-Marathon/alephone#52",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged With Contested Turn-Rate Changes Intact",
+      "body": "The pull request was merged in late December 2016, including the widened delta limits that nearly doubled the turn-rate ceiling — the very change later criticized by a core maintainer as harming original gameplay feel. Post-merge discussion revealed deep disagreement about whether turn-rate limits are physics (inviolable) or implementation detail (tunable), but no revert was ultimately committed.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[13]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Legacy gameplay parameters can masquerade as implementation bugs; distinguishing 'incorrect' from 'intentional but unfamiliar' requires explicit design documentation before changes land.",
+        "Merging before all stakeholders have reviewed creates expensive post-merge debates, especially when the contested change touches competitive balance that is nearly impossible to objectively measure.",
+        "Exposing historically fixed physics constants as user preferences shifts balance responsibility to players, but in competitive contexts this often advantages whoever optimizes the setting most aggressively."
+      ]
+    }
+  ]
+}

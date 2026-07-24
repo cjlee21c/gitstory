@@ -1,0 +1,2815 @@
+[
+  {
+    "story_id": "pixijs/pixijs#2614",
+    "metadata": {
+      "title": "Better SVG support",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2016-09-25T15:51:10Z",
+      "reviewers": [
+        "RanzQ",
+        "englercj"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "SVG images are loaded using canvas which allows pre-texture scaling. Added 4th parameter sourceScale to BaseTexture (and Texture) which is used for scaling the SVG before creating the texture.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "A demo: https://raw.githack.com/RanzQ/svg-pixi-demo/master/index.html\n\nThe texture is re-created on window resize (there's a bug that it requires a click after, renders empty screen otherwise). And yes, it's forked from bunnymark. :)\n\nEDIT: The bug is fixed.\n",
+        "timestamp": "2016-05-28T13:23:37Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@RanzQ Thanks for doing this PR. Would you not commit build files, please see the [contributing guidelines](https://github.com/pixijs/pixi.js/blob/master/CONTRIBUTING.md#making-changes).\n",
+        "timestamp": "2016-05-28T13:25:19Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@bigtimebuddy Sorry, didn't mean to. Haven't done many PRs and didn't know a commit would be added afterwards.\n\nUPDATE: Removed the build commit.\n",
+        "timestamp": "2016-05-28T13:28:25Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Hey peeps! Firstly thanks for this PR @RanzQ, this has been an issue for a while! I have been reviewing this and had an idea that I would like to get your opinion on.\n\nHow about instead of adding the code into the base texture constructor we instead create a new static function called `fromSVG` That way we can add the scaling logic into there rather than into the main body. \n\nWe can then leverage the new `from` method to identify if the source is an svg and run the correct method. \n\nWhat do ya think?\n",
+        "timestamp": "2016-06-11T19:07:03Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "Good suggestion, the API was a bit clumsy, I can modify the PR. I'll also do some testing on other browsers than Chrome and the demo seems to be broken now (after a Chrome update I guess).\n",
+        "timestamp": "2016-06-11T20:21:02Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "super! Yes a PR would be ace 👍 \n",
+        "timestamp": "2016-06-11T20:48:08Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@GoodBoyDigital I tried to modify this towards your suggestion but actually the scaling related code is not in the constructor but in `fromImage` and `update`.\n\nAll I do in `fromImage` is that I store `sourceScale` and `imageType` (which is read from extension), then `update` handles the \"load using canvas\" logic.\n\nSo would it be ok to separate that logic in `updateSVG`? And where should the scaling parameter be in the API?\n",
+        "timestamp": "2016-06-13T08:52:26Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "I updated it a bit. Also noticed that the SVG image must have `width` and `height` defined, otherwise the Image size defaults to 150x150 in Chrome and 0x0 in Firefox. They could be given as parameter too but I decided to throw an error. \n",
+        "timestamp": "2016-06-13T10:58:09Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, `this.isPowerOfTwo` solved the issue with non-pow2 canvases. I still didn't find a better solution for svgs without width and height. I added a better [comment](https://github.com/pixijs/pixi.js/pull/2614/files#diff-2820734d8d9cebcd6dd6120421612e81R242) to clarify the problem.\n",
+        "timestamp": "2016-06-14T06:55:18Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "Rebased to latest dev.\n",
+        "timestamp": "2016-06-15T18:19:15Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "Cool! This all looks great to me, only thing left to do is  figure out a way to do the width/height checks without hard-coding `150` as invalid. Maybe `.getAttribute()` helps?\n",
+        "timestamp": "2016-06-16T18:39:30Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "I'll try to figure out if that can be done somehow. The problem is that the svg in this case is an external document and I think you can't access its properties. With inline svg it would be easy.\n",
+        "timestamp": "2016-06-17T07:30:26Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "Wow. I hope this makes to the dev branch. Or is it already?\n",
+        "timestamp": "2016-06-17T12:39:33Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "> Wow. I hope this makes to the dev branch. Or is it already?\n\nNot yet.\n",
+        "timestamp": "2016-06-17T14:09:18Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@englercj There might be a way... Reading the svg first as an xml file and then manually creating the dom element the properties should be accessible.\n\nUPDATE: So, it requires some changes to the code, instead of using the Image `onload` we should use the xhr API instead (this would require cors headers to the server if it's not same domain):\n\nhttps://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseXML\n\nAfter the svg is loaded and the dimensions checked an Image should be created using data URI like here:\n\nhttp://stackoverflow.com/a/13972564\n\nHow does this sound? Quite a hack in my option, it also seems not to be a cross-browser solution...\n",
+        "timestamp": "2016-06-17T14:19:40Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "Another possible solution, using `<embed>` element instead of `Image`: \n\n![image](https://cloud.githubusercontent.com/assets/1150613/16155437/127774aa-34b8-11e6-8694-adfb3a006827.png)\n\nQuickly tested on Chrome. That could be used just for checking if the `width` or `height` is missing and then throw an error. For the actual drawing the Image API could be used as it is now.\n",
+        "timestamp": "2016-06-17T15:19:49Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "One another idea:\n\nvar exLoadedDocument = soemthing.source;\n\nvar div = document.createElement('svgwrap');\ndiv.innerHTML = exLoadedDocument;\nvar elements = div.childNodes; // You can access SVG DOM\n\nSo before you feed Canvas with it, add desired width and height (instead of reading it, because it does not make sense with SVG) with standard JS dom manipulation. \n",
+        "timestamp": "2016-06-18T05:53:44Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@trsh You would still need to create a new Image using the data-uri method (which doesn't work in all browsers) cause the canvas API needs an Image (svg element can't be drawn). \n",
+        "timestamp": "2016-06-18T06:06:15Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "@RanzQ i don't know pixi code very well. But sure at some point the SVG doc is fetched from external source as it is - XML.  **Right after it**, we need to read the width and height (or set it) and continue as now.\n\nhttp://jsfiddle.net/8ztNU/77/\n",
+        "timestamp": "2016-06-18T06:25:09Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "> \"But sure at some point the SVG doc is fetched\"\n\n not so sure about this after checking the code :D\n",
+        "timestamp": "2016-06-18T06:37:09Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "@RanzQ to be honest, I googled now for SVG images, and hoped to get one without width and height (for tests). After 40 I gave up. These are like rare cases that we can choose to NOT support?\n",
+        "timestamp": "2016-06-18T07:01:28Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "In the case where you have `<img src=\"image.svg\"></img>` you cannot modify the svg. It's just loaded (in native code) and then the image can be scaled. For drawing to canvas the image element is needed.\n\nActually now when thinking about it, I'm not sure if the canvas is even needed. Maybe we could just pre-scale the Image and then texturize it. \n\n@trsh there are some without width and height but as discussed but it's hard to detect (they just bug when drawing to canvas). So that's why I was willing to just throw an Error. And yes, I think too that pixi just shouldn't support them.\n\nIt seems that I was unlucky since I tested with one of these: http://emojione.com/releases/. The old versions don't have width and height but new ones do. Maybe they realized too that it's bad practice. :D\n",
+        "timestamp": "2016-06-18T07:09:03Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "Here's a codepen about inconsistencies within the `drawImage` API: http://codepen.io/RanzQ/pen/PzGNEO\n\n![2016-06-18 12_03_17-2016_06_18_11_53_14_a_pen_by_ranzq png - paint](https://cloud.githubusercontent.com/assets/1150613/16170036/eecbe622-354c-11e6-89a7-f764e096d000.png)\n\nTested on Windows 10 with latest version of each browser.\n\nSo I'll try just to scale the Image and see if that works.\n\nUPDATE: It seems to work without the canvas on Chrome but not on Firefox or IE... I mean just by setting `source.width` and `source.height`. Also, it works only if the svg doesn't have size properties. If it has, that size is used. So I think it's better to go on with the canvas method.\n",
+        "timestamp": "2016-06-18T09:05:41Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "I will finish this during the next few weeks.\n",
+        "timestamp": "2016-08-03T17:00:51Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Would this support responsive pages? Would eg an SVG circle stay scalable == grow/shrink during viewport resize?\n",
+        "timestamp": "2016-09-05T12:12:07Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@tobireif That is the plan, I'm currently working on this again.\n",
+        "timestamp": "2016-09-05T15:10:43Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "@RanzQ wasn't the initial plan to convert SVG to standard texture object during the load resource phase. And then it's used just like like it would come from PNG. I like the scenario, because it promises same rendering speed.\n",
+        "timestamp": "2016-09-05T15:24:39Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "@trsh That could still be an option I'd guess.\n",
+        "timestamp": "2016-09-05T15:51:30Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@trsh @tobireif Yeah, I'm still figuring out how to parameterize it, but what I had in mind was that you could define the sprite size in fraction of the viewport and when the viewport is updated the texture would be generated again. Of course re-uploading the texture to GPU is a demanding process but normally you don't resize your viewport so often.\n\nI've experimented with this a bit and it works.\n",
+        "timestamp": "2016-09-05T16:08:56Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@englercj Regarding [this](#issuecomment-226575217), there's a way to read the size from the SVG using `<object>` but it doesn't support CORS obviously.\n\nSize of same origin svg-element can be read but cross-origin is more difficult. I can't read the width and height from the svg-element but the wrapping object `clientWidth` and `clientHeight` gives something:\n\n![image](https://cloud.githubusercontent.com/assets/1150613/18309844/04b91738-7504-11e6-843c-d5a8c3990f1f.png)\n\nLeft is Chrome, object size is updated after timeout (not sure after which event), not on load. Right is Firefox, object size is updated on load. Anyway the SVG has no size properties and there's no way to tell if it has or not. So the object gets maximum size that fits the window.\n\n What do you think, should we throw an error for cross-origin svgs and otherwise for svgs with non-defined size?\n\nUPDATE: Actually a working solution for this is to use XHR. Only limitation is that the server sending the svg must allow CORS. Anyway, I'm going with that since it feels less hacky than the `<object>` solution.\n",
+        "timestamp": "2016-09-07T11:06:55Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@GoodBoyDigital Should I squash the commits into a single before merge? I just committed a much better version. I've still have to write tests and do some testing on IE since it throws an Error.\n",
+        "timestamp": "2016-09-09T17:23:11Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "After doing some more tests, IE11 throws a SecurityError (see [gl.SECURITY_ERR in Exceptions](https://msdn.microsoft.com/en-us/library/dn302435%28v=vs.85%29.aspx)).\n\n![image](https://cloud.githubusercontent.com/assets/1150613/18416120/53a9504e-7813-11e6-990e-0d795aa47ef5.png)\n\nThis happens with image if it has an svg source and with canvas if it has an svg image drawn to it (`drawImage()` has been used to fill pixels). No matter if it's same domain or not. Related to https://github.com/pixijs/pixi.js/issues/2928. So this definitely is a bug in IE.\n\nUPDATE: I guess this bug is related: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/110935/, same SecurityError is thrown in `texImage2D`.\n",
+        "timestamp": "2016-09-11T08:37:18Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "More IE problems. This \"draw svg to canvas\" method I've used throws error on IE10 (no WebGL): http://stackoverflow.com/a/29370038. Seems like even if loaded, the svg might not be ready to be drawn.\n\nUPDATE: This was fixed by using asset loader or waiting for the 'loaded' event.\n",
+        "timestamp": "2016-09-11T08:50:45Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "This is now ready to be merged in my opinion. Improvement suggestions welcome! Also, if the ES6 branch  will be the new `dev` before 4.1, I can transform this.\n",
+        "timestamp": "2016-09-14T18:18:18Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "I'm willing to try and merge this if you can rebase onto the latest `dev` to get the ES6 changes.\n",
+        "timestamp": "2016-09-22T17:38:45Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@englercj Done. Also squashed the previous commits and updated my [demo](https://raw.githack.com/RanzQ/svg-pixi-demo/master/).\n",
+        "timestamp": "2016-09-23T08:35:40Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "So...??!!  Still excited about this.\n",
+        "timestamp": "2016-09-24T05:46:29Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@trsh In case you want to try it out, I've got a build [here](https://github.com/RanzQ/svg-pixi-demo/blob/master/js/pixi.min.js) and a [codepen](https://codepen.io/RanzQ/pen/YGkQYj) that uses it.\n",
+        "timestamp": "2016-09-24T06:28:17Z"
+      },
+      {
+        "author": "MartinBspheroid",
+        "role": "NONE",
+        "body": "@RanzQ It works fine, but seems like there is problem with parsing svg files, as it's expecting `width` and `height` parameters without `px` in main `<svg>` tag.\n",
+        "timestamp": "2016-09-24T11:12:09Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "@MartinBspheroid Oh, you're right. Actually the spec says unit can be `\"em\" | \"ex\" | \"px\" | \"in\" | \"cm\" | \"mm\" | \"pt\" | \"pc\" | \"%\"`. Any suggestions how the different units should be handled? Imo, only numeric values or `px` should be supported, cause I doubt the `drawImage` collaborates otherwise.\n",
+        "timestamp": "2016-09-24T12:04:43Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "parse pixels, warn it won't work otherwise?\n",
+        "timestamp": "2016-09-24T15:19:46Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@RanzQ merge conflicts? Otherwise, I think this looks good. Great work.\n",
+        "timestamp": "2016-09-24T15:51:06Z"
+      },
+      {
+        "author": "trsh",
+        "role": "NONE",
+        "body": "I also think for start support px, and show warning otherwise. Can improve/upgrade in time, if there's a point to it.\n",
+        "timestamp": "2016-09-24T15:52:48Z"
+      },
+      {
+        "author": "RanzQ",
+        "role": "CONTRIBUTOR",
+        "body": "It now supports values with `px`. I'll do some tests with different units later but I think mostly people work in pixels when they do vector graphics for web.\n",
+        "timestamp": "2016-09-25T10:17:30Z"
+      },
+      {
+        "author": "MartinBspheroid",
+        "role": "NONE",
+        "body": "Hey, that is great.  I'm sorry that I couldn't help more than just raising flag, I'm new to Javascript and I would probably come up with really cumbersome solution. \n",
+        "timestamp": "2016-09-25T10:21:06Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-24T22:00:10Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "efa6db7",
+        "message": "Better SVG support\n\n* Images are loaded using canvas which enables pre-scaled textures\n* Scaling is done by providing an extra parameter `sourceScale` to the `fromImage` method\n* Size of the original SVG source is checked with an extra XHR (necessary step for the canvas API to work)\n* Supports data URI based SVG",
+        "author": "Juha Rantanen",
+        "timestamp": "2016-05-21T11:31:26Z"
+      },
+      {
+        "sha": "bee630b",
+        "message": "Fixed brace-style.",
+        "author": "Juha Rantanen",
+        "timestamp": "2016-09-24T05:39:49Z"
+      },
+      {
+        "sha": "e1e668d",
+        "message": "Added util tests.",
+        "author": "Juha Rantanen",
+        "timestamp": "2016-09-24T06:10:07Z"
+      },
+      {
+        "sha": "f6ad78a",
+        "message": "Rebased to latest dev. Added 'px' support.",
+        "author": "Juha Rantanen",
+        "timestamp": "2016-09-25T10:13:49Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#3908",
+    "metadata": {
+      "title": "Added TextStyle.measure function",
+      "labels": [
+        "🥶 Low Priority"
+      ],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-04-08T21:17:08Z",
+      "reviewers": [
+        "bigtimebuddy",
+        "themoonrat",
+        "darkfrog26"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Added a measure function to `TextStyle`. It's been a long time since I've written much JavaScript, so let me know if I missed something.  Ideally, I'd like to get rid of the necessity of the `canvas` parameter if you have any ideas?\r\n\r\nApplies to https://github.com/pixijs/pixi.js/issues/3903)."
+    },
+    "discussion_timeline": [
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "Do you have a problem with it being a static function in `Text` instead of an instance function?",
+        "timestamp": "2017-04-04T14:21:18Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "No problem with that at all",
+        "timestamp": "2017-04-04T14:28:35Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "The only issue is that `wordWrap` function also must become static for me to be able to utilize it.",
+        "timestamp": "2017-04-04T14:35:43Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "Updated, but I haven't modified the `updateText` function to utilize it yet.  I wanted to get some additional feedback before I did so.",
+        "timestamp": "2017-04-04T14:43:11Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "The only problem I have integrating this into `updateText` is that it utilizes `lines`, `lineWidths`, `maxLineWidth`, and `fontProperties`.  Would you like me to return an object that includes all of this information instead of `Rectangle` or do you have another suggestion of how to handle this?",
+        "timestamp": "2017-04-05T16:21:26Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@themoonrat or @bigtimebuddy I'm not sure what I'm doing wrong.  I added a `MeasuredText` object but it apparently cannot be found by `Text` and I'm not sure why.  I haven't ever worked on a structured project like this in JavaScript so some help would be greatly appreciated.",
+        "timestamp": "2017-04-06T15:08:37Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "Nevermind, I figured it out.  I hadn't noticed the import functionality.  If you guys have no further suggestions for changes I believe this is ready for merge.",
+        "timestamp": "2017-04-06T15:35:11Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Organizationally, I'm not feeling 100% on this PR, but we're getting closer!\r\n\r\nI would suggest moving MeasuredText class to **src/core/text** (alongside Text and TextStyle) and renaming it to `TextMetrics`. Potentially, you can move `Text.measure` and `Text.wordWrap` to this new TextMetrics class.\r\n\r\nTextMetrics should contain all functionality related to measuring and determining text. Text is responsible for rendering it. TextStyle maintains the settings. ",
+        "timestamp": "2017-04-06T15:46:31Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@bigtimebuddy okay, I implemented your suggestions.  I agree that's a better route.  In fact, that's very similar to what I wanted in the first place. :)",
+        "timestamp": "2017-04-06T16:27:41Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "Okay, now I'm really done.",
+        "timestamp": "2017-04-06T16:58:47Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Also, to expose TextMetrics, you need to add to core. Like here:\r\nhttps://github.com/pixijs/pixi.js/blob/dev/src/core/index.js#L27-L28",
+        "timestamp": "2017-04-06T17:02:27Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@bigtimebuddy oops, sorry about that...it's fixed now.",
+        "timestamp": "2017-04-06T17:07:27Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Could you explain the need for `clone` and `equals`? They are not used internally and I would rather not include them, unless there's a clear reason. You could use something like lodash's `_.isEqual` for comparing.",
+        "timestamp": "2017-04-06T17:24:00Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@bigtimebuddy removed. I added them because I was modeling based on `Point` and I thought perhaps it was a standard requirement for them to be present so I went ahead and added them just in case.",
+        "timestamp": "2017-04-06T17:30:57Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "What have you been using to test this against? I might suggest running against these two examples below. I want to make sure this change doesn't break anything (we don't have good unit-test coverage for Text):\r\n\r\nhttp://pixijs.github.io/examples/#/demos/text-demo.js\r\nhttp://pixijs.github.io/examples/#/basics/text.js",
+        "timestamp": "2017-04-06T17:43:26Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@themoonrat is there something you're waiting on to approve these changes?",
+        "timestamp": "2017-04-07T18:12:53Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "I just need a bit of time to take another look through after the changes you and bigtimebuddy have gone through, which I hope to do at some point this weekend :)",
+        "timestamp": "2017-04-07T18:36:09Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "@themoonrat okay, just hoping to be able to leverage this functionality in my project soon. :)",
+        "timestamp": "2017-04-07T19:09:53Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "Don't worry, me too! I really appreciate the work you've put in to this... the version of pixi I uses actually modified certain functions around that area, and every time a commit goes into PIXI.Text and I have to do a merge it's a nightmare resolving it, so really looking forward to that being easier to deal with after this PR",
+        "timestamp": "2017-04-07T19:23:39Z"
+      },
+      {
+        "author": "darkfrog26",
+        "role": "NONE",
+        "body": "Any idea when I can expect a release with this functionality?",
+        "timestamp": "2017-04-09T03:24:44Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "This will most likely be in 4.5.0, which is slated for this coming week, if everything goes well.",
+        "timestamp": "2017-04-09T10:19:26Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-24T07:34:45Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5d56d87",
+        "message": "Added TextStyle.measure function (Applies to https://github.com/pixijs/pixi.js/issues/3903).",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-04T03:16:36Z"
+      },
+      {
+        "sha": "64a83a6",
+        "message": "Moved measure function from TextStyle to Text and made static.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-04T14:42:22Z"
+      },
+      {
+        "sha": "2592bbb",
+        "message": "Updated JSDocs.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-04T14:53:58Z"
+      },
+      {
+        "sha": "5ca247c",
+        "message": "Updated JSDocs again.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-04T15:02:40Z"
+      },
+      {
+        "sha": "53b7446",
+        "message": "Merge branch 'dev' into dev",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-05T02:26:56Z"
+      },
+      {
+        "sha": "072ba7f",
+        "message": "Updates based on suggestions by @bigtimebuddy in PR.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-05T16:15:12Z"
+      },
+      {
+        "sha": "72dd74b",
+        "message": "Merge remote-tracking branch 'origin/dev' into dev",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-05T16:22:03Z"
+      },
+      {
+        "sha": "4e70468",
+        "message": "Merge branch 'dev' into dev",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-05T16:33:27Z"
+      },
+      {
+        "sha": "7b47e74",
+        "message": "Created PIXI.MeasuredText to capture all the information for measuring text.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T14:26:07Z"
+      },
+      {
+        "sha": "2cfd81e",
+        "message": "Merge remote-tracking branch 'origin/dev' into dev",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T14:26:14Z"
+      },
+      {
+        "sha": "74308f1",
+        "message": "Fixes for ESLint",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T14:33:44Z"
+      },
+      {
+        "sha": "08208e2",
+        "message": "Fixes for ESLint",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T14:41:43Z"
+      },
+      {
+        "sha": "eb5dccc",
+        "message": "Added PIXI prefix to returning MeasuredText.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T14:55:23Z"
+      },
+      {
+        "sha": "4c6c8d0",
+        "message": "Added import for MeasuredText in Text.js.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T15:27:15Z"
+      },
+      {
+        "sha": "8d44de6",
+        "message": "Refactored MeasuredText to TextMetrics and moved `measure` function into it.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T16:14:41Z"
+      },
+      {
+        "sha": "fee8d7e",
+        "message": "Forgot to move Text.wordWrap to TextMetrics.wordWrap",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T16:29:29Z"
+      },
+      {
+        "sha": "970dfbb",
+        "message": "Further cleanup of TextMetrics.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T16:37:55Z"
+      },
+      {
+        "sha": "958fe10",
+        "message": "Fixes suggested by @bigtimebuddy",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T17:07:08Z"
+      },
+      {
+        "sha": "b2eaef6",
+        "message": "Removed clone and equals from TextMetrics as they are unnecessary.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-06T17:30:18Z"
+      },
+      {
+        "sha": "1fbe52d",
+        "message": "Destructured references to TextMetrics instance in Text and privatized TextMetrics.wordWrap.",
+        "author": "Matt Hicks",
+        "timestamp": "2017-04-07T13:57:04Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#3375",
+    "metadata": {
+      "title": "See #3149 --- Add support for touchcancel and pointercancel",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-01-04T20:18:04Z",
+      "reviewers": [
+        "starakaj",
+        "andrewstart",
+        "themoonrat",
+        "bigtimebuddy"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "Doesn't fix all of the concerns in #3149, but does add touchcancel and pointercancel events"
+    },
+    "discussion_timeline": [
+      {
+        "author": "andrewstart",
+        "role": "COLLABORATOR",
+        "body": "This looks pretty straightforward overall. How would you feel about emitting `Xendoutside` events on display objects, and `Xcancel` events from the InteractionManager? I feel like that would get us all of the ease of use for button states and such, but also allow gesture management to differentiate between events.",
+        "timestamp": "2016-12-01T00:34:09Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Still workin'. I like this idea for the left/right mouse flags. I still don't know about the outside vs. cancel issue. Is the issue backwards compatibility? FWIW, InteractionManager wasn't event listening to xcancel events before, so adding them and then emitting xcancel events shouldn't break anyone's old code.",
+        "timestamp": "2016-12-01T16:46:34Z"
+      },
+      {
+        "author": "andrewstart",
+        "role": "COLLABORATOR",
+        "body": "Not backwards compatibility, but I imagine that the browser sends a `touchcancel` event instead of a `touchend` event, so it would be nice if everyone's `touchendoutside` listeners didn't have to change and would work as expected with the new event. It is definitely a design decision worth some consideration and discussion though.",
+        "timestamp": "2016-12-01T17:09:18Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Are pointer identifiers strings or what?",
+        "timestamp": "2016-12-02T15:44:27Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Pointer Identifiers are integers, mapped from DOM events. DOM PointerEvents have a pointerId property, and the Touch elements of a TouchEvent all have an identifier property. For mouse events there's just a constant pointer identifier MOUSE_POINTER_ID.",
+        "timestamp": "2016-12-02T15:57:20Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Why not make use array as a set then?",
+        "timestamp": "2016-12-04T15:31:54Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Okay, so I'm feeling pretty good about where this is at. I think I've address the changes that @andrewstart wanted, among other stuff. Let me know if there's anything else.",
+        "timestamp": "2016-12-06T14:02:56Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "@andrewstart Oh yeah, I guess those never do get removed. They shouldn't be, for mouse and pointer events, since those are still traced back to a single source event after \"up\" events, but definitely for touches they should be removed.",
+        "timestamp": "2016-12-07T17:36:44Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Alright, not sure what to do about the hasOwnProperty thing, since if I change it I can't get pixi to lint, but other than that this should be better.",
+        "timestamp": "2016-12-07T19:19:34Z"
+      },
+      {
+        "author": "andrewstart",
+        "role": "COLLABORATOR",
+        "body": "For the `hasOwnProperty` thing, you can put `// eslint-disable-next-line no-prototype-builtins` on the line above it - InteractionManager created and owns the object in question, so we can be pretty sure that it has the `hasOwnProperty` method.",
+        "timestamp": "2016-12-08T00:09:25Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Good call",
+        "timestamp": "2016-12-08T00:20:46Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Hmm, this is failing because of c05f15b, which added InteractionManager tests based on the un-refactored code",
+        "timestamp": "2016-12-18T16:38:59Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@themoonrat any follow-up here?\r\n\r\nAlso, @starakaj can you resolve merge conflicts?",
+        "timestamp": "2017-01-03T14:49:48Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry I'm confused. Where should I be seeing merge conflicts?",
+        "timestamp": "2017-01-04T20:28:09Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@starakaj I apologize, I mess this up this merge by trying to resolve conflicts. Can you create a new PR for this? Rebase with dev so that you can pull in the MockPointer changes.",
+        "timestamp": "2017-01-04T20:32:42Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry, so to do that do I need to fork dev again?",
+        "timestamp": "2017-01-04T20:38:14Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "You can just create a new pull request from your dev branch fork.",
+        "timestamp": "2017-01-04T20:42:47Z"
+      },
+      {
+        "author": "starakaj",
+        "role": "CONTRIBUTOR",
+        "body": "Alright, good?",
+        "timestamp": "2017-01-04T20:48:50Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "I don't see anything. I think you might need to re-fork :/",
+        "timestamp": "2017-01-04T21:12:42Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy Did you revert this? Github has it marked as merged.",
+        "timestamp": "2017-01-05T17:14:04Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@englercj I did a force push to dev instead of a revert. What that not the right thing to do?",
+        "timestamp": "2017-01-05T18:34:08Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "Usually a revert is nice because we can see it was removed, normally avoid force pushing unless absolutely necessary.",
+        "timestamp": "2017-01-09T05:15:13Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-24T13:24:29Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d6176d2",
+        "message": "Fix issue #2662 Added a touch counter instead of flag to ensure the correct touch count",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T16:36:32Z"
+      },
+      {
+        "sha": "400515c",
+        "message": "See #2662 --- bending to the will of eslint",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T16:48:09Z"
+      },
+      {
+        "sha": "216c52d",
+        "message": "See #2662 --- Added _touchCount to interactiveTarget.js, and removed an extraneous line in InteractionManager.js",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T17:40:26Z"
+      },
+      {
+        "sha": "979cf8f",
+        "message": "Removed an unnecessary check for _touchCount === undefined, since the mixin for interactiveTarget will always set this",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-31T14:47:39Z"
+      },
+      {
+        "sha": "cd96208",
+        "message": "Fix issue #2662 Added a touch counter instead of flag to ensure the correct touch count",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T16:36:32Z"
+      },
+      {
+        "sha": "110abc7",
+        "message": "See #2662 --- bending to the will of eslint",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T16:48:09Z"
+      },
+      {
+        "sha": "d9e0ea6",
+        "message": "See #2662 --- Added _touchCount to interactiveTarget.js, and removed an extraneous line in InteractionManager.js",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-25T17:40:26Z"
+      },
+      {
+        "sha": "dbb9087",
+        "message": "Removed an unnecessary check for _touchCount === undefined, since the mixin for interactiveTarget will always set this",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-10-31T14:47:39Z"
+      },
+      {
+        "sha": "dc51de4",
+        "message": "Merge branch 'dev' of github.com:starakaj/pixi.js into dev\n\n* 'dev' of github.com:starakaj/pixi.js:\n  Removed an unnecessary check for _touchCount === undefined, since the mixin for interactiveTarget will always set this\n  See #2662 --- Added _touchCount to interactiveTarget.js, and removed an extraneous line in InteractionManager.js\n  See #2662 --- bending to the will of eslint\n  Fix issue #2662 Added a touch counter instead of flag to ensure the correct touch count",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-11-17T13:08:00Z"
+      },
+      {
+        "sha": "f2345a5",
+        "message": "Merge branch 'dev' of https://github.com/pixijs/pixi.js into dev\n\n* 'dev' of https://github.com/pixijs/pixi.js:\n  Adds quotes around fontFamily (#3352)\n  Fixes links to docs (#3324)\n  Fixes the readme for bundle building excludes (#3325)\n  Bower main fix, \"bin\" renamed \"dist\" (#3332)\n  Expose the PIXI.Bounds class again (#3333)\n  Update documentation (#3337)\n  fixed settings not being respected (#3315)\n  v4.2.2",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-11-29T17:09:15Z"
+      },
+      {
+        "sha": "c0e091a",
+        "message": "Adding cancel events to interaction manager",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-11-29T17:52:17Z"
+      },
+      {
+        "sha": "2ea0373",
+        "message": "Refactoring InteractionManager to normalize all events to PointerEvents. Also updated InteractiveTarget to handle multiple touch or pointer events by recording pointerId for all tracked events, rather than just counting events. Finally, InteractionManager now updates on all tracked events, rather than just mouse events, so it should send move events when UI objects move underneath any held event, not just the mouse",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T15:50:54Z"
+      },
+      {
+        "sha": "35098b6",
+        "message": "Typo: mouse is not a function",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T15:58:56Z"
+      },
+      {
+        "sha": "afdc3fa",
+        "message": "InteractionManager normalizeToPointerData now returns an array of normalized events for TouchEvents with multiple changedtouches",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T17:11:53Z"
+      },
+      {
+        "sha": "d917dfa",
+        "message": "Typo: no such thing as onPointerStart",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T17:28:39Z"
+      },
+      {
+        "sha": "fe7ff09",
+        "message": "Fixing some more typos: trying to read the pointerId of un-normalized events",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T17:36:31Z"
+      },
+      {
+        "sha": "1a413b3",
+        "message": "Typos: un-normalized events don't have a pointerType",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T17:47:40Z"
+      },
+      {
+        "sha": "1109b49",
+        "message": "Added identifier property to InteractionData, and got rid of some typos---trying to read pointerId from un-normalized events",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T18:04:22Z"
+      },
+      {
+        "sha": "f8f915b",
+        "message": "Forgot to bind onPointerCancel",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-01T18:07:51Z"
+      },
+      {
+        "sha": "03933ac",
+        "message": "Refactoring interactiveTarget.js a bit, so that over, left down and right down are pointer properties, not mouse properties.",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-02T16:52:27Z"
+      },
+      {
+        "sha": "4d3be65",
+        "message": "Forgot an export default",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-02T16:59:58Z"
+      },
+      {
+        "sha": "f61431a",
+        "message": "Changed the mixin pattern for Pixi.interaction.interactiveTarget, so that this is bound correctly, so that DisplayObjects can each get a unique object for tracking pointers",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-06T00:40:51Z"
+      },
+      {
+        "sha": "20ae0c1",
+        "message": "Fixed some typos, moved interactiveTarget back to being an object, and released InteractionData after touch up/cancelled events",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-07T18:14:48Z"
+      },
+      {
+        "sha": "8eb4bc4",
+        "message": "Small fixed",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-07T19:18:14Z"
+      },
+      {
+        "sha": "7fbfa4e",
+        "message": "Safari compatibility",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-07T19:54:43Z"
+      },
+      {
+        "sha": "a238823",
+        "message": "hasOwnProperty fix",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-08T00:20:30Z"
+      },
+      {
+        "sha": "b79cd81",
+        "message": "Merge branch 'dev' of https://github.com/pixijs/pixi.js into dev\n\n* 'dev' of https://github.com/pixijs/pixi.js: (23 commits)\n  Adds predist and prelib (#3441)\n  Change the lines order in updateTransform. (#3435)\n  fix for regular transform (#3424)\n  Customize rendering process with \"pluginName\" field. (#3413)\n  Change the code lines order in updateTransform in TransformStatic.js (#3404)\n  Text style fixes (#3405)\n  Further arc tests\n  resolves #2016\n  Add Ellipse method unit tests\n  Fixed createColoredCanvas() documentation\n  Graphics - getLocalBounds after generateCanvasTexture (#3398)\n  Reduce Graphics.getlocalBounds test (#3397)\n  better code\n  cocoonJS interaction position fix\n  use private field\n  fixed tests\n  derp 0.01 -> 0.1\n  test description\n  Fix for order of skew and scale in transform, plus a test\n  v4.2.3\n  ...",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-14T15:30:09Z"
+      },
+      {
+        "sha": "e5d0a8c",
+        "message": "Safer to use a string for mouse pointer than a number",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-14T15:31:14Z"
+      },
+      {
+        "sha": "2fd9c45",
+        "message": "InteractionManager should now handle native DOM pointer events with pointerType mouse or touch by emitting mouse and touch events, respectively",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-18T16:19:23Z"
+      },
+      {
+        "sha": "e0be389",
+        "message": "Merge branch 'dev' of https://github.com/pixijs/pixi.js into dev\n\n* 'dev' of https://github.com/pixijs/pixi.js:\n  Update `clear` for a more thorough cleaning (#3445)\n  added InteractionManager tests (#3472)\n  Test case & fix for Graphics._calculateBounds calling updateLocalBounds every time (#3444)\n  Do not unload generated textures when manually running the texture garbage collector. This already happens when it is run automatically, as it will cause the texture to not be able to be renderered again (#3342)\n  v4.3.0\n  Allow '0x' notation of colours via strings to work in Text class (#3341)\n  Add parameter kernelSize for blur filters. (#3410)\n  target clarification (#3470)\n  Fixes logic for spritesheet resolution (#3464)\n  expose moveWhenInside docs (#3471)",
+        "author": "Sam Tarakajian",
+        "timestamp": "2016-12-18T16:19:37Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#5989",
+    "metadata": {
+      "title": "InteractionManager: dispatch 'mouse/pointer-over' after 'mouse/pointer-out'",
+      "labels": [
+        "🕷 Bug"
+      ],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-08-24T00:54:07Z",
+      "reviewers": [
+        "themoonrat",
+        "laino",
+        "bigtimebuddy",
+        "RealDolos"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "##### Description of change\r\n\r\nEnsures that mouseover/pointerover events are always dispatched **after** mouseout/pointerout events.\r\n\r\nHaving these in essentially random ordering between components makes it unnecessarily complicated to react to hover state.\r\n\r\nConsider this case:\r\n\r\n```\r\nlet isMouseOver = false;\r\n\r\nfunction onMouseOver() {\r\n    isMouseOver = true;\r\n}\r\n\r\nfunction onMouseOut() {\r\n    isMouseOver = false;\r\n}\r\n\r\ncomponentA.on('mouseover', onMouseOver);\r\ncomponentB.on('mouseover', onMouseOver);\r\n\r\ncomponentA.on('mouseout', onMouseOut);\r\ncomponentB.on('mouseout', onMouseOut);\r\n```\r\n\r\nIf componentA and componentB overlap, when you move from one component to the other in a certain direction with the cursor, you will receive a ``mouseover`` event **before** the other component dispatches the ``mouseout`` event, causing the above code to produce wrong results.\r\n\r\n##### Pre-Merge Checklist\r\n<!-- Remove items that do not apply. For completed items, change [ ] to [x]. -->\r\n\r\n- [x] Tests and/or benchmarks are included \r\n- [x] Documentation is changed or added\r\n- [x] Lint process passed (`npm run lint`)\r\n- [x] Tests passed (`npm run test`)\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=h1) Report\n> Merging [#5989](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=desc) into [dev](https://codecov.io/gh/pixijs/pixi.js/commit/8f86d57e521c039f632708154c999f27d6c12136?src=pr&el=desc) will **increase** coverage by `0.02%`.\n> The diff coverage is `100%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/pixijs/pixi.js/pull/5989/graphs/tree.svg?width=650&token=Rahs8lcle5&height=150&src=pr)](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##              dev    #5989      +/-   ##\n==========================================\n+ Coverage   70.61%   70.64%   +0.02%     \n==========================================\n  Files         208      208              \n  Lines       10553    10563      +10     \n==========================================\n+ Hits         7452     7462      +10     \n  Misses       3101     3101\n```\n\n\n| [Impacted Files](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [packages/interaction/src/InteractionManager.js](https://codecov.io/gh/pixijs/pixi.js/pull/5989/diff?src=pr&el=tree#diff-cGFja2FnZXMvaW50ZXJhY3Rpb24vc3JjL0ludGVyYWN0aW9uTWFuYWdlci5qcw==) | `93.41% <100%> (+0.14%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=footer). Last update [8f86d57...0f85553](https://codecov.io/gh/pixijs/pixi.js/pull/5989?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2019-08-02T20:45:21Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "Created a playground for v5 as it is: https://www.pixiplayground.com/#/edit/SX4ieoBSvUIoxAqnRjq_j\r\nGoing from red to green, you get 'true, true, false'\r\nGoing from green to red, you get 'true, false, true'\r\n\r\nIt's because green is above red on the render tree. \r\n\r\nSo when you go from red to green, the green 'mouseover' event will occur, and then the interaction manager later traverses down to red, and can then fire the 'mouseout'.\r\n\r\nWhen you go from green to red, the green is on stop, so the 'mouseout' event will occur, and then the interaction manager later traverses down to red, and can then fire the 'mouseover'.",
+        "timestamp": "2019-08-03T07:56:51Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "I've created another playground with html divs by the side, to demonstrate that html wise, it always comes out 'true, false, true'\r\n\r\nhttps://www.pixiplayground.com/#/edit/AYQVAUKAow0BC4EtqqQW3",
+        "timestamp": "2019-08-03T08:08:53Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "Is there any chance this, or another fix for the same problem, could end up in the next release?",
+        "timestamp": "2019-08-09T11:48:55Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "> Would also love to see another simpler approach, if possible, to better align the pointerover and mouseover events.\r\n\r\nBecause this thing is recursive and you don't know whether you'll need to delay something in\r\na sibling, parent, or child, you'll have to memorize the stuff that must be dispatched later at some point. \r\n\r\nI *strongly* doubt there's a \"simpler\" approach without a fundamental rewrite. I'm open to learn something new though.\r\n\r\n>Mainly, we need unit-tests to cover this new functionality and to handle all of the foreseeable cases.\r\n\r\nI couldn't built this repo when I tried last, so I can't really write tests. I made these changes pretty much blind.\r\n\r\nThe only way I could test them was taking the pre-built package from npm and editing the changes in by hand, then try that with my project.\r\n\r\nI can try again today, but I'm not gonna spend all day debugging this build process.",
+        "timestamp": "2019-08-16T10:10:41Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "> Also, we share a single event object between everything that's dispatched from the interaction manager, so we should make sure that this isn't broken by delaying dispatching afterwards. \r\n\r\nNone of these actually change it, so we should be good: ``processPointerDown``, ``processPointerUp``, ``processPointerCancel``, ``processPointerMove``, ``processPointerOverOut``.\r\n\r\nThe only place we change it is here: https://github.com/pixijs/pixi.js/blob/763808eccfbe61f1d4cc67053ccdd828b689f0a8/packages/interaction/src/InteractionManager.js#L1147\r\n\r\nAt the point we process the delayed (mouseout) events, that would now always contain the element that the mouse was moved to (if any).\r\n\r\nThis is (if I'm reading this correctly) a slight change from the previous behavior, where ``mouseout/mouseover`` would only contain that information if the pointer was moved to a child element. \r\n",
+        "timestamp": "2019-08-16T11:28:59Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@bigtimebuddy Let me know if you still want any changes.",
+        "timestamp": "2019-08-16T11:29:58Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Thanks for your responses. Just FYI, we will not consider this pull requests without tests. It’s too complicated a piece of code. Let me know why you couldn’t build from source, happy to help debug that with you. If you don’t have time to finish, then let me know and we can have someone else finish it. I agree that it’s an important fix.",
+        "timestamp": "2019-08-16T14:20:44Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@bigtimebuddy You need to pin your jsdoc dependency to a version >= 3.6.0, so the build will be fixed in node 12: https://github.com/hegemonic/requizzle/issues/5 (jsdoc depends on requizzle)",
+        "timestamp": "2019-08-16T15:54:41Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@bigtimebuddy Also, because you're installing your own eslint to node_modules, your eslint config should include ``{\"root\": true, ...``}. Because otherwise it is gonna try to inherit from my global eslint config, while just looking for plugins within your node_modules folder. Then I get errors like these:\r\n\r\n```\r\nESLint couldn't find the plugin \"@typescript-eslint/eslint-plugin\"\r\n```",
+        "timestamp": "2019-08-16T15:59:08Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Ah yes, that JSDoc thing is a known issue. Best to use Node 10 with `nvm`, if you can. We have to be pinned for the moment until we can update our docs to JSDoc >= 3.6--which is non-trivial task.\r\n\r\nCould you give me some more context on the eslint issue? Is this also Node 12 related? It would be awesome if you could capture that in a new issue so we can track it separately. Whereas the JSDoc thing is a known issue, so no need for a new issue for that.",
+        "timestamp": "2019-08-16T16:03:43Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "I added a test case and made sure it fails on the current dev branch but works on this branch.\r\n\r\nI also renamed ``noDelayed`` to ``skipDelayed`` and stored delayed events as objects instead of arrays...",
+        "timestamp": "2019-08-16T17:21:14Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Thank you @laino :tada:",
+        "timestamp": "2019-08-24T00:54:27Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Hey folks, I just updated my application from 5.1.1 to 5.1.2 to grab some of the image caching and video browser compatibility issues. Unfortunately, after updating, interactions in my canvas are not working properly. I am not getting hover events for any of my sprites, containers, etc... \r\n\r\nIt's possible I was doing something wrong before and this change has hardened things in a way which prevents a usage mode I am currently using. I tried a simple sandbox hover and it was working fine, but this change is a bit complex for me to debug. I just wanted to raise a yellow flag to say there may be an issue here. I'll try and see if I can narrow it down with a reproducible example.\r\n\r\nEDIT: The breakage is definitely coming between 5.1.1 -> 5.1.2 and seems to affect all my interactions. For example, under `5.1.1` I can do the following:\r\n```js\r\napp.stage.on(\"mouseover\", ev => console.log(ev));\r\n```\r\nI observe logged interactions coming from my canvas stage. However, under `5.1.2` the same code produces no logged output.\r\n\r\nI've put in an honest effort to debug the problem, but I'm pretty mystified as to what is preventing the mouseover listener from firing. I can sucessfully trigger other events, for example \"mousedown\" under 5.1.2, but mouseover is not activating.\r\n\r\nFor example, in my application, I have a Container named `tokens`.\r\n```js\r\ntokens.interactive = true;\r\ntokens.hitArea = new PIXI.Rectangle(0, 0, 1000, 1000);\r\ntokens.once(\"mouseover\", ev => console.log(\"Mouse Over\"));    // This never logs\r\ntokens.once(\"mousedown\", ev => console.log(\"Mouse Down\"));  // This logs correctly\r\n```",
+        "timestamp": "2019-08-26T00:19:44Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@laino could you please look at this?",
+        "timestamp": "2019-08-26T02:31:18Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "I tried a few things but couldn't reproduce. @aaclayton could you make a standalone example that demonstrates this? Maybe a [pixiplayground.com](https://pixiplayground.com)",
+        "timestamp": "2019-08-26T02:52:26Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Yeah, I will try - I was unable to reproduce this in a simple playground, so it definitely seems like some sort of interaction with other logic used within my application. It's just tough to find the root cause due to the complexity of the application where the issue is surfacing.",
+        "timestamp": "2019-08-26T03:24:45Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@aaclayton @bigtimebuddy I had that exact same issue today, but in the end it was just related to me having a weird combination of packages installed after trying to bump pixi's version.\r\n\r\nAfter removing any existing ``yarn link``-ed packages (specifically ``pixi.js`` and ``@pixi/interaction``), then removing my ``yarn.lock`` and doing a clean ``yarn install`` it went away...\r\n\r\nI'm on a clean 5.1.2 install now and it's working fine.\r\n\r\n*Edit*: Maybe not the exact same, because I didn't get any events at all.",
+        "timestamp": "2019-08-26T07:31:37Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@aaclayton Just something for consideration: because this PR changed the order in which events are dispatched, now if some code in an earlier event (like mousemove) throws an error, later the event won't trigger a mouseout event.",
+        "timestamp": "2019-08-26T07:41:00Z"
+      },
+      {
+        "author": "laino",
+        "role": "CONTRIBUTOR",
+        "body": "@aaclayton @bigtimebuddy Ah! Also if you're calling ```.stopPropagation()```; which never really worked as advertised, but now doesn't work as advertised in a different way.\r\n\r\nThe short story is that ``stopPropagation()`` right now prevents any further events from being dispatched. \r\nThis means that (and this was always the case) if you're doing a ``.stopPropagation`` in a ``mouseup`` event, you won't even get a ``click`` event on *the same element*, which clearly isn't what is advertised in the docs. Additionally, because now ``mouseover`` happens AFTER ``mousemove``, if you do ``.stopPropagation()`` in a ``mousemove``, you won't get a ``mouseover`` (and not for child elements either).\r\n\r\nBasically it's broken in a different way now - even more broken, and we honestly can't have that :D . I'll provide a fix in a bit.",
+        "timestamp": "2019-08-26T07:54:56Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Hey @laino - thank you for your feedback here, you nailed my problem with your latest message - I have the following:\r\n\r\n```js\r\n  /**\r\n   * Handle mouse movement events while the workflow is active\r\n   * @private\r\n   */\r\n  _onMouseMove(event) {\r\n    event.stopPropagation();\r\n    if ( event.data.handleState === 0 ) return;\r\n    if ( this.handlers.mousemove ) this.handlers.mousemove(event);\r\n  }\r\n```\r\n\r\nSo it seems that I'm blocking the `mouseover` event from triggering. I will see if I can figure out a workaround for now, but - correct me if I'm wrong - it sounds like this was not an intentional change.\r\n\r\nMy (naive) understanding was that `stopPropagation` would prevent the `mousemove` event from bubbling to other handlers for the same event/interaction. Would you recommend reworking things to remove `stopPropagation()` calls, or advise waiting for a patch?",
+        "timestamp": "2019-08-26T16:09:51Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "ETA on patch is probably sometime this week.",
+        "timestamp": "2019-08-26T16:44:50Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Awesome, well thank you both so much for your engagement on this! I'm not in a huge rush as I can certainly stay on 5.1.1 for a while longer. Thanks again!",
+        "timestamp": "2019-08-26T18:48:19Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Hey @laino and @bigtimebuddy - just following up on this. I'm going to go ahead and refactor my code to remove the `stopPropagation` calls, but I wanted to make sure this was still something being tracked for 5.1.3. Thanks!",
+        "timestamp": "2019-09-02T20:35:40Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "@aaclayton https://github.com/pixijs/pixi.js/pull/6043 has been approved and merged in to fix this, so just waiting for a new release :)",
+        "timestamp": "2019-09-03T06:07:28Z"
+      },
+      {
+        "author": "aaclayton",
+        "role": "NONE",
+        "body": "Aah, I missed it in the list. Thank you for pointing that out and thanks very much for the quick resolution!",
+        "timestamp": "2019-09-03T15:48:48Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "763808e",
+        "message": "Interaction: dispatch 'mouse/pointer-over' after 'mouse/pointer-out'",
+        "author": "Nils Kuhnhenn",
+        "timestamp": "2019-08-02T20:27:43Z"
+      },
+      {
+        "sha": "bba15f9",
+        "message": "Interaction: Add tests for dispatching 'mouse/pointer-over' after 'mouse/pointer-out'",
+        "author": "Nils Kuhnhenn",
+        "timestamp": "2019-08-16T16:18:06Z"
+      },
+      {
+        "sha": "4aedb7d",
+        "message": "Interaction: rename 'noDelayed' to 'skipDelayed' and save delayed events as objects",
+        "author": "Nils Kuhnhenn",
+        "timestamp": "2019-08-16T17:16:59Z"
+      },
+      {
+        "sha": "3255c07",
+        "message": "Merge branch 'dev' into events",
+        "author": "Matt Karl",
+        "timestamp": "2019-08-23T16:38:41Z"
+      },
+      {
+        "sha": "0f85553",
+        "message": "Merge branch 'dev' into events",
+        "author": "Matt Karl",
+        "timestamp": "2019-08-24T00:48:13Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#7050",
+    "metadata": {
+      "title": "[Fix]: Filter system should work in world space and then restore projection transform.",
+      "labels": [
+        "🕷 Bug",
+        "🔥 High Priority",
+        "✅ Ready To Merge"
+      ],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-12-22T01:08:43Z",
+      "reviewers": [
+        "ivanpopelyshev",
+        "GoodBoyDigital",
+        "bigtimebuddy",
+        "ShukantPal"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "See https://github.com/pixijs/pixi.js/pull/7044#issuecomment-739322922\r\n\r\nBasically, instead of making the filtering pipeline work in projected space (if `projectionSystem.transform` is applied) - we should make it work in world space. This would simplify all our calculations b/c we don't have to worry about the projection transform. The projection transform is restored when rendering to the final output texture in `bindAndClear`.\r\n\r\nAnother benefit is that applying filtering in projected space can increase the AABB (think rotation), which is unwanted.\r\n\r\n<img width=\"200\" alt=\"Screen Shot 2020-12-05 at 12 26 18 PM\" src=\"https://user-images.githubusercontent.com/22450567/101259145-1446be00-36f5-11eb-8647-970d44e06f9a.png\">\r\n\r\n## Other changes\r\n\r\nI and @ivanpopelyshev had a call and we coded together and did the following fixes:\r\n\r\n* restore the sourceFrame/destinationFrame binding of the render texture system\r\n* apply the rounding of the filter system's source frame in screen space (by projecting it there, rounding, and projecting it back). We skip rounding if the projection has skew involved, since that invalidates the \"rectangleness\".\r\n* added the fix in #6892, #6893 (the \"fix regression in y-flipping PR\") since it wasn't already in the `main` branch but in `development`. (It was creating a problem in our testing so we had to \"pre-merge\" it)\r\n\r\n- [ ] Tests and/or benchmarks are included\r\n- [ ] Documentation is changed or added\r\n- [ ] Lint process passed (`npm run lint`)\r\n- [ ] Tests passed (`npm run test`)\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@bigtimebuddy's fiddle (modified by adding masking, removing `filterArea`) with #7044 vs this (#7050):\r\n\r\n* https://jsfiddle.net/ShukantPal/v3dtcohp/\r\n* https://jsfiddle.net/ShukantPal/rLpnd01q/",
+        "timestamp": "2020-12-05T17:32:05Z"
+      },
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=h1) Report\n> Merging [#7050](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=desc) (662ed9f) into [main](https://codecov.io/gh/pixijs/pixi.js/commit/03509395a6553580ad8cde400890a295baa7af18?el=desc) (0350939) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/pixijs/pixi.js/pull/7050/graphs/tree.svg?width=650&height=150&src=pr&token=Rahs8lcle5)](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff            @@\n##              main     #7050   +/-   ##\n=========================================\n  Coverage   100.00%   100.00%           \n=========================================\n  Files           17        17           \n  Lines          704       704           \n=========================================\n  Hits           704       704           \n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=footer). Last update [0350939...662ed9f](https://codecov.io/gh/pixijs/pixi.js/pull/7050?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-12-05T17:53:56Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "1. Since source frame dimension determines the render textures dimension, the quality will be horrible if apply a zoom-in or skew transform. That's currently not taken into account. We would need to do something like this to get appropriate dimensions for the render texture.\r\n```js\r\nconst lt = tempPoints[0];\r\nconst lb = tempPoints[1];\r\nconst rb = tempPoints[2];\r\n\r\nlt.set(state.sourceFrame.left, state.sourceFrame.top);\r\nlb.set(state.sourceFrame.left, state.sourceFrame.bottom);\r\nrb.set(state.sourceFrame.right, state.sourceFrame.bottom);\r\n\r\nrenderer.projection.transform.apply(lt, lt);\r\nrenderer.projection.transform.apply(lb, lb);\r\nrenderer.projection.transform.apply(rb, rb);\r\n\r\nconst width = Math.hypot(lt.x - lb.x, lt.y - lb.y); // width for renderTexture\r\nconst height = Math.hypot(rb.x - lb.x, rb.y - lb.y); // height for renderTexture\r\n```\r\n\r\n2. The filter area, if set, is transformed, but it shouldn't be.\r\n\r\n3. I feel like `this.renderer.projection.transform = null;` should be added at the end of `pop()` for correctness. Doesn't seem to matter at the moment since `state.transform` is the identity transform most of the time. With this new approach every transform could be done in shaders, i.e., `state.transform = target.localTransform` with local bounds etc.\r\n\r\nDemo: https://jsfiddle.net/7qg2e15x/\r\n",
+        "timestamp": "2020-12-05T21:01:41Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@dev7355608 I agree with 1; and for 2, that is intentional - the filter area is in world space. The documentation doesn't state filterArea is in ~screen-space~ projected world space: http://pixijs.download/dev/docs/PIXI.DisplayObject.html#filterArea.\r\n\r\nRegarding 3, the `renderer.projection.transform` should not change from before `push` to after `pop`. You can't set it to null at the end of `pop()`.",
+        "timestamp": "2020-12-05T21:06:24Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@dev7355608 To get the render-texture dimensions, we can just multiply the scaleX & scaleY values instead of transforming the whole source frame.\r\n\r\n```js\r\nconst sx = Math.sqrt(transform.a**2 + transform.b**2);\r\nconst sy = Math.sqrt(transform.c**2 + transform.d**2);\r\n\r\nsourceFrame.width = sourceFrame.width * sx;\r\nsourceFrame.height = sourceFrame.height * sy;\r\n```",
+        "timestamp": "2020-12-05T21:08:01Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "@SukantPal \r\n\r\nRegarding 2: I feel like \r\n```js\r\n// object.transform.setFromMatrix(Matrix.IDENTITY);\r\napp.renderer.render(object, texture, true, transform);\r\n```\r\nand\r\n```js\r\nobject.transform.setFromMatrix(transform);\r\napp.renderer.render(object, texture, true);\r\n```\r\nshould be equivalent. That why I think the filter area must not be transformed.\r\n\r\nRegarding 3: I'm thinking of the follow scenario. I hope it makes sense:\r\n```\r\npush()                projection.transform == matrix1\r\n    child1 _render()  projection.transform == matrix1\r\n\r\n    child2 push()     projection.transform == matrix2\r\n    child2 _render()\r\n    child2 pop()      projection.transform not reset to matrix1 here\r\n\r\n    child3 _render()  projection.transform != matrix1\r\npop()\r\n```",
+        "timestamp": "2020-12-05T21:38:13Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@dev7355608 \r\n\r\nI understand your reasoning for 2 now. But I still feel `filterArea` should be transformed because the two cases you show do have a fundamental difference. Think about it like this:\r\n\r\nFirst case: You are moving a sheet of paper (i.e. transforming the world).\r\n\r\nSecond case: You are moving the contents of the paper (i.e. transforming the stage).\r\n\r\nSince the `filterArea` is defined in the sheet of paper, it must be transformed in the first case; but not in the second.\r\n\r\n---\r\n\r\nFor 3, your analogy doesn't make sense, because `FilterSystem.push` doesn't assign a _new_ projection matrix. It would look more like this:\r\n\r\n```\r\npush()                    projection.transform === matrix1\r\n    child1_render()  projection.transform === null (rendering from world directly into render-texture, without extra projection)\r\n    \r\n    child2_push()    projection.transform === null (as before)\r\n    child2_render()\r\n    child2_pop()     projection.transform ===  Matrix.IDENTITY (nothing to restore)\r\n\r\n    child3_render()  projection.transform === Matrix.IDENTITY\r\npop()                    projection.transform will be set to matrix1 (restored in bindAndClear())\r\n```\r\n\r\nIf there is a chance that `bindAndClear` is never called on the output render-texture, we should also restore the `projection.transform` in the end of `pop()`. I think that's what you mean (not set it to `null`).",
+        "timestamp": "2020-12-05T21:46:32Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "> @dev7355608 To get the render-texture dimensions, we can just multiply the scaleX & scaleY values instead of transforming the whole source frame.\r\n> \r\n> ```js\r\n> const sx = Math.sqrt(transform.a**2 + transform.b**2);\r\n> const sy = Math.sqrt(transform.c**2 + transform.d**2);\r\n> \r\n> sourceFrame.width = sourceFrame.width * sx;\r\n> sourceFrame.height = sourceFrame.height * sy;\r\n> ```\r\n\r\n@dev7355608 I think I made a mistake here. You wouldn't resize `sourceFrame` - rather you would resize the `destinationFrame`, since that is the render-texture's dimensions.",
+        "timestamp": "2020-12-05T21:47:31Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "filterArea shouldnt be transformed because I put \r\n\r\n```js\r\nstage.filterArea = app.screen;\r\n```\r\n\r\nin all of my posts/articles about composition.",
+        "timestamp": "2020-12-05T21:49:11Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "@SukantPal \r\n\r\nMaybe we should add a `filterAreaSpace` field with options `SCREEN`, `WORLD`, and `LOCAL` to make everyone happy. But because of what Ivan mentioned, I think the default should be `SCREEN`.\r\n\r\n---\r\n\r\nYes, what I meant was to restore the transform at the end of pop().",
+        "timestamp": "2020-12-05T22:10:03Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "This is a fix PR, we can add breaking/new_features later. Default should be `SCREEN`.\r\n\r\nAnother issue is that `ceil()` has to be done in screen pixel coors and i dont see in this PR in which coords ceil() is.",
+        "timestamp": "2020-12-05T22:14:32Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev In all your posts, did you apply a `transform`?",
+        "timestamp": "2020-12-05T22:36:51Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev If filterArea is in screen space, you would need to also apply the render-texture's inverse destinationFrame → sourceFrame projection. Since we never did that, it doesn't make sense to do so for `projection.transform` either.",
+        "timestamp": "2020-12-05T22:40:37Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev We can fix the pixel rounding in screen space in another PR. That's out of scope for here. This PR does it in world space, just like before.",
+        "timestamp": "2020-12-05T22:46:06Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "I found this in the docs. In both cases it refers to screen space.\r\n\r\nhttps://github.com/pixijs/pixi.js/blob/4619c56abb2a5887bff797d92b72d81c36a6d8ed/packages/app/src/Application.ts#L131-L136\r\n\r\nhttps://github.com/pixijs/pixi.js/blob/50289496e8c85166048fe2b5c23c579620a80fe7/packages/filters/filter-alpha/src/AlphaFilter.ts#L15-L21",
+        "timestamp": "2020-12-05T22:56:16Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@dev7355608 So, 1 doesn't refer to \"screen space\". It just says the `screen` object is \"safe\" to there are no side effects of using it as `filterArea`.\r\n\r\nIn most cases, screen & world coordinates are same. We need to fix that in the docs in case 2 by putting `world` coordinates instead.",
+        "timestamp": "2020-12-05T23:01:14Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "I've seen most use cases of filterArea to be either:\r\n\r\n* filtering a portion of a display object (like blurring a part of a texture). Here you would want the filter area to move with the display object, and it makes sense the filter area to be projected.\r\n\r\n* applying a filter on the whole screen. Here it would make sense to inverse project the filterArea.",
+        "timestamp": "2020-12-05T23:07:07Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "@SukantPal \r\n> To use clipping in display coordinates, assign a filterArea to the same container that has this filter. \r\n\r\nIt definitely sounds more like screen space than world space (to me at least). Whether that was intended or a mistake is another matter.",
+        "timestamp": "2020-12-05T23:17:02Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "The question whether `filterArea` is screen space or world space might actually be the question whether filters should work in screen or world space.\r\n\r\n- Just stage rotation: https://jsfiddle.net/kve5f381/\r\n- Rotation via transform parameter (w/ this PR): https://jsfiddle.net/vw8u4x92/2/",
+        "timestamp": "2020-12-06T00:29:04Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@dev7355608 Filters apply in world space. That is the intended behavior. You are under the assumption of the following:\r\n\r\n> Regarding 2: I feel like\r\n> \r\n> ```js\r\n> // object.transform.setFromMatrix(Matrix.IDENTITY);\r\n> app.renderer.render(object, texture, true, transform);\r\n> ```\r\n> \r\n> and\r\n> \r\n> ```js\r\n> object.transform.setFromMatrix(transform);\r\n> app.renderer.render(object, texture, true);\r\n> ```\r\n\r\nThat is wrong. Applying the projection is like rendering into a texture, and then rendering that texture onto the screen by applying the projection. If you do that, it will have the same effect as  \"rotation w transform parameter\" .\r\n\r\nThink of it like this - the world is a sheet of paper and its contents are the `stage`. The first case in your example is moving the contents w.r.t. the paper. The second case is moving the sheet of paper itself.\r\n\r\nNow, applying a pixelation filter is like downsampling the contents to the grid of the paper. Moving the contents (rotation via worldTransform) will not rotate the pixels (i.e. paper's grid). However, moving the page itself (rotation via projection transform) will rotate the pixels.",
+        "timestamp": "2020-12-06T01:10:43Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "It was undefined behaviour, and I assumed that because of older cases like `stage.filterArea = app.screen`, we have to make it screen-space.\r\n\r\nBut now that im thinking about it, we can make a fine addition to the camera.\r\n\r\nImagine you have a camera that manages that `transform`, and also moves `camera.screen` rectangle around. Then you can write `stage.filterArea = camera.screen` and it will work with transforms! Before ,`app` managed resizes and it worked automatically - here it will also work automatically, no need to re-assign anything, because its not copying setter, its just a link.\r\n\r\nSo I propose that we define `filterArea` in world space for the sake of consistency.",
+        "timestamp": "2020-12-06T01:11:57Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "And we just solved rounding issue , we even checking it for skew. This PR looks more defined than mine, hope @SukantPal makes new PDF about projections soon :)",
+        "timestamp": "2020-12-06T01:14:07Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "Ok, if filters are supposed to work with world space, then I agree as well.",
+        "timestamp": "2020-12-06T01:40:19Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "The resolution problem (zoom & skew) hasn't been addressed yet.\r\n\r\n![image](https://user-images.githubusercontent.com/31905376/101989060-1b923c80-3c9e-11eb-9ae5-7edf591c07db.png)\r\n\r\n",
+        "timestamp": "2020-12-12T16:19:36Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "What do you mean by skew? And for the zoom thing, we can increase the size of the source texture in another PR. You’d have to add checks for maximum texture sizes supported by the device too.\r\n",
+        "timestamp": "2020-12-12T16:21:35Z"
+      },
+      {
+        "author": "dev7355608",
+        "role": "COLLABORATOR",
+        "body": "Never mind, no problems with skew transforms.",
+        "timestamp": "2020-12-12T16:58:56Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "hey chaps, would be good to understand the performance impact of this, does the extra maths have an impact at all? ",
+        "timestamp": "2020-12-13T21:52:01Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@GoodBoyDigital Filters are already super-heavy so any CPU-side calculation of O(1) will have negligible affect on rendering efficiency. This PR does not introduce any memory allocations either. Which specific math are you concerned about?",
+        "timestamp": "2020-12-13T21:55:02Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "@GoodBoyDigital nope. We even removed all allocations per-filter",
+        "timestamp": "2020-12-13T21:56:13Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "cool, a lot of new code to wrap my head around haha! :D \r\nWould be good to understand the value this will bring to pixi users. (not suggesting it doesn't, but its not entirely clear to me after reading this PR, blame it on my Sunday brain :P )",
+        "timestamp": "2020-12-13T22:04:08Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@GoodBoyDigital I think you didn't read the previous threads that have more context.\r\n\r\n* https://github.com/pixijs/pixi.js/issues/7035\r\n* https://github.com/pixijs/pixi.js/pull/7039\r\n* https://github.com/pixijs/pixi.js/pull/7044\r\n\r\nBasically, the filter system didn't work with a projection transform or a custom source/destination frame when binding the render texture.\r\n\r\nAn additional fix was fixing how the sourceFrame was \"pixel-rounded\". It has to be rounded in screen space, not world space (i.e. you have to use the source->destination frame projection + projection transform)",
+        "timestamp": "2020-12-13T22:07:23Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "thanks will give them a read!\r\n",
+        "timestamp": "2020-12-13T22:14:29Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "yeah this is cool! nice work chaps. left a couple of points!",
+        "timestamp": "2020-12-13T22:32:32Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@SukantPal can you rebase to dev please?",
+        "timestamp": "2020-12-21T17:38:00Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "c0e3bc3",
+        "message": "fix transforms + filters combination, thanks to @dev7355608",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-12-01T16:25:20Z"
+      },
+      {
+        "sha": "370affb",
+        "message": "filterArea shouldn't be part of transform",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-12-01T17:01:40Z"
+      },
+      {
+        "sha": "9f9dae9",
+        "message": "Adjust filtering transform restoration method by inversion.",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-05T17:18:46Z"
+      },
+      {
+        "sha": "f63e822",
+        "message": "Debug removal",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-05T17:34:09Z"
+      },
+      {
+        "sha": "3a18887",
+        "message": "[Fix]: Rounding sourceFrame in screen, restore render-texture binding properly, and apply viewport frame inversion fix from development",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-06T00:50:08Z"
+      },
+      {
+        "sha": "7e19a63",
+        "message": "evert",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-06T01:17:45Z"
+      },
+      {
+        "sha": "662ed9f",
+        "message": "Revert package-lock to main branch",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-06T01:18:30Z"
+      },
+      {
+        "sha": "af7d4dc",
+        "message": "add unit test, store transform link",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-12-11T19:11:48Z"
+      },
+      {
+        "sha": "e61fb38",
+        "message": "Apply micro-optimizations suggested by @GoodBoyDigital",
+        "author": "Shukant Pal",
+        "timestamp": "2020-12-17T01:57:42Z"
+      },
+      {
+        "sha": "15da9cc",
+        "message": "Merge branch 'main' into fix/filter-system-projection",
+        "author": "Matt Karl",
+        "timestamp": "2020-12-17T23:53:46Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#1067",
+    "metadata": {
+      "title": "Alternative for text positioning",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2014-10-19T14:59:54Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "No more dom required to calculate the font size.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "good stuff :+1: \n",
+        "timestamp": "2014-10-19T14:59:51Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "The only thing I would say about this is that you can handle breaking out of the nested for loops with less code.\n\nTry:\n\n```\nouter:\nfor (i = 0; i < baseline; i++, idx+= line) {\n    for (j = 0; j < line; j += 4)   {\n        if (imagedata[idx + j] !== 255) {\n            break outer;\n        }\n    }\n}\n```\n\nDisclaimer: I didn't test this exact implementation in the code but you get the idea. I don't think you need that stop variable. That would apply to both nested for loops I think.\n",
+        "timestamp": "2014-10-20T06:20:24Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "Thats probably much cleaner, @EricLesch.\nI didn't know that you can do that in Javascript. I originally tried to do break 2; like I would do in other coding languages, but that failed.\n\nShould do a perf on that to find out if declaring a block is faster than using a helper variable :)\n",
+        "timestamp": "2014-10-20T07:19:55Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "@EricLesch \nhttp://jsperf.com/labeled-break-vs-var\nLabeled breaks are not only cleaner but also faster. (In chrome at least, haven't checked other browsers) You sure should make a PR for that, maybe even add that lineheight property that we talked about in the other PR discussion.\n\nI'm not sure if labels are supported on all browsers but I would believe so.\nhttps://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/label\nAccording to mozilla, labels make things harder to read, but I think that's not true in this case. Apparently all mobile and desktop devices support it. (?)\n\nAlso regarding test strings. Currently I'm using \"|Mq\" but I have noticed that the $ sign is even better since it is a regular S + a little ascent and descent. Since its a currency sign, I would believe that the support for that character is pretty wide.\n\nhttp://mokgames.com/playground/pixi/fontcalculator.html\n\nThere you can test the result for the minimalistic version vs the full test string.\nUsing \"|My$\" as minimalistic string. Probably can shorten it even more to save some time.\n",
+        "timestamp": "2014-10-20T11:11:56Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "IE9 is alarmingly slow but it actually works so I wouldn't lose any sleep over it. This is not exactly hotpath code.\n\nDo labels still uglify / closure compile correctly? You'd hope so right, but I've never tested it.\n",
+        "timestamp": "2014-10-20T11:50:24Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "@photonstorm \nI have just edited my above post. Could you post your opinion on the test string? I am currently looking to find any font that doesn't support the dollar sign using google fonts. Maybe it would even be enough to solely check on the $ sign. (edit: nah, too small descent, but good for the ascent)\n\nFor some checking:\nhttp://mokgames.com/playground/pixi/fontcalculator.html \n\nAs soon as someone is using something exotic they would need to define the font properties on their own. Or maybe going back to checking the dom.. but then they would have to define the font properties anyway if they use wrappers like cocoon. So not a huge difference imo. Maybe we can make a pixi packing tool that already fetches the used fonts from text objects in the code and generates the predefined property cache.\n",
+        "timestamp": "2014-10-20T11:55:07Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "Here, this version populates a font drop-down with all fonts installed on your OS. I just found it quicker for testing. I guess you could also use the list contents to write a script to batch test all of them and then you'll get an idea how many work vs. fail.\n\nhttp://gametest.mobi/pixi-font/\n",
+        "timestamp": "2014-10-20T13:22:17Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "That's really cool @photonstorm \n\nWhat I have noticed is that sometimes the descent is 1 pixel off. This is due to brackets often having a lower descent and higher ascent than other characters. This doesn't hurt at all tho. We can't really account for all possible characters without giving up on performance anyway. Or we just add a curly bracket to the test string.\n\nThen it also fails sometimes at fonts that have a \"M\" character with a much lower width than height.\nThis is because I am using twice the width of the letter \"M\" as canvas height, since it's usually wider than tall in almost all fonts and I didn't want to create an unnecessary padding for performance reasons.\n\nI have some really exotic fonts on my system.. haha. \n\nThe exotic ones sure are a problem.\nIf we use DOM to calculate the canvas height or add a padding, then that one issue could be resolved.\nFor cocoon and other wrappers, we could just skip the dom check and rely on the current implementation or on the dev predefining the properties.\n",
+        "timestamp": "2014-10-20T13:51:07Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "I have loads of pixel-art style fonts and they at least mostly work :)\n\nI'm still thinking we just do a best-case guess like currently and let the dev override it for the exotic ones. I'd wager it's actually impossible to write a perfectly accurate script that'll work regardless of whatever spurious font someone may have found lurking in the depths of the web :)\n\nAll I'd probably add is some fail-safe. For example a font that may not have the M character (or whatever else you change that to) populated with anything _at all_ would I think currently break it? and I've definitely seen fonts like that (think WingDing style fonts where only a few characters have content).\n",
+        "timestamp": "2014-10-20T15:29:05Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "Hey rich,\n\nI have seen that too in WingDings. Then I thought \"oh well, who is using WingDings anyway\" but you are right, that issue would carry over to other languages and fonts that don't have the letter M.\nIn that case we should maybe define a minimum canvas height. If the width of \"M\" is less than that minimum height, either use the minimum height (which probably is really inaccurate especially when the desired font size is huge), grab the width of \"M\" in a standard font like Arial (which would be more accurate, since we would only change the font family and use the same font style/size) or spawn a DOM node and grab the offsetHeight, like the prior PIXI did.\n\nBut what is the pixel scaning worth if we can't display anything that we can scan. WingDings can't display the dollar sign either, nor brackets or anything else worth scaning. So we can never know for sure that we won't fail here.\n\nWingDings is actually quite cool with the current approach, because it does return the correct value. 40px fontSize for 40pt WingDings.\n\nHow about we let the dev decide the test string?\nRight now it's hardcoded into the fontProperties method. We could replace it by PIXI.Text.TestString;\n\nI mean, if you are a chinese dev, writing your app to display chinese text, then you will most likely get the ascent right if your test string covers chinese characters. For the dev it would be 1 line of code, for us to fiddle around, it would be a huge pain.\n",
+        "timestamp": "2014-10-20T16:12:11Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "All I really meant was that if we get zero back from a font height scan then we should ignore it and pick a happy default instead, because it might just have been our choice of the letter M that buggered it, rather than anything wrong with the actual font. I don't think we need to let them define which letter is used either, just let them override the returned value and they can fix anything for themselves.\n\nI used WingDings as an example of a font with non-letter characters in really, I'm sure that specific font would be fine as it's well populated. It's just I've seen lots of similar ones which only have a few characters defined, or just an upper-case set and blanks for lower case, or similar weirdness that may return zero heights.\n",
+        "timestamp": "2014-10-20T17:15:39Z"
+      },
+      {
+        "author": "SebastianNette",
+        "role": "CONTRIBUTOR",
+        "body": "@EricLesch \n\nHey Eric, just asking. Are you working on getting the lineheight property and your labeled loop into this? If not then I'll take a look into it this weekend. Just making sure if anyone works on it :)\n",
+        "timestamp": "2014-10-22T20:14:21Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "Hey sorry I got super busy with work. You guys can do whatever you want with this.\n\nThanks,\nEric\n",
+        "timestamp": "2014-10-23T04:14:18Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Hi all!\n\nRegarding\nhttps://github.com/GoodBoyDigital/pixi.js/issues/1021\nand\nhttps://github.com/GoodBoyDigital/pixi.js/pull/1062\nand this page here:\n\nDoes text in Pixi JS now get rendered in exactly the same position across browsers and OSs? (Including Mac-Firefox, Windows-Firefox, Mac-Chrome, Windows-Chrome, Mac-Safari, iPhone-Safari, Internet Explorer, and Android.)\n\nDoes it also work with atypical fonts? (where eg the \"M\" has unnormal proportions)\n\nIs the overall performance of the fix OK?\n\nThat would be great :)\n\nTobi\n",
+        "timestamp": "2015-02-10T11:30:40Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "P.S.\n\nPerhaps someone know who to resolve this line?\nhttps://github.com/GoodBoyDigital/pixi.js/blob/88661f02228f03e1698bbe2e16f4fc47a1948e71/src/pixi/text/Text.js#L440\n\n```\n//TODO might need a tweak. kind of a temp fix!\nproperties.descent += 6;\n```\n",
+        "timestamp": "2015-02-10T11:40:17Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "Hi,\n\nThe short answer is that I don't know about performance/consistency of the current solution because I ended up forking it and doing it a different way in my project.\n\nHowever, I've just downloaded the latest PIXI.js code from the master branch and pushed up the old font testbed that I was using. I didn't take the time to make the test lines line up with where the text should be in the latest version but you can get an idea.....\n\nIt's at http://ericlesch.com.\n\nI am not aware of anyone profiling the performance in the related discussion so that is unknown as well.\n\nI agree that \"+=6\" looks suspect.\n\nA good webfont to check for atypical sizing would be Oswald since it has an abnormally high ascent and an abnormally short descent.\n\nI hope that is somewhat helpful.\n\nThanks,\nEric\n\nFounder\nMakemake.io\n\nP.S. Your website is rad. I like people doing creative outside-of-the-box things on the web.\n",
+        "timestamp": "2015-02-11T01:56:34Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Hi Eric\n\n> I ended up forking it and doing it a different way in my project.\n\nIf you solved it in a general way for you project / in your fork, perhaps you could create a pull request?\n\n(Regarding performance: Pixi is using a cache for the font metrics - if the lib user can fill it right way then there's no performance hit later.)\n",
+        "timestamp": "2015-02-11T10:18:16Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "As per the previous discussion here and in another thread, my solution was deemed too computationally expensive. I profiled it and thought it was ok but I think it depends on your use case.\n\nIn any case I decided not to argue about it anymore.\n\nThanks,\nEric\n\nFounder\nMakemake.io\n",
+        "timestamp": "2015-02-11T11:49:08Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks a lot for your reply!\n\nPerhaps Pixi could offer both options - no arguing necessary :)\n\nOn http://ericlesch.com/ you currently have a page which tests how precise Pixi positions text, if I understood you correctly. Perhaps you could check whether the latest Pixi (dev branch) positions text correctly? (across browsers/OSs)\n\nThen perhaps Pixi could offer two options: One solution which is 100% exact and might incur a small performance hit, and an approximate positioning option (eg the current code) which might be faster. (The latter/current option could be the default.)\n\nIf you found a solution which ensures that Pixi positions text 100% correctly across OSs, then that's very valuable (especially when _big_ words are rendered and need to line up with each other or with graphics). I hope this solution can somehow find it's way (back) into Pixi.\n\nUsers worried about the small performance hit should have/get the option to ask Pixi to collect the font metrics for a list of fonts right away (after the fonts got loaded) - so that there's no perf hit caused by font measuring later during eg high-speed animations. (I'd use this btw because I do have high-speed animations in my current web app.)\n\nTo all: Would that leave any major issues unresolved?\n\nI firmly believe that browsers should take care of exact text positioning (and fully compensate the differences between OSs), but they don't. So the burden is on poor Pixi's shoulders ...\n",
+        "timestamp": "2015-02-12T10:48:18Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Hi @EricLesch \nNot too sure how we got to that conclusion :/ Happy to get your code back in as this issue has been lingering for awhile!\n",
+        "timestamp": "2015-02-12T12:02:42Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "But https://github.com/EricLesch/pixi.js/commit/7c269137ceb8471dde25378d116c8dc3f7cacd31 seems to not measure descent?\n\nPerhaps somehow the good stuff from the above could be merged with https://github.com/motiz88/pixi.js/commit/397916d4548c02c6243d61951271f6e235818505 ? (the commit linked on https://github.com/GoodBoyDigital/pixi.js/commit/fa5ba164055d3b3ee17c8490831e7031f5b9357e , which uses https://github.com/motiz88/canvas-text-metrics-polyfill which has a nice test page https://rawgit.com/motiz88/canvas-text-metrics-polyfill/master/tests/visual-test.html .)\n\n(Neither seems to check an uppercase character plus http://en.wikipedia.org/wiki/Acute_accent , I think that got introduced later in Pixi history.)\n",
+        "timestamp": "2015-02-12T13:01:48Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "Hi. Sorry for the super slow response. My implementation seems to fail in certain situations and render the text in completely the wrong place so its cut off. Unfortunately, it seems to be random behavior as it only happens occasionally on some devices (race condition?). Unfortunately it always works on my machine. When I get it working consistently on all devices I'll come back to this and see what we can figure out.\n",
+        "timestamp": "2015-02-25T06:56:33Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "A more concrete method for measuring text _height_ would be to shove it in a DOM element and then do a `getBoundingClientRect` on it. This will give you an accurate height without having to scan any pixels or worry about capitals, etc. However the _width_ will be wrong, because DOM kerning is sufficiently more advanced than Canvas. Wrong by what percentage I don't know, but maybe tolerable.\n",
+        "timestamp": "2015-02-25T15:14:41Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "@photonstorm Unfortunately we are purposefully not using DOM elements to support environments due some cocoonjs/ejecta issues that don't implement DOM elements besides canvas :(\n\n(At least I'm pretty sure that was why we switched).\n",
+        "timestamp": "2015-02-25T17:16:59Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "> When I get it working consistently on all devices I'll come back to\n> this and see what we can figure out.\n\nThanks for working on this!\n\nIt will be awesome when this will be resolved in Pixi.\n\nRelated, and perhaps helpful:\n  https://github.com/motiz88/canvas-text-metrics-polyfill\n  https://github.com/motiz88/pixi.js/commit/397916d4548c02c6243d61951271f6e235818505\n  https://github.com/motiz88/canvas-text-metrics-polyfill/issues/1\nAlso related: https://github.com/GoodBoyDigital/pixi.js/issues/1430 , https://github.com/GoodBoyDigital/pixi.js/issues/1021 , https://github.com/GoodBoyDigital/pixi.js/pull/1062 , and https://github.com/GoodBoyDigital/pixi.js/issues/1292 .\n\nI'll be happy to help with testing. I can test on Mac OS and Windows.\n\nI'm working on two additional test pages, they can be used already:\nhttp://codepen.io/TobiReif/full/MYVaJY/\nhttp://codepen.io/TobiReif/full/YPawVM/\nFeel free to fork them, eg for experimentation.\n",
+        "timestamp": "2015-02-25T18:29:33Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "The reason we switched was because of the textBaseline property when rendering text on canvas. Originally this was set to 'top'. Different browsers render 'top' in different locations. Therefore the text was being placed in different spots on different browsers. Using 'alphabetic' (the default setting for textBaseline), however, puts the font in the same place on every browser. But in order to accurately position the baseline in the same place, you have to know the ascent of the rendered  font, not the height. And you can't consistently guess the ascent based off of the height (like multiplying by 0.75 to guess) because some fonts have unusually high ascents (like Oswald).\n\nAlso, the method that was used before basically injected text into the dom and measured the height but that returned different values for different browsers. What this meant was that if you had multiple lines of text going down the page in one text element (like 10 lines for example) then the tenth line would be in a completely different place depending on the browser (line height \\* 10).\n\nThis also seems a bit nitpicky for the use case of making a game where close enough is close enough and usually you won't have 10 lines of text running down the page. In that case you can just adjust things so close enough is close enough. \n\nHowever, I've written an editor for creating animatable websites in PIXI.JS.\n\nExamples are here to give you an idea of what I'm talking about: \n\nexample-designer.makemake.io\nexample-photography.makemake.io\nexample-planets.makemake.io\n\nThe editor is at makemake.io if you need to look at that to understand what I'm talking about.\n\nAnyway, in the editor the user is picking a google web font on the fly and then putting as many lines of text in as they need. So the manual adjustment strategy doesn't really work. It needs to be accurate across different browsers and devices. Anyway, pixel scanning pretty much works but every once in a while I have bizarre issues on mobile devices where its wildly off and text gets clipped and I can't tell if this is due to my implementation or what.\n\nHopefully I will get ahold of a mobile device where the problem happens consistently and I can hook up a remote debugger to it.\n\nAlso, some commentary on the current implementation in the dev branch - according to the spec, actualboundingboxascent returns the ascent of the measured line of text. So first we're trying pixel scanning an |Mq and say we get value of 10 for the ascent. And then we get the actualboundingboxascent (in a browser that supports it) of _each line of text_ which happens to be let's say  \"_____\" then that will return 1 or 2. Actualboundingboxascent overrides the pixel scanned font ascent if the actualboundboxascent is found. That seems like a problem. We should be getting the ascent of the font, not each line of text. Please note that I haven't tested this, but the code just looks wacky because it's measuring different text samples to compute the same property.\n\nOk, this post has gotten really long and I haven't suggested a solution. In any case, as I said before I'll try to figure it out as best I can when I get a chance.\n\nBTW, whatever solution we come up with will probably never be exactly exactly the same all the time for webfonts since different browsers are consuming different file formats of the same font.\n\nThanks,\nEric\n",
+        "timestamp": "2015-02-25T20:01:27Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Related:\nDoes a font size value in Pixi specify the overall (total) height of the text to be rendered?\nCSS font-size specifies the M height https://encrypted.google.com/search?q=em+square&tbm=isch ;\nthat means that some glyphs can overstep that height boundary.\nBut when I need to place some text (using Pixi) inside an area (invisible box) and need to be sure that no part of any glyph can ever overstep the top or bottom of that area, it would be useful to be able to specify that height for the text (the total maximum possible height). (The default could still be M height.)\n",
+        "timestamp": "2015-02-25T20:47:34Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "boom! thats rad!! We will definitely look into this! As usual, chrome is one step ahead :+1:  \n",
+        "timestamp": "2015-03-25T08:15:17Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "@gordyr! nice :)\n",
+        "timestamp": "2015-03-25T09:58:19Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Great find @gordyr! Will definitely give this a test. \n",
+        "timestamp": "2015-03-25T10:46:57Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "The polyfill you mention https://github.com/motiz88/canvas-text-metrics-polyfill has also been mentioned earlier (in two places :) ), please see the comments above yours. There also are some additional discussions linked.\n\nThe polyfill could be a basis for a solution, I think. Or perhaps https://github.com/Pomax/Font.js or http://pomax.github.io/fontmetrics.js/ .\n\nIt would be great to have exact text positioning and exact text measurements (total potential font height for avoiding potential overlap of dynamic text, bounding box of a specific text object, etc), with consistent rendering across browsers and OSs. Some users probably would also find anchorY=baseline useful (for baseline-aligning text objects eg using different fonts).\n",
+        "timestamp": "2015-03-25T11:19:36Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "Just a heads-up: Before throwing the polyfill in be sure to check it works on CocoonJS and similar. My guess is it'll fail spectacularly if it's rendering to SVG. Meaning you'd potentially need 2 fallbacks (canvas5, to polyfill, to current implementation).\n",
+        "timestamp": "2015-03-25T11:23:53Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "Perhaps using the polyfill as-is wouldn't be a good idea, IMHO for this reason alone:\n\n\"Tests and performance: TBD. Supported browsers: TBD.\"\n\nBut a solution could be informed by its code.\n\nSVG shouldn't be necessary.\n",
+        "timestamp": "2015-03-25T11:30:56Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "Hi.\n\nThe polyfill uses pixel scanning. So does fontmetrics.js and font.js. The current pixi implementation already uses pixel scanning based on code in fontmetrics.js. It just doesn't have all the other unnecessary code that isn't needed. We gain nothing by using those other solutions.\n\nThanks,\nEric\n",
+        "timestamp": "2015-03-25T11:34:08Z"
+      },
+      {
+        "author": "tobireif",
+        "role": "CONTRIBUTOR",
+        "body": "@EricLesch You have a good overview of the state of affairs and of the related issues. What do you see as left to be done? Are we getting the correct ascent and descent per font? (I also need the potential total height per font). Are glyphs still getting cut off?\n\nIn an earlier comment above you wrote:\n\n\"Anyway, pixel scanning pretty much works but every once in a while I have bizarre issues on mobile devices where its wildly off and text gets clipped and I can't tell if this is due to my implementation or what.\n\nHopefully I will get ahold of a mobile device where the problem happens consistently and I can hook up a remote debugger to it.\"\n\nAny news? :)\n",
+        "timestamp": "2015-03-25T11:45:34Z"
+      },
+      {
+        "author": "EricLesch",
+        "role": "CONTRIBUTOR",
+        "body": "Yeah that issue is a problem with my application. Basically sometimes webfonts were getting rendered before they were actually fully loaded in the browser. And that makes all the metrics wrong since the metrics are cached in PIXI.\n\nOther than that everything _seems_ OK.\n\nTo answer this question that you had before:\n\nRelated:\nDoes a font size value in Pixi specify the overall (total) height of the text to be rendered?\nCSS font-size specifies the M height https://encrypted.google.com/search?q=em+square&tbm=isch ;\nthat means that some glyphs can overstep that height boundary.\nBut when I need to place some text (using Pixi) inside an area (invisible box) and need to be sure that no part of any glyph can ever overstep the top or bottom of that area, it would be useful to be able to specify that height for the text (the total maximum possible height). (The default could still be M height.)\n\nYeah for sure. You could take that into account to make sure that the text nevers gets rendered outside of the bounding box. Just don't use it for the line height (i.e. distance between baselines) because otherwise you will end up with multi-line text being rendered in different places in different browsers.\n\nRegarding using the new native canvas measuring and the current method as a fallback - that sounds like a reasonable approach to me as long as it's well tested. \n\nKeep in mind that canvas text rendering positioning is very inconsistent across different browsers unless you set the textBaseline to 'alphabetic'. Every other setting yields 'disagreements' regarding positioning. So I would not blindly trust the new browser APIs to always give the right answer regarding font metrics.   \n\nAlso I have to be honest and tell you folks that the implementation that I'm using in production is a version before Sebastian made his changes a while back. I'm hesitant to change it because I don't want to deal with any potential regressions. I'm going to have to upgrade eventually though because I've gotten reports of fuzzy text rendering on retina displays.\n\nCheers!\nEric\n",
+        "timestamp": "2015-03-25T12:30:41Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-25T14:42:42Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "0e2ddc0",
+        "message": "Alternative for text positioning\n\nNo more dom required to calculate the font size.",
+        "author": "Sebastian Nette",
+        "timestamp": "2014-10-19T10:58:45Z"
+      },
+      {
+        "sha": "0144ed6",
+        "message": "Update Text.js",
+        "author": "Sebastian Nette",
+        "timestamp": "2014-10-19T11:04:56Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#656",
+    "metadata": {
+      "title": "added removeChildAt, added removeChildren",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2014-03-13T20:15:41Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "Updated the logic on how `removeChild()` worked. Now its the `removeChildAt()` method that splices the children array. The `removeChild()` calls the `removeChildAt()`. Also, renamed the untested `removeAll()` (which wasn't in the ActionScript 3.0 specification, and rename it to `removeChildren()`. `removeChildren()`. Hope that's clear.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "I think doing this would be the most clear, and require less redundant checks:\n\n``` javascript\n/**\n * Removes a child from the container.\n *\n * @method removeChild\n * @param child {DisplayObject} The DisplayObject to remove\n */\nPIXI.DisplayObjectContainer.prototype.removeChild = function(child)\n{\n    if(!child || child.parent !== this)\n        throw new Error(child + ' The supplied DisplayObject must be a child of the caller ' + this);\n\n    if(this.stage)\n        child.removeStageReference();\n\n    child.parent = null;\n    this.children.splice(index, 1);\n};\n\n/**\n * Removes a child from the specified index position in the child list of the container.\n *\n * @method removeChildAt\n * @param index {Number} The index to get the child from\n */\nPIXI.DisplayObjectContainer.prototype.removeChildAt = function(index)\n{\n    this.removeChild(this.getChildAt(index));\n};\n\n/**\n* Removes all child instances from the child list of the container.\n*\n* @method removeAllChildren\n*/\nPIXI.DisplayObjectContainer.prototype.removeAllChildren = function()\n{\n    for(var i = this.children.length; i > -1; --i)\n    {\n        this.removeChild(this.children[i]);\n    }\n};\n```\n",
+        "timestamp": "2014-03-13T16:51:42Z"
+      },
+      {
+        "author": "mattdesl",
+        "role": "CONTRIBUTOR",
+        "body": "@englercj your code seems bugged. `removeChild` has 'index' which is not defined. It will need an indexOf, which also makes your `removeAllChildren` unnecessarily slow. Your `removeAllChildren` also leads to an index out of bounds on the first iteration of the loop. \n\nHere is another (untested) implementation of the three methods. Note the alternative \"faster\" version of removeAllChildren, which is probably negligible, but maybe worth considering. \n\nAlso note the return values. They mirror the way Java collections handle removal. This allows you to call removeChild(myObj) without needing to first do a (redundant) indexOf to ensure it exists. \n\n``` js\n//throws an error if index is out of bounds\n// returns the child object that was removed\nPIXI.DisplayObjectContainer.prototype.removeChildAt = function(index)\n{\n    var child = this.getChildAt(index);\n\n    // update the stage reference..\n    if(this.stage)\n        child.removeStageReference();\n\n    child.parent = undefined;\n    this.children.splice( index, 1 );\n    return child;\n};\n\n//if the child is not part of the list of children, false is returned\n//otherwise it's removed and true is returned\nPIXI.DisplayObjectContainer.prototype.removeChild = function(child)\n{\n    var index = this.children.indexOf( child );\n    if (index === -1)\n        return false;\n    this.removeChildAt(index);\n    return true;\n};\n\n//removes all children from this container\nPIXI.DisplayObjectContainer.prototype.removeAllChildren = function()\n{\n    for (var i=this.children.length-1; i>=0; i--) {\n        this.removeChildAt(i);\n    }\n\n    /* //technically faster alternative: \n    while (this.children.length > 0)\n    {\n        var child = this.children.pop();\n        if (this.stage)\n            child.removeStageReference();\n        child.parent = undefined;\n    }\n    */\n};\n```\n",
+        "timestamp": "2014-03-13T17:42:57Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "@mattdesl I guess I wasn't even thinking when I wrote that, thanks for the corrections! Note that `removeChild` should return the same thing as `removeChildAt` (the child if it exists). Something like this:\n\n``` javascript\nPIXI.DisplayObjectContainer.prototype.removeChildAt = function(index)\n{\n    //does error checking of index, throws on invalid index\n    var child = this.getChildAt(index);\n\n    // update the stage reference..\n    if(this.stage)\n        child.removeStageReference();\n\n    //update parent reference, remove from list, and return the child.\n    child.parent = undefined;\n    this.children.splice( index, 1 );\n    return child;\n};\n\n//dumb wrapper around removeChildAt, returns the same values.\nPIXI.DisplayObjectContainer.prototype.removeChild = function(child)\n{\n    return this.removeChildAt(this.children.indexOf(child));\n};\n```\n\nLet `getChildAt` do the error handling, we want to throw an error when you try to remove a child that is not of this parent, and we want to return the child that was removed.\n\nAs for removeAllChildren, we had discussed wanting to return the array of children that had been removed (see [my comment](https://github.com/GoodBoyDigital/pixi.js/pull/564#issuecomment-34806739) in #564).\n",
+        "timestamp": "2014-03-13T18:39:18Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @englercj and @mattdesl for your feedback.\nSee below my proposition with your amends. @GoodBoyDigital What do you reckon?\n\nBy the way, is there a way of me to update the PR without closing this one and creating a new one?\n\n``` javascript\n/**\n * Removes a child from the container.\n *\n * @method removeChild\n * @param child {DisplayObject} The DisplayObject to remove\n */\nPIXI.DisplayObjectContainer.prototype.removeChild = function(child)\n{\n    return this.removeChildAt( this.children.indexOf( child ) );\n};\n\n/**\n * Removes a child from the specified index position in the child list of the container.\n *\n * @method removeChildAt\n * @param index {Number} The index to get the child from\n */\nPIXI.DisplayObjectContainer.prototype.removeChildAt = function(index)\n{\n    var child = this.getChildAt( index );\n    if( this.stage )\n        child.removeStageReference();\n\n    child.parent = undefined;\n    this.children.splice( index, 1 );\n    return child;\n};\n\n/**\n* Removes all child instances from the child list of the container.\n*\n* @method removeChildren\n* @param beginIndex {Number} The beginning position. Predefined value is 0.\n* @param endIndex {Number} The ending position. Predefined value is children's array length.\n*/\nPIXI.DisplayObjectContainer.prototype.removeChildren = function(beginIndex, endIndex)\n{\n    var begin = beginIndex || 0;\n    var end = endIndex || this.children.length;\n    var range = end - begin;\n\n    if (range > 0 && range <= end)\n    {\n        var removed = this.children.splice(begin, range);\n        for (var i = removed.length - 1; i >= 0; i--) {\n            var child = removed[i];\n            if(this.stage)child.removeStageReference();\n            child.parent = undefined;\n        }\n        return removed;\n    }\n    else\n    {\n        throw new Error( 'Range Error, numeric values are outside the acceptable range' );\n    }\n};\n```\n",
+        "timestamp": "2014-03-13T18:48:30Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "Note there isn't a need to iterate in reverse when you are not modifying the array. Also, to stay consistent with other code, do not put spaces between parenthesis and their contents. (i.e. `if( this.stage )` should be `if(this.stage)`.\n\n If you put in a new PR (or just update this one) to that last bit of code, and those small changes, I will merge it in.\n",
+        "timestamp": "2014-03-13T18:52:57Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "give me a minute, I'll change it to a normal for loop. Just wanted to make everyone happy. also, in theory if I have the `var i` outside the loop will be faster, but... this is us being picky :) let me try to update this PR (this is my first time - be gentle)\n",
+        "timestamp": "2014-03-13T18:55:53Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "spaces removed\n",
+        "timestamp": "2014-03-13T19:00:07Z"
+      },
+      {
+        "author": "mattdesl",
+        "role": "CONTRIBUTOR",
+        "body": "So we are going with `removeChildren` instead of `removeAllChildren`? Anyways; there is a bug which I noted in the code. \n\nThe problem with `removeChild` as it currently stands is that it forces the user to implement safety checks. So the user's code ends up getting pretty nasty:\n\n``` js\nif ( container.children.indexOf( other ) !== -1 ) {\n    //will incur a redundant indexOf lookup\n    container.children.removeChild( other );\n}\n```\n\nOr, even uglier, to avoid the redundant indexOf:\n\n``` js\nvar i = container.children.indexOf( other );\nif ( i !== -1 ) {\n    container.children.removeChildAt( i );\n}\n```\n\nTo sum up:\n- `removeChild` should not throw any errors. Instead, it should return an indicator of whether the removal was a success. This can be true vs. false, or the removed child vs. null. \n- `removeChildAt` should still throw an error if the index is out of bounds, since it indicates programmer error\n",
+        "timestamp": "2014-03-13T20:56:24Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "They don't have to do the checks, they are done for them internally. If the child is not of the parent they pass it to, it will throw an error. I would expect `removeChildAt` and `removeChild` to act the same, it doesn't make sense for one to throw an error and one to return a falsey value. They should both throw or both return, but not mixed in.\n\nI would consider trying to remove a child from a parent it isn't in as a fatal error, so throwing is OK to me. Also to check if something is a child of a container, you don't need to use indexOf:\n\n``` javascript\nif(child.parent === container) {\n    //true, but unecessary check since we will do it for you and throw if false\n}\n```\n",
+        "timestamp": "2014-03-13T22:05:23Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "Just as a note @mattdesl: if the `removeChild` is called with a child that isn't in the current DisplayObject children list, the function `getChildAt` will not let it pass. it will fire the `throw new Error('Supplied index does not exist in the child list, or the supplied DisplayObject must be a child of the caller')` error. So, if you have 1 sprite in your stage, and u call the method: `stage.removeChildAt(1)` (since the index is bigger then the `this.children.length`) it will throw the \"supplied index does not exist in the child list\" if you call the `stage.removeChild(someSpriteNotInTheStageDisplayList)` it will fire the \"or the supplied DisplayObject must be a child of the caller\" part... both cases are handled by the same error. we could be specific in the error managments, I don't argue with that.\n",
+        "timestamp": "2014-03-13T23:03:02Z"
+      },
+      {
+        "author": "mattdesl",
+        "role": "CONTRIBUTOR",
+        "body": "@englercj \nThe thing is, the user has to do the checks one way or another to avoid their whole program crashing due to an uncaught exception. So you either need a try/catch or an ugly and non-obvious `if` statement. \n\nI guess a lot of it comes down to perspective. IMHO the goal of `removeChild` is to ensure the container no longer contains the specified child. In this regard; it's not a fatal error if the child has already been removed, or if it's been removed and added to another container. \n\nAnother reasoning would be convention; the majority of JavaScript exceptions are there to signify programmer error (like index out of range and null pointer checks), rather than \"I ran into something that you may or may not care about.\" Using try/catch disables optimization in V8 (and possibly SpiderMonkey?), so JS developers tend to be pretty weary of using them. \n\nIn the _exceptional_ case where the user cares whether an element was successfully removed, it can still be handled cleanly with my suggestion:\n\n``` js\nvar success = container.removeChild(child);\nif (!success) {\n    // do something exceptional... \n}\n```\n",
+        "timestamp": "2014-03-14T01:06:31Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "@mattdesl I'm not sure I agree with that logic, if you are trying to remove a child from a container and it fails because that child is in another container your scene just got potentially _very_ dirty. Having an exception will catch logic errors when trying to improperly remove objects.\n\nI think it is an exceptional case to not care if an element removed successfully. To say \"remove this from the scene, but if it doesn't actually remove I don't care\" seems wrong to me. I also don't think `if(child.parent) child.parent.removeChild(child);` is all that dirty for the case where you want to check first. I actually do that a couple times in grapefruit (in case the user moved things around they shouldn't have). It has actually been pretty helpful to see an error when I tried to remove something incorrectly, since it meant I was doing something wrong when it happened.\n\nThat being said, this one of the few places we throw real errors and I generally like to avoid actual exceptions in browser code whenever possible. I'd be fine with returning `null` when the child is not within that container, and the child that was removed when successful. I'd be more than happy to discuss more on a PR that changed these to not be errors, though since it was @GoodBoyDigital's decision to use errors I would want him to at least be aware of the change before I actually merged it.\n",
+        "timestamp": "2014-03-14T04:27:11Z"
+      },
+      {
+        "author": "mattdesl",
+        "role": "CONTRIBUTOR",
+        "body": "I can see both sides of the coin.\n\nGenerally when we are removing something from a container, it is because we are cleaning up and destroying resources (e.g. when a page switch occurs, or when a sprite/particle is no longer needed). Comparing with other libs, such as `jQueryObj.remove( child )`, [EaselJS](http://createjs.com/Docs/EaselJS/classes/Container.html#method_removeChild), and many others, most devs won't expect this to throw an error when the child has already been removed. \n\nIn our production code, we basically have to wrap _every_ `removeChild` call in a conditional. If any call is _not_ wrapped in a conditional (i.e. a dev forgot or didn't know to do this), we run the risk of our app crashing at some point down the line.\n\nMaybe adding `DisplayObject.detach()` method would be more useful for this sort of purpose. \n",
+        "timestamp": "2014-03-18T15:47:05Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "Personally I don't think it should throw an Error. It should just fail. Errors should be reserved for absolutely earth shatteringly incorrect results / parameters, as it will literally screw the game at that point and kill everything. A child not being part of a parent doesn't fall into this category imho.\n",
+        "timestamp": "2014-03-18T18:59:10Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "funny how @photonstorm perspective is about a game, and my perspective is about a website :) Anyway, I agree we shouldn't be throwing Error. The Developer should know he removed a child.\n",
+        "timestamp": "2014-03-18T23:39:53Z"
+      },
+      {
+        "author": "photonstorm",
+        "role": "COLLABORATOR",
+        "body": "I'm guessing you don't want your web site crapping out right in the middle of doing something either? :)\n",
+        "timestamp": "2014-03-19T00:12:15Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "Like I said before I would be more than happy to discuss more on a PR that changed these to be return types instead of errors :)\n",
+        "timestamp": "2014-03-19T01:08:51Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Howdy peeps - The errors on removing an item is born from the world of flash (as it throws an error when an object is removed from somewhere it does not exist) \n\nReading the above definitely makes me think that we should maybe return true / false instead of an error. \n\nIf someone fancies doing a PR with the change that would be ace. Otherwise I will get round to it at some point.\n\nthanks all!\n",
+        "timestamp": "2014-03-19T09:19:23Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "Hey little dudes, when did this came into Pixi? I see its on v3 but can't see who added it.\n",
+        "timestamp": "2015-05-19T19:43:10Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "This PR was merged a long time ago, and if you want to see who added a line then hit the \"blame\" button when looking at a file (when browsing the code).\n",
+        "timestamp": "2015-05-19T20:49:02Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "As I suspected it was me, lol though sadly I'm not on the contributors list. I'm doing git wrong ain't I? \n",
+        "timestamp": "2015-05-19T20:56:37Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "What contributors list?\n",
+        "timestamp": "2015-05-19T21:03:24Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "@andrevenancio it must have got confused when we re-wrote v3 maybe? \n\nWhy not add another contribution, this time we will make sure its got you name on it :) \n",
+        "timestamp": "2015-05-19T21:15:52Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "I see you on the blame of the file, so we didn't lose that history or anything.\n\nhttps://github.com/GoodBoyDigital/pixi.js/blame/master/src/core/display/Container.js#L249\n\nI'm not sure what you mean by \"contributors list\" though.\n",
+        "timestamp": "2015-05-19T21:21:16Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "https://github.com/GoodBoyDigital/pixi.js/graphs/contributors :)\n",
+        "timestamp": "2015-05-29T17:27:58Z"
+      },
+      {
+        "author": "JiDW",
+        "role": "CONTRIBUTOR",
+        "body": "I believe that's because this list only shows commits to the master branch, and the current contribution guidelines asks you to pull requests to the dev branch. \n",
+        "timestamp": "2015-05-29T18:13:07Z"
+      },
+      {
+        "author": "andrevenancio",
+        "role": "CONTRIBUTOR",
+        "body": "makes sense!\n",
+        "timestamp": "2015-05-29T18:58:12Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-25T13:13:36Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "407ac91",
+        "message": "Added removeChildAt method\n\nthe ability to remove a child in a specific index.",
+        "author": "André Venâncio",
+        "timestamp": "2014-03-13T12:03:31Z"
+      },
+      {
+        "sha": "8815e8a",
+        "message": "updated removeChildAt, removeChild, removeChildren",
+        "author": "André Venâncio",
+        "timestamp": "2014-03-13T15:59:35Z"
+      },
+      {
+        "sha": "197627c",
+        "message": "updated removeChildAt and removeChild. removeChildren has now a begin and end value.",
+        "author": "André Venâncio",
+        "timestamp": "2014-03-13T18:59:35Z"
+      },
+      {
+        "sha": "005d114",
+        "message": "removed spaces",
+        "author": "André Venâncio",
+        "timestamp": "2014-03-13T19:03:08Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#6365",
+    "metadata": {
+      "title": "Fix local bounds problems. Swap bounds with localBounds to do the trick.",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-03-05T01:18:01Z",
+      "reviewers": [
+        "eXponenta",
+        "ivanpopelyshev",
+        "GoodBoyDigital",
+        "ShukantPal"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "Fix for #6355 \r\n\r\nBy swapping the `_bounds` object with `_localBounds`, we are preventing `calculateBounds` from editing the world-bounds.\r\n\r\nAlso, I am syncing the changes in the `_boundsID` with the world-bounds `updateID`. This will prevent the world-bounds from getting recalculated in the next `getBounds(true)` if it was already update-to-date.\r\n\r\n- [ ] Tests and/or benchmarks are included\r\n- [ ] Documentation is changed or added\r\n- [ ] Lint process passed (`npm run lint`)\r\n- [ ] Tests passed (`npm run test`)\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "Hmm, this doesn't solve the JSFiddle I presented. On inspection, the `_bounds` of the object are correct now, except the sprite is still not rendering correctly.",
+        "timestamp": "2020-01-30T01:02:08Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "The sprite still renders wrongly because `Container` will update the transform of its children too. The rendering process does not update transforms.",
+        "timestamp": "2020-01-30T01:04:46Z"
+      },
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=h1) Report\n> Merging [#6365](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=desc) into [dev](https://codecov.io/gh/pixijs/pixi.js/commit/69136d53c94db0faf6fa65df2e0b1875b479224d?src=pr&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/pixijs/pixi.js/pull/6365/graphs/tree.svg?width=650&token=Rahs8lcle5&height=150&src=pr)](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##              dev    #6365   +/-   ##\n=======================================\n  Coverage   78.54%   78.54%           \n=======================================\n  Files          57       57           \n  Lines        2825     2825           \n=======================================\n  Hits         2219     2219           \n  Misses        606      606\n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=footer). Last update [69136d5...8a02882](https://codecov.io/gh/pixijs/pixi.js/pull/6365?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-01-30T01:16:24Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev @bigtimebuddy This fixes the problem!",
+        "timestamp": "2020-01-30T01:17:54Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "I think I will do one more optimization tomorrow: on a container's children, we should swap the transform with a temporary transform instance. Then we won't have to call update-transform again after `getLocalBounds`.",
+        "timestamp": "2020-01-30T01:27:14Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "It is important if you could capture this modified bounds behavior in a unit test, preferably one that breaks on dev. That’s the best way to ensure that we don’t have a regression.\r\n\r\nA good unit test uses only public APIs preferably and considers all the scenarios in which it could be used, including edge cases.",
+        "timestamp": "2020-01-30T02:14:41Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "As I said in the issue:\r\n1. I believe both of `getLocalBounds` in Container and DisplayObject should have `_` version of methods  because we have overrides in `Sprite` and there might be an override in spine library\r\n2. I'm sure I can make a test case when this thing fails. I'll work on it in weekend\r\n3. Try integrate my idea with axis-alighned fallback. However, with right architecture i can integrate it later.",
+        "timestamp": "2020-01-30T08:34:44Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev Your idea could be added in another PR - when it becomes your priority.",
+        "timestamp": "2020-01-30T12:29:11Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "Overrides will not be affected at all. This should be a backward compatible change after I swap the child transforms too.",
+        "timestamp": "2020-01-30T12:30:26Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev I’m looking for your tests today that should fail with this change.",
+        "timestamp": "2020-02-01T13:22:53Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "OK, I wanted to merge dev into it but made something wrong. Can you please re-do it and push with force?",
+        "timestamp": "2020-02-01T14:52:50Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "OK, never mind, I've rebased it myself.",
+        "timestamp": "2020-02-01T14:55:31Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "We have to update all objects (Sprites, e.t.c.) `getLocalBounds` to pass that param. \r\n\r\n@bigtimebuddy we have a problem that `getBounds()` has first argument bool and second Rectangle, and for `getLocalBounds` its rectangle and then bool :) The heck we do in this case? I propose we add `skipChildrenUpdate` here as the first param. That way both methods will have the same signature and `false, null` by default. Maybe add deprecation?",
+        "timestamp": "2020-02-01T16:01:42Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev Please recheck the standing of the changes.",
+        "timestamp": "2020-02-04T02:03:42Z"
+      },
+      {
+        "author": "eXponenta",
+        "role": "CONTRIBUTOR",
+        "body": "> @ivanpopelyshev Please recheck the standing of the changes.\r\n\r\nDoesn't work at all in real cases =)\r\n\r\nDEV:\r\nhttps://www.pixiplayground.com/#/edit/5uTdn6fP5w-DJrLXKuPWL\r\n\r\nYour:\r\nhttps://www.pixiplayground.com/#/edit/Qyl4KFWghAu3AwXfRLOSV",
+        "timestamp": "2020-02-04T10:08:32Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@eXponenta I already know. Review the types of changes first and then I’ll fix the bugs today.",
+        "timestamp": "2020-02-04T12:11:40Z"
+      },
+      {
+        "author": "eXponenta",
+        "role": "CONTRIBUTOR",
+        "body": "> @eXponenta I already know. Review the types of changes first and then I’ll fix the bugs today.\r\n\r\nHow should we review it when it doesn't works properly?",
+        "timestamp": "2020-02-04T14:30:41Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@eXponenta Sometimes people don’t like me changing something even if it works ",
+        "timestamp": "2020-02-04T15:41:28Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Don't worry, we'll take care of it in weekend together.",
+        "timestamp": "2020-02-05T09:42:25Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev Any updates?",
+        "timestamp": "2020-02-09T18:53:51Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Cant commit, one test is failing because I added extra condition: two consecutive `getLocalBounds` calls shoould not trigger second `calculateBounds`.",
+        "timestamp": "2020-02-10T16:12:48Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelshev Will look at it in evening ",
+        "timestamp": "2020-02-10T16:20:00Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Yeah, if you manage to adjust `boundsID` hacks that way tests passes - it will be awesome!",
+        "timestamp": "2020-02-10T16:48:31Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "Looks good, but tests.",
+        "timestamp": "2020-02-20T21:34:06Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "My fault - I made extra test that I thought can be passed with this PR, but it turns out something is wrong with boundsID's. I'm waiting for @SukantPal  when he will be free to investigate whether i made a mistake or he did",
+        "timestamp": "2020-02-24T12:46:08Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev I pushed changes to make the tests to pass. I following breaking changes will occur:\r\n\r\n* Display objects that have a change in their natural bounds will _have to declare that by updating `_boundsID`_. They will not get bounds update for free as before (because `updateTransform` will not be called if bounds are already update-to-date in `getLocalBounds`).\r\n\r\n---\r\n\r\n* `Graphics.clear()` updates `_boundsID`.",
+        "timestamp": "2020-02-25T02:09:23Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Could you help me understand the breaking change more? If you could show some code of what would change, that’d be helpful.",
+        "timestamp": "2020-02-25T14:15:58Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@bigtimebuddy I'll explain the \"breaking\" change a bit rigorously as follows:\r\n\r\nLet's say we have a display-object `object`;  it is (and was) expected that if its transform has not changed and `object._boundsID` is not dirty then`object.getBounds()` will calculate the same bounds.\r\n\r\nNow, the local bounds are, by definition, defined as bounds _without any transforms applied_. That leaves us with: if `object._boundsID` is not marked dirty, then `object.getLocalBounds()` will calculate the same value.\r\n\r\n---\r\n\r\nPreviously, `getLocalBounds` always deferred to `getBounds` - which always did an `updateTransform`. Now, `updateTransform` marks `_boundsID` dirty, well because it thinks that the transform has changed.\r\n\r\nHence, since `_boundsID` was made dirty internally in `getLocalBounds` - that meant `calculateBounds` was called each and every time `getLocalBounds` was called, and that authors of display-objects (like `PIXI.Graphics#clear()`) did not have to worry about marking their bounds dirty.\r\n\r\n**This assumption is now incorrect with this PR**. If `object._boundsID` is in-sync with `this._bounds.updateID`, then the local bounds won't be updated.\r\n\r\n---\r\n\r\n## Why?\r\n\r\nBy _not_ updating the local bounds when they aren't marked dirty, we prevent unnecessary bounds calculations and transform updates.\r\n\r\n## Future work\r\n\r\nSimilarly, we could prevent `getBounds()` updates if the transform itself has not changed after a `updateTransform`. That would be done in a different PR.\r\n\r\n## Another use-case of this PR\r\n\r\nWhen the scene graph is being rendered, it is expected that `this._bounds` are update-to-date. However, calling `getLocalBounds()` previously changed what `getBounds(true)` returned. This is because `getLocalBounds()` would store its result in `this._bounds` and `getBounds(true)` wouldn't update `_bounds` (no transform update). This results in many errors throughout PixiJS (because the bounds returned by the node are incorrect).\r\n\r\nThis PR swaps `this._bounds` with another `this._localBounds`. This way `getLocalBounds` will not affect the result of `getBounds(true)`. Sadly though, it is still unable to prevent `getLocalBounds` from affecting the `getBounds(true)` value of grandchildren (and nodes below 1st generation children). I will work on a performant fix for that later on.\r\n",
+        "timestamp": "2020-02-26T01:40:27Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@bigtimebuddy We have a problem with parent containers whose local bounds depend on the transform of children in the parent’a reference frame.\r\n\r\nI will push a fix for that, if possible.",
+        "timestamp": "2020-02-27T18:13:59Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@SukantPal, I think the work that you've done here is terrific. I commend you for optimizing these code paths related to caching bounds, because it's subtle, difficult work.\r\n\r\nOne of the challenges of PRs like this, is that I (and probably others on the PixiJS team), don't fully understand the extent to which this may produce unwelcome side-effects for developers. It's one thing add unit-tests, it's another to do a full integration where users heavily rely on bounds.\r\n\r\nOur goal as an open source library is, most importantly, is to make sure we do no harm. I think it's important that you can work with developers (@themoonrat, @GoodBoyDigital, and others) to test this build into real-world, complex apps and games. As much as you're able to prove and show that this will not negatively impact users, it will be easier to approve.\r\n\r\n",
+        "timestamp": "2020-02-27T19:57:16Z"
+      },
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@bigtimebuddy I have removed the sync barrier (stopping local-bounds recalculations) so there are no side-effects. I think @ivanpopelyshev would be okay to merge this now. (So this PR now only prevents getLocalBounds from storing its result in this._bounds, preventing corruption this.getBounds(true), via the _localBounds swap).\r\n\r\nTo prevent unnecessary bounds updates, we will need to implement a system where transform updates are propagated up the scene graph. This will be experimented on another branch.",
+        "timestamp": "2020-02-28T00:59:34Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "There's only one thing left - `_localBounds` is still created in constructor, and its triggered only by calling `getlocalBounds` of the same element - it better be a lazy variable.",
+        "timestamp": "2020-02-28T07:37:06Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Hey @SukantPal , thanks for this! Going to test this branch on one of our more layout heavy games! Will let you know how it goes :D",
+        "timestamp": "2020-03-03T13:38:28Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6fc56e1",
+        "message": "rebased commit",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-02-01T14:54:41Z"
+      },
+      {
+        "sha": "98f3700",
+        "message": "test is not passing",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-02-10T16:47:33Z"
+      },
+      {
+        "sha": "01f394e",
+        "message": "Merge branch 'dev' of https://github.com/pixijs/pixi.js into fix-local-bounds",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-19T21:28:09Z"
+      },
+      {
+        "sha": "ee672dc",
+        "message": "Merge branch 'dev' of https://github.com/pixijs/pixi.js into fix-local-bounds",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-25T01:30:02Z"
+      },
+      {
+        "sha": "4d7ae08",
+        "message": "Merge branch 'fix-local-bounds' of https://github.com/pixijs/pixi.js into fix-local-bounds",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-25T01:31:11Z"
+      },
+      {
+        "sha": "3ff3df5",
+        "message": "Added sync-barrier to getLocalBounds() to prevent false updates; Graphics.clear() shall declare bounds dirty!",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-25T02:05:22Z"
+      },
+      {
+        "sha": "7af5db3",
+        "message": "Removed localBoundsRect getter.",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-26T01:20:29Z"
+      },
+      {
+        "sha": "d0f94c4",
+        "message": "Fix optional arg",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-26T01:42:29Z"
+      },
+      {
+        "sha": "b15dadb",
+        "message": "Removed sync barrier due to Container vulnerability to child transforms",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-28T00:56:24Z"
+      },
+      {
+        "sha": "98fe8bd",
+        "message": "Local bounds is lazy",
+        "author": "Shukant Pal",
+        "timestamp": "2020-02-29T01:20:05Z"
+      },
+      {
+        "sha": "62dd935",
+        "message": "extra test for getLocalBounds",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-02-29T12:46:48Z"
+      },
+      {
+        "sha": "69136d5",
+        "message": "Merge remote-tracking branch 'remotes/origin/dev' into fix-local-bounds",
+        "author": "Ivan Popelyshev",
+        "timestamp": "2020-02-29T13:51:13Z"
+      },
+      {
+        "sha": "8a02882",
+        "message": "Merge branch 'dev' into fix-local-bounds",
+        "author": "Matt Karl",
+        "timestamp": "2020-03-02T00:32:18Z"
+      },
+      {
+        "sha": "add13d9",
+        "message": "Merge branch 'dev' into fix-local-bounds",
+        "author": "Matt Karl",
+        "timestamp": "2020-03-03T12:17:34Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#6641",
+    "metadata": {
+      "title": "BitmapText optimisation",
+      "labels": [
+        "✅ Ready To Merge"
+      ],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-05-28T02:45:28Z",
+      "reviewers": [
+        "GoodBoyDigital",
+        "bigtimebuddy",
+        "ShukantPal"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "##### Description of change\r\n\r\nAs BitmapFont has now become much more accessible to our users thanks to recent efforts from the team, figured we could do with doing a bit of an optimisation pass for how bitmap fonts are rendering!\r\n\r\nMain thing is that instead of rendering each letter as a sprite, we now render them as a mesh. This has a few benefits straight out of the box!\r\n\r\n- lower memory footprint as we don't needs loads of sprites anymore, just a mesh or two\r\n- faster creation `updateText`\r\n    - pooling objects in this function.\r\n    - including the meshes.\r\n    - mesh buffers only reallocated if size grows.\r\n- faster runtime `render`\r\n    - as the text is either batched automatically if small. \r\n    - OR if its massive it is rendered in a single draw call (super fast, as no per character update is required)\r\n    - tinting no longer required an `updateText` call as we leverage the mesh tint functionality.\r\n- Ensure support for multipage fonts still works (made things a bit trickier :P)\r\n- Added a couple of interfaces to some internal BitmapText bits.\r\n- No surface API changes, all under the hood stuff.\r\n- Character limit is about 11,000 - which is a lot of text :)\r\n\r\n\r\n##### Pre-Merge Checklist\r\n\r\n- [x] Documentation is changed or added\r\n- [x] Lint process passed (`npm run lint`)\r\n- [x] Tests passed (`npm run test`)\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ShukantPal",
+        "role": "MEMBER",
+        "body": "@GoodBoyDigital I see Matt's commits in this PR, maybe you need to rebase it?",
+        "timestamp": "2020-05-24T12:55:54Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "This is awesome @GoodBoyDigital! Super excited about our new and improved BitmapText.\r\n\r\nSome tests might need to be looked at, these are failing:\r\n\r\n1) PIXI.BitmapText\r\n       should render text even if there are unsupported characters:\r\n2) PIXI.BitmapText\r\n       should support font without page reference:\r\n",
+        "timestamp": "2020-05-24T14:00:14Z"
+      },
+      {
+        "author": "themoonrat",
+        "role": "COLLABORATOR",
+        "body": "Question: How does this effect the Canvas renderer?",
+        "timestamp": "2020-05-24T14:15:14Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Hey @SukantPal , thanks for the feedback man! Push some changes. Let me know if its all cool 👍 ",
+        "timestamp": "2020-05-24T15:14:04Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "@bigtimebuddy , will look at those tests now..",
+        "timestamp": "2020-05-24T15:14:23Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "> Question: How does this effect the Canvas renderer?\r\n\r\nGood question. i will test, it should work but I guess would technically be slower perf than the old method. If it turns out to be a deal breaker and we should keep the previous method around and move it into Canvas Renderer.\r\n\r\n",
+        "timestamp": "2020-05-24T15:25:53Z"
+      },
+      {
+        "author": "codecov-commenter",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=h1) Report\n> Merging [#6641](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=desc) into [dev](https://codecov.io/gh/pixijs/pixi.js/commit/311d7e1f0794287dc0a3d999f1c9ad4bec01df1f&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/pixijs/pixi.js/pull/6641/graphs/tree.svg?width=650&height=150&src=pr&token=Rahs8lcle5)](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##              dev    #6641   +/-   ##\n=======================================\n  Coverage   82.59%   82.59%           \n=======================================\n  Files          35       35           \n  Lines        1724     1724           \n=======================================\n  Hits         1424     1424           \n  Misses        300      300           \n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=footer). Last update [311d7e1...7221292](https://codecov.io/gh/pixijs/pixi.js/pull/6641?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-05-24T15:49:54Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Seems to still render fine on canvas: \r\nhttps://pixijs.download/feature/turbo-bitmap-fonts/pixi-legacy.min.js\r\nhttps://jsfiddle.net/bigtimebuddy/hzrx6p47/\r\n",
+        "timestamp": "2020-05-24T18:25:20Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Ok, good to go now! Final updates and new unit test\r\n\r\n- fixed batching issue\r\n- added unit test for adding / removing children\r\n- fixed issue found when making unit test :)\r\n- don't call updateText on creation\r\n",
+        "timestamp": "2020-05-25T21:02:44Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "df38932",
+        "message": "BitmapText render optimisation\n\n- optimise bitmapfont renderer\n- use mesh instead of sprites\n   - optimised tinting\n   - smart batching\n   - less memory overhead\n- support for multipage fonts\n- pooling data objects\n- expose `baseTexture` uid as readonly",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-24T10:47:11Z"
+      },
+      {
+        "sha": "3c11c7d",
+        "message": "BitmapText.ts - remove extra line\n\nCo-authored-by: Matt Karl <matt@mattkarl.com>",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-24T14:29:19Z"
+      },
+      {
+        "sha": "ed488b4",
+        "message": "address feedback",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-24T15:12:39Z"
+      },
+      {
+        "sha": "07772f3",
+        "message": "fix tint issue",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-24T15:18:16Z"
+      },
+      {
+        "sha": "48dfb43",
+        "message": "fix unit tests",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-24T15:44:32Z"
+      },
+      {
+        "sha": "ad708be",
+        "message": "Updated documentation",
+        "author": "Matt Karl",
+        "timestamp": "2020-05-24T18:26:46Z"
+      },
+      {
+        "sha": "7921d4e",
+        "message": "finaly tweaks and tests\n- fixed batching issue\n- added unit test for adding / removing children\n- fixed issue found when making unit test :)\n- don't call updateText on creation",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-25T21:01:09Z"
+      },
+      {
+        "sha": "7221292",
+        "message": "Merge branch 'dev' into feature/turbo-bitmap-fonts",
+        "author": "Mat Groves",
+        "timestamp": "2020-05-26T07:32:46Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#2809",
+    "metadata": {
+      "title": "Destroying a DisplayObject will remove itself",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2016-08-15T20:00:26Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Child removes itself upon being destroyed. \nResponds to issue #2800\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "NONONONONONO WHYYY!\n\nDo you realize what will happen in container.destroy(true) ?\n",
+        "timestamp": "2016-08-15T11:56:38Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "interesting conundrum that! \n",
+        "timestamp": "2016-08-15T12:01:44Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "DOH! You're right. Destroying the children in reverse order should be fine.\n",
+        "timestamp": "2016-08-15T12:06:25Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "And now, gentlemans, we have destroy() method that works for O(N^2) time. Bunnies will be happy to eat your CPU.\n",
+        "timestamp": "2016-08-15T12:18:24Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "If someone wants to implement another approach, I'm cool with that. I think this functionality is important though and would like to see it in v4.\n",
+        "timestamp": "2016-08-15T12:33:51Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "I think its better to leave it as it is for now. There are also things like \"remove\" event in child, and at the same time we dont have \"parentDetached\" or anything like that... \n\nThe thing is, any small change may break some code, its better if we make big PR that deals with that. In v4.1 or so.\n",
+        "timestamp": "2016-08-15T12:38:36Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@ivanpopelyshev I disagree that we should leave it. There's never a case where you'd want to destroy and not remove that child from it's display list. Expecting developers to remember that is a poor design choice.\n",
+        "timestamp": "2016-08-15T12:53:10Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Then destroying whole subtree must be separated to different method, like we have with renderWebGL and _renderWebGL. We still don't have a convention which events must be fired in case of whole subtree is removed, or whole subtree is destroyed.\n",
+        "timestamp": "2016-08-15T12:59:04Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Hm. Yes, good idea: we need to separate destroying this element from destroying whole subtree, also remove all children before we ask their destruction, something like that. And we have to cover it with tests!\n",
+        "timestamp": "2016-08-15T13:08:11Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Interesting debate going on here!\n\n I think @bigtimebuddy makes a good point about removing an object from its parent if it has been destroyed. If its going to be destroyed we know it will throw errors if its not removed. @ivanpopelyshev - what kind of use cases are you thinking about where this is undesirable behaviour?\n\nThanks!\n",
+        "timestamp": "2016-08-15T13:15:21Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Mass destruction. We have to separate methods for killing only this element and killing whole subtree. Something like our refactoring with bounds, and _renderWebGL vs renderWebGL. Just use the same approach and it'll be ok :)\n",
+        "timestamp": "2016-08-15T13:47:55Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "I see what ya mean, thats a different issue than removing children though?\n",
+        "timestamp": "2016-08-15T14:02:36Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "No, it's not. You cant just add \"removeChild\" in destroy() because of performance problems in mass destroy.  Its either big hack, either architecture improvement, pick one.\n",
+        "timestamp": "2016-08-15T14:05:08Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "is removeChild really expensive?\n",
+        "timestamp": "2016-08-15T14:23:55Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Maybe Container should removeChildren before it tries to destroy them. Caching the children list before removing wouldn't create so many removeChild calls within DisplayObject.\n",
+        "timestamp": "2016-08-15T14:32:07Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "It has both indexOf and removeAt inside. That means its O(N). If we do N removeChilds, its O(N^2). Try 100k bunnies and your CPU will be fried.\n",
+        "timestamp": "2016-08-15T14:32:58Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "Thanks for sharing the details @ivanpopelyshev , I guess to solve this issue do we even need to do a recursive remove child operation? We only need to remove the object being destroyed from its parent (rather than all its children)?\n",
+        "timestamp": "2016-08-15T14:40:32Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "@GoodBoyDigital \n\nActually, i think that one method will be enough, because the super call is inside. Its up to you whether or not it convert into two methods.\n\nOK, may be that will work:\n\n``` js\n//this like bigtimebuddy's\nDisplayObject.prototype.destroy = function ()\n{\n    if (this.parent)\n    {\n        this.parent.removeChild(this);\n    }\n    this.transform = null;\n\n    this.parent = null;\n\n    this._bounds = null;\n    this._currentBounds = null;\n    this._mask = null;\n\n    this.filterArea = null;\n};\n\n//this is mine\nContainer.prototype.destroy = function (options)\n{\n    DisplayObject.prototype.destroy.call(this);\n\n    var destroyChildren = typeof options === 'boolean' ? options : options && options.children;\n\n    var oldChildren = this.children;\n    this.children = null;\n\n    if (destroyChildren)\n    {\n        for (var i = oldChildren.length - 1; i >= 0; i--)\n        {\n            var child = oldChildren[i];\n            child.parent = null;\n            child.emit('removed', this);\n            child.destroy(options);\n        }\n    }\n};\n```\n",
+        "timestamp": "2016-08-15T14:51:55Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Updated with @ivanpopelyshev Container destroy. \n",
+        "timestamp": "2016-08-15T14:59:11Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "That's a benchmark, but i dont know how to write this. Basically, if it takes more than 1s on any machine, then its wrong. Problem is, its synchronous code:\n\n``` js\ndescribe('destroy', function () {\n        it('should destroy 100k rabbits without a problem', function () {\n            var texture = PIXI.RenderTexture.create(10, 10);\n            var topContainer = new PIXI.Container();\n            var bottomContainer = new PIXI.Container();\n\n            topContainer.addChild(bottomContainer);\n            for (var i=0;i<100000;i++) {\n                var sprite = new PIXI.Sprite(texture);\n                bottomContainer.addChild(sprite);\n            }\n\n            topContainer.destroy({children: true, texture:true});\n        });\n\n    });\n```\n",
+        "timestamp": "2016-08-15T15:04:54Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "One thing - was wandering if we need -> `child.emit('removed', this);` ?\nLet me know if i'm completely off the mark!\n",
+        "timestamp": "2016-08-15T16:49:19Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "I really don't know, its up to you :) But we just had someone ask if \"removed\" will be called when whole subtree is destroyed, somewhere in the issues, please find him.\n",
+        "timestamp": "2016-08-15T16:52:15Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "What do you think @bigtimebuddy ?\n",
+        "timestamp": "2016-08-15T16:56:14Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@GoodBoyDigital I think I'm not a big fan of emitting here. When you destroy something, it means that you have no desire to use that thing anymore. If you're still responding to callbacks, then you clearly should not be destroying it. Instead, I actually would consider `this.removeAllListeners()` in DisplayObject's `destroy`. \n",
+        "timestamp": "2016-08-15T17:03:35Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "I like that! Intention is definitely to nuke the object and it would help ensure that it completely free's it from getting caught in events memory!\n",
+        "timestamp": "2016-08-15T17:07:59Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Maybe add special removeChildrenRecursive then?\n",
+        "timestamp": "2016-08-15T17:50:36Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Okay, now removes listeners and doesn't emit remove on destroy.\n",
+        "timestamp": "2016-08-15T17:51:20Z"
+      },
+      {
+        "author": "ivanpopelyshev",
+        "role": "COLLABORATOR",
+        "body": "Can we write it down somewhere in docs? We really need explanation of how removeChild/destroy works\n",
+        "timestamp": "2016-08-15T17:51:53Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Added more documentation for destroy\n",
+        "timestamp": "2016-08-15T17:59:01Z"
+      },
+      {
+        "author": "GoodBoyDigital",
+        "role": "MEMBER",
+        "body": "nice work chaps!\n",
+        "timestamp": "2016-08-15T20:00:32Z"
+      },
+      {
+        "author": "lock[bot]",
+        "role": "NONE",
+        "body": "This thread has been automatically locked since there has not been any recent activity after it was closed. Please open a new issue for related bugs.",
+        "timestamp": "2019-02-25T00:59:52Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "bb8ef35",
+        "message": "Destroying a DisplayObject will remove itself",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T11:53:00Z"
+      },
+      {
+        "sha": "ec57e34",
+        "message": "Container removes children before destroying",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T12:04:20Z"
+      },
+      {
+        "sha": "4476e91",
+        "message": "Fixed destroy order",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T12:06:58Z"
+      },
+      {
+        "sha": "f746947",
+        "message": "Removes extra whitespace",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T12:09:20Z"
+      },
+      {
+        "sha": "9c148d2",
+        "message": "Updates with Ivan's suggestion for Container destroy",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T14:58:08Z"
+      },
+      {
+        "sha": "acc90dc",
+        "message": "Removes listeners when destroying",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T17:50:19Z"
+      },
+      {
+        "sha": "90bf9ec",
+        "message": "More verbose destroy comments",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T17:58:41Z"
+      },
+      {
+        "sha": "3d7ca56",
+        "message": "Typo",
+        "author": "Matt Karl",
+        "timestamp": "2016-08-15T17:59:41Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pixijs/pixijs#6546",
+    "metadata": {
+      "title": "[RFC] Github Actions",
+      "labels": [
+        "✅ Ready To Merge"
+      ],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-04-22T15:10:22Z",
+      "reviewers": [
+        "cursedcoder",
+        "bigtimebuddy",
+        "englercj"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "So I haven't figured out how travis conditions worked, b/c for me they look similar.\r\n\r\nAny suggestions would be highly appreciated.\r\n\r\n~This incorporates a bump for jsdoc, so Pixi can properly build with node version > 10.~"
+    },
+    "discussion_timeline": [
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Wow great work! Thanks for doing this and putting in the effort. This has been high on my todo list. Directionally, removing Travis is the correct move.\r\n \r\nThe JSDoc bump is a consequential change. The new version of JSDoc misses a bunch of our documentation like events, and some deprecation. Version 3.6.x introduced a new parsing engine which screwed everything up. My preference would be to pin GitHub actions to node 10 until we can fix all those underlying issues as another PR. Because our typings also depend on JSDoc, this is a nontrivial change and requires a close attention.\r\n\r\nIs that ismobilejs change a fix for #6511? Maybe we can do that as a separate PR?\r\n\r\n",
+        "timestamp": "2020-04-12T14:33:52Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy thanks, will handle mentioned issues.\r\n\r\nRegarding ismobilejs – I'm not sure how it worked on travis, probably because of cached node_modules.\r\nOn my forked repo travis it was failing with \"missing argument\", see https://travis-ci.org/github/cursedcoder/pixi.js/builds/673997141 and https://github.com/cursedcoder/pixi.js/runs/580341097?check_suite_focus=true#step:5:314.\r\n\r\n```##[error]packages/settings/src/utils/isMobile.ts(6,18): error TS2554: Expected 1 arguments, but got 0.```\r\n\r\n@englercj thanks for the review, I'll ensure it also deploys correctly on my fork.",
+        "timestamp": "2020-04-12T16:00:29Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Could you update to the latest, we fixed the ismobilejs issue.",
+        "timestamp": "2020-04-14T01:07:04Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy done.\r\n@englercj \r\n![image](https://user-images.githubusercontent.com/899452/79212342-2adf9280-7e50-11ea-85fa-8757d7ce198e.png)\r\n\r\nYou can see – tags, branches and the latest release are deployed.",
+        "timestamp": "2020-04-14T10:03:12Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "My final request is that I'd like to combine the two workflows together and instead just guard the deploy steps inline.\r\n\r\nI'd rather do this because right now they both are building the library anyway. Right now the flow is: install, build, test, if release then install, build, deploy. I'd rather the flow be: install, build, test, optionally deploy.\r\n\r\nHere is an example of what I did on gl-tiled:\r\n\r\nhttps://github.com/englercj/gl-tiled/blob/1c0d44e5a02f3ad567bc03ce5e34742f4b435258/.github/workflows/main.yml#L25-L33",
+        "timestamp": "2020-04-14T21:08:09Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@englercj thanks, sounds about right.\r\n\r\nHowever, in addition to build-matrix, this will lead to several deploys per build.\r\n\r\nI'll dive deeper into the docs, I have few ideas on how to improve that.",
+        "timestamp": "2020-04-15T08:58:38Z"
+      },
+      {
+        "author": "englercj",
+        "role": "COLLABORATOR",
+        "body": "Currently the matrix only has one entry, so there is only one build. You can also have multiple steps all with different ifs.\r\n\r\nBut you can just add another condition to the `if` to only deploy on a specific matrix entry.",
+        "timestamp": "2020-04-15T14:46:21Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Also @cursedcoder can you revert changes to package-lock.json? Those changes are unnecessary for this PR and is probably left-overs from bumping jsdoc.",
+        "timestamp": "2020-04-15T14:54:04Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy @englercj should be OK now.\r\n\r\nPlease check.",
+        "timestamp": "2020-04-19T14:07:43Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy make sure to update the repository's secrets before it gets merged.\r\n\r\nThanks.",
+        "timestamp": "2020-04-20T19:37:32Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "@cursedcoder is there anything else I need to setup in the settings other than secrets?",
+        "timestamp": "2020-04-20T20:27:58Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Also could you fix the build status badge in the readme to not use Travis?",
+        "timestamp": "2020-04-20T20:32:05Z"
+      },
+      {
+        "author": "cursedcoder",
+        "role": "COLLABORATOR",
+        "body": "@bigtimebuddy added the badge.\r\n\r\nChecklist before merging:\r\n- [x] Add AWS secrets\r\n- [ ] Add codecov token secret\r\n\r\nThinking out loud – can't we instead merge this into `github-actions` and ensure it builds in **this** repository? ",
+        "timestamp": "2020-04-21T10:50:45Z"
+      },
+      {
+        "author": "bigtimebuddy",
+        "role": "MEMBER",
+        "body": "Yes, good idea.",
+        "timestamp": "2020-04-21T13:16:57Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5827a05",
+        "message": "[RFC] Github Actions",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-12T11:06:52Z"
+      },
+      {
+        "sha": "02f0013",
+        "message": "Remove travis.yml",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-12T11:08:19Z"
+      },
+      {
+        "sha": "0a8eb61",
+        "message": "Get back to node10, revert jsdoc version, lock ismobilejs version",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-13T18:23:06Z"
+      },
+      {
+        "sha": "e61c81f",
+        "message": "Merge remote-tracking branch 'pix/dev' into github-actions",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-14T07:40:54Z"
+      },
+      {
+        "sha": "99ffb52",
+        "message": "Keep a single job",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-19T13:44:01Z"
+      },
+      {
+        "sha": "42abb30",
+        "message": "Revert package-json.lock",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-19T14:01:40Z"
+      },
+      {
+        "sha": "96af144",
+        "message": "Ensure deploy for single matrix item",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-19T14:04:35Z"
+      },
+      {
+        "sha": "c23cd08",
+        "message": "Merge branch 'dev' into github-actions",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-19T14:06:44Z"
+      },
+      {
+        "sha": "acd4278",
+        "message": "Merge branch 'dev' into github-actions",
+        "author": "Matt Karl",
+        "timestamp": "2020-04-20T23:25:36Z"
+      },
+      {
+        "sha": "c965fb9",
+        "message": "Add github badge",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-21T10:45:47Z"
+      },
+      {
+        "sha": "bd3e9d6",
+        "message": "Merge branch 'github-actions' of github.com:cursedcoder/pixi.js into github-actions",
+        "author": "Yevhenii Huselietov",
+        "timestamp": "2020-04-21T10:46:05Z"
+      }
+    ]
+  }
+]

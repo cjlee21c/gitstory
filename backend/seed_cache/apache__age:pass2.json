@@ -1,0 +1,1308 @@
+[
+  {
+    "story_id": "apache/age#2351",
+    "metadata": {
+      "title": "Add index scan",
+      "labels": [],
+      "qualities": [
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-04-14T18:23:53Z",
+      "reviewers": [
+        "sandy-bes",
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "**Motivation / Problem:** \r\nAs a result of load testing, a significant performance degradation was found in insertion scenarios. The scenarios used were taken from an open-source benchmark and rewritten in pure SQL. Examples of the queries can be found here:\r\n1) https://github.com/ldbc/ldbc_snb_interactive_v1_impls/blob/main/cypher/queries/interactive-update-1.cypher\r\n2) https://github.com/ldbc/ldbc_snb_interactive_v1_impls/blob/main/cypher/queries/interactive-update-6.cypher\r\n3) https://github.com/ldbc/ldbc_snb_interactive_v1_impls/blob/main/cypher/queries/interactive-update-7.cypher\r\n\r\nPerf analysis showed that the main bottleneck is the entity_exists function. The root cause lies in the use of a Sequential Scan (SeqScan) to check for the existence of an entity prior to insertion. The time complexity of a SeqScan is O(N), meaning the search time grows linearly as the number of rows in the table increases. The larger the graph became, the longer each individual insertion took. This led to a drop in TPS regardless of the concurrency level (the issue was consistently reproduced with both 1 and 30 threads).\r\n\r\n**Profile Analysis (Flame Graphs & perf):** I am attaching Flame Graphs for comparison.\r\n- Before Patch: The Flame Graph shows a massive \"plateau\" for the `entity_exists` function and its underlying sequential scan operations.\r\n<img width=\"1530\" height=\"1239\" alt=\"image\" src=\"https://github.com/user-attachments/assets/65a4ae59-c1cf-476b-967a-42065a653a98\" />\r\n\r\n- After Patch: The \"plateau\" of entity_exists has disappeared, confirming that the bottleneck is resolved.\r\n<img width=\"1530\" height=\"1308\" alt=\"image\" src=\"https://github.com/user-attachments/assets/8ec08b02-3404-4125-b4e1-7bf65c6cbb56\" />\r\n\r\n**Changes Made:**\r\n- Added Index Scan (IndexScan / time complexity O(log N)) inside the entity_exists function.\r\n- Refactored other functions utilizing SeqScan — they were also migrated to use IndexScan wherever applicable.\r\n\r\n**Performance Impact:** \r\nBenchmarks were conducted on a server with 30 CPU cores and 32 GB of RAM, using a graph ranging from 20,000 to 200,000 objects over a 2-minute duration. The transition to index access completely eliminated the performance degradation associated with data volume growth:\r\n- Before: ~1,500 TPS (at peak, with subsequent degradation as the table grew).\r\n- After: Stable ~15,000 TPS (a 10x speedup).\r\n\r\nHere are the scripts and commands for local reproduction:\r\n\r\n**1. Graph creation and population:** \r\nThe `sf` parameter here defines the scale factor of the generated graph.\r\npsql -d your_database -f generate_graph.sql -v sf=1\r\n[generate_graph.sql](https://github.com/user-attachments/files/25733014/generate_graph.sql)\r\n\r\n\r\n**2. Creating wrapper functions for the workload:** \r\nThis script sets up the environment and creates functions with the correct parameter mapping for Apache AGE.\r\npsql -d your_database -f setup_func_for_workload.sql\r\n[setup_func_for_workload.sql](https://github.com/user-attachments/files/25733016/setup_func_for_workload.sql)\r\n\r\n\r\n**3. Running the load test:** \r\nRunning 8 clients for 120 seconds.\r\npgbench -d your_database -f workload_update.sql -D sf=1 -c 8 -T 120 -P\r\n[workload_update.sql](https://github.com/user-attachments/files/25733018/workload_update.sql)\r\n\r\n\r\n\r\n**Acknowledgments:**\r\n- Huge thanks to Daria Barsukova for conducting the load testing and isolating the issue.\r\n- Implementation of index scanning: Alexandra Bondar.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes Please address the above Copilot suggestions. Additionally, please make sure to note any AI usage, if used.",
+        "timestamp": "2026-03-03T17:32:27Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes Please see this as well (Opus 4.6 review). All of these items need to be address.\r\n\r\n## Review of PR #2351 — Add index scan\r\n\r\nThe core idea — replacing O(N) sequential scans with O(log N) index scans in `entity_exists` and related hot paths — is excellent, and the performance numbers are compelling. However, there are several correctness, security, and code quality issues that need to be addressed before this can be merged.\r\n\r\n### Critical Issues\r\n\r\n**1. RLS bypass in `cypher_set.c` index-scan path (security bug)**\r\n\r\nThe index-scan branch in `process_update_list()` calls `update_entity_tuple()` directly without checking `check_security_quals`. The seq-scan fallback correctly gates the update on RLS USING-policy evaluation. This means SET/REMOVE will bypass row-level security when an index is present. The same RLS gating logic must be applied in the index-scan branch.\r\n\r\n**2. `heap_freetuple` on wrong tuple in `cypher_set.c` (memory corruption)**\r\n\r\n```c\r\nheap_tuple = ExecFetchSlotHeapTuple(index_slot, true, &shouldFree);\r\n// ...\r\nheap_tuple = update_entity_tuple(resultRelInfo, slot, estate, heap_tuple);\r\n// ...\r\nif (shouldFree)\r\n    heap_freetuple(heap_tuple);  // <-- frees the UPDATE result, not the fetched tuple\r\n```\r\n\r\nAfter `update_entity_tuple()`, `heap_tuple` points to the new tuple, but `shouldFree` applies to the originally fetched tuple. This can free the wrong memory. Keep the fetched tuple in a separate variable and only free that one.\r\n\r\n### Correctness Issues\r\n\r\n**3. `F_OIDEQ` vs `F_GRAPHIDEQ` mismatch in `agtype.c` fallback path**\r\n\r\nThe index path correctly uses `F_GRAPHIDEQ`, but the seq-scan fallback at line ~5709 still uses `F_OIDEQ`. The column type is `graphid`, so both paths should use `F_GRAPHIDEQ` / `GRAPHID_GET_DATUM`.\r\n\r\n**4. Index attno vs heap attno confusion in `ag_label.c`**\r\n\r\n`ScanKeyInit` for the index scan uses `Anum_ag_label_name` as the attribute number. For index scans, the attno should be the index column number (typically 1), not a heap attribute-number macro. Additionally, the index is on `graph_oid`, so referencing `Anum_ag_label_name` is semantically incorrect — it only works by coincidence if the value happens to equal 1. Consider using `ag_label_graph_oid_index_id()` instead of `get_relname_relid()` string lookup as well.\r\n\r\n### Performance Issue\r\n\r\n**5. Index discovery runs per-tuple in hot paths**\r\n\r\nIn `process_delete_list()` and `process_update_list()`, the index discovery block (`RelationGetIndexList` + open/close each index) runs inside the per-entity loop. For a DELETE or SET touching N entities of the same label, this runs N times. The index OID should be cached per-label or discovered once outside the inner loop.\r\n\r\n### Code Quality Issues\r\n\r\n**6. Massive code duplication**\r\n\r\nThe index discovery pattern (iterate `RelationGetIndexList`, open each, check `indisvalid`/`indnatts`/`indkey.values[0]`) is copy-pasted 6+ times across the changed files. This should be factored into a shared utility function, e.g.:\r\n\r\n```c\r\nOid find_usable_index_for_attr(Relation rel, AttrNumber attnum);\r\n```\r\n\r\n**7. DETACH DELETE duplication in `cypher_delete.c`**\r\n\r\nThe two-pass connected-edge check (START_ID pass + END_ID pass) duplicates ~120 lines of nearly identical ACL check + RLS check + delete + error logic. A helper function would reduce this significantly.\r\n\r\n**8. C++ style comments**\r\n\r\nNew code uses `//` comments in `ag_label.c` and elsewhere. The AGE/PostgreSQL codebase uses `/* ... */` exclusively. Please convert for consistency and C90 portability.\r\n\r\n**9. Brace style inconsistency**\r\n\r\nThe PR mixes `} else {` with the existing codebase convention of:\r\n\r\n```c\r\n}\r\nelse\r\n{\r\n```\r\n\r\nPlease follow the existing style.\r\n\r\n**10. Inconsistent lock levels**\r\n\r\nIndex open calls use `RowExclusiveLock` in some read-only scan paths (`ag_label.c` label enumeration, `age_global_graph.c`) where `AccessShareLock` would be more appropriate. The lock levels for index access during reads vs writes should be reviewed for consistency.\r\n\r\n### Summary\r\n\r\n| # | Issue | Severity |\r\n|---|---|---|\r\n| 1 | RLS bypass in SET index path | **Critical** |\r\n| 2 | `heap_freetuple` on wrong tuple | **High** |\r\n| 3 | `F_OIDEQ` vs `F_GRAPHIDEQ` mismatch | **Medium** |\r\n| 4 | Index attno vs heap attno confusion | **Medium** |\r\n| 5 | Index discovery per-tuple in loops | **Medium** |\r\n| 6 | Index discovery code duplication (6x) | **High** |\r\n| 7 | DETACH DELETE logic duplication | **Medium** |\r\n| 8 | C++ style comments | **Low** |\r\n| 9 | Brace style inconsistency | **Low** |\r\n| 10 | Inconsistent lock levels | **Medium** |\r\n\r\nThe performance improvement is real and valuable. With the security fix (#1), memory safety fix (#2), correctness fixes (#3-4), and a refactoring pass to deduplicate the index discovery logic (#5-7), this will be in good shape.",
+        "timestamp": "2026-03-03T19:56:34Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "I've updated the PR description with the steps to reproduce the tests locally.",
+        "timestamp": "2026-03-04T05:37:14Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes \r\n\r\n> I've updated the PR description with the steps to reproduce the tests locally.\r\n\r\nI was able to validate the perf claims with Opus earlier. \r\n\r\nBut, more importantly, I can't do anything with this PR until **all of the above issues (Copilot & Opus)** have been addressed. Including noting any use of AI. Btw, using AI is fine, it just needs to be noted.",
+        "timestamp": "2026-03-04T08:05:19Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "Yes, absolutely, I understand that the review process needs to be finalized first. I will do my best to address all the feedback over the next few days.\r\n\r\nRegarding the use of AI agents: I did not use any AI agents while writing this code.",
+        "timestamp": "2026-03-04T10:04:07Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "All review comments and suggestions provided by GitHub Copilot and Opus 4.6 have been addressed and integrated into this patch.",
+        "timestamp": "2026-03-13T11:05:54Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes A lot of regression tests failed. Are you running the installcheck locally to verify the build?\r\n<img width=\"1391\" height=\"1452\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e82c8d5d-ae5a-40c4-aa6f-07952ef4f454\" />\r\n\r\n",
+        "timestamp": "2026-03-13T18:49:05Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "I forgot to run installcheck for the latest change in the commit, my bad! It turned out there was a lock mismatch. I just fixed it, the tests are passing now, and I force-pushed the update.",
+        "timestamp": "2026-03-15T04:26:35Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes Sorry, you know the drill by now, more Copilot,... I keep hoping it stops complaining :( But, I think we're close.",
+        "timestamp": "2026-03-25T17:35:22Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani No worries at all, I completely understand! As much as it complains, I have to admit Copilot actually gives some really good hints and catches subtle things. ",
+        "timestamp": "2026-03-31T06:10:43Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes I think if I keep having Copilot review it, it will never stop finding \"something\" to complain about. So, I think I'm done with it for this PR. Now I'll review the changes manually and go from there.",
+        "timestamp": "2026-04-10T16:53:14Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@sandy-bes Okay, one small-ish ask. We used to not have this coding rule, so code exists that doesn't follow it. However, we try to enforce that all new code always uses braces {} even for one line of code. If you could make that change in your code, please :)",
+        "timestamp": "2026-04-10T18:05:57Z"
+      },
+      {
+        "author": "sandy-bes",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani I've added the missing braces {}.",
+        "timestamp": "2026-04-14T06:23:55Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "0ffedcd",
+        "message": "Add index scan\n\nThis commit fixes performance degradation during insertion scenarios by replacing SeqScan with IndexScan.\n\nCo-authored-by: Daria Barsukova <d.barsukova@g.nsu.ru>\nCo-authored-by: Alexandra Bondar <s6311704@gmail.com>",
+        "author": "Alexandra Bondar",
+        "timestamp": "2026-03-03T06:21:05Z"
+      },
+      {
+        "sha": "7e07f32",
+        "message": "Merge branch 'master' into add_index_scan",
+        "author": "a_bondar",
+        "timestamp": "2026-03-03T07:17:47Z"
+      },
+      {
+        "sha": "61659f2",
+        "message": "Address code review commets",
+        "author": "Alexandra Bondar",
+        "timestamp": "2026-03-13T06:20:35Z"
+      },
+      {
+        "sha": "54fb996",
+        "message": "Address code review commets",
+        "author": "Alexandra Bondar",
+        "timestamp": "2026-03-31T06:00:54Z"
+      },
+      {
+        "sha": "65a4154",
+        "message": "Add brackets",
+        "author": "Alexandra Bondar",
+        "timestamp": "2026-04-14T05:31:32Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#905",
+    "metadata": {
+      "title": "Typecast bool to integer and vice versa",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-05-10T17:33:43Z",
+      "reviewers": [
+        "Zainab-Saad",
+        "jrgemignani"
+      ],
+      "changed_files": 6
+    },
+    "issue_payload": {
+      "body": "Implemented the enhancement raised in issue #824 \r\n\r\n- Added, modified code for typecast bool to integer and vice versa\r\n- Added, modified regression tests"
+    },
+    "discussion_timeline": [
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad Please add some edge cases where bad input is provided. For example, empty strings, strings with garbage. We need to see how the modification act on all types of data.",
+        "timestamp": "2023-05-09T14:03:16Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "Before adding to the regression tests, here are a few edge cases:\r\n`SELECT * FROM cypher('test', $$\r\nRETURN \"\"::int\r\n$$) AS (result agtype);\r\nERROR:  invalid input syntax for integer: \"\"`\r\n\r\n`SELECT * FROM cypher('test', $$\r\nRETURN \"falze\"::int\r\n$$) AS (result agtype);\r\nERROR:  invalid input syntax for integer: \"falze\"`\r\n\r\n`SELECT * FROM cypher('test', $$\r\nRETURN \"\"::bool\r\n$$) AS (result agtype);\r\nERROR:  cannot cast agtype string to type boolean`\r\n\r\n`SELECT * FROM cypher('test', $$\r\nRETURN \"falze\"::bool\r\n$$) AS (result agtype);\r\nERROR:  cannot cast agtype string to type boolean`\r\n\r\n@jrgemignani Do I add these as well?",
+        "timestamp": "2023-05-09T14:13:05Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad The goal is to have regression tests that have complete coverage. In the past, we weren't always thorough enough. This is why I'm making sure our regression tests, going forward, are. We want to attempt to cover as many possible ways a user could use a feature, both good and bad, **and put them in as regression tests**. \r\n\r\nThe goal is to show that an addition, or modification, works when used properly and that it gives the appropriate error messages when it isn't.  And, most importantly, that it doesn't crash on user input.\r\n\r\nHope that is helpful.",
+        "timestamp": "2023-05-09T14:22:43Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani In the above tests that I have shared, are these good to add? Moreover, do I add regression tests for float::bool as well? (I didnt add that before because this PR dealt with integer <-> booleans)",
+        "timestamp": "2023-05-09T14:31:50Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad Those are good to add. To answer your question I'll reiterate these 2 comments -\r\n\r\n> We want to attempt to cover as many possible ways a user could use a feature, both good and bad, and put them in as regression tests.\r\n\r\n> The goal is to show that an addition, or modification, works when used properly and that it gives the appropriate error messages when it isn't. And, most importantly, that it doesn't crash on user input.\r\n\r\nCreating regression tests can be hard. You need to think of how a user, well intentioned or not, might use a feature or modification.",
+        "timestamp": "2023-05-09T14:57:03Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Yes, I understand that. Moreover, I have written a few more regression tests and commenting them here so that I can make a commit to add only relevant regression tests:\r\n1. `SELECT * FROM cypher('test', $$\r\nRETURN \"\"     \r\n$$) AS (result int);\r\nERROR:  invalid input syntax for integer: \"\"`\r\n\r\n2. `SELECT * FROM cypher('test', $$\r\nRETURN \"falze\"\r\n$$) AS (result int);\r\nERROR:  invalid input syntax for integer: \"falze\"`\r\n\r\n3. `SELECT * FROM cypher('test', $$\r\nRETURN tRuE   \r\n$$) AS (result int);`\r\n\r\n result \r\n- - - - - - \r\n      1\r\n(1 row)\r\n\r\n4. `SELECT * FROM cypher('test', $$\r\nRETURN \"\"         \r\n$$) AS (result bool);\r\nERROR:  cannot cast agtype string to type boolean`\r\n\r\n5. `SELECT * FROM cypher('test', $$\r\nRETURN \"falze\"\r\n$$) AS (result bool);\r\nERROR:  cannot cast agtype string to type boolean`\r\n\r\nThese are the tests for *type coercion*",
+        "timestamp": "2023-05-09T15:15:01Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad I will **generally** never say one has too many regression tests. And PRs are works in progress, so don't worry about making many adjustments to them. It is good to get used to anyway.",
+        "timestamp": "2023-05-09T15:22:31Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Done with adding regression tests for edge cases",
+        "timestamp": "2023-05-09T16:02:29Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad If you could also add more to agtype.sql please :)",
+        "timestamp": "2023-05-09T16:19:01Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Added test cases for agtype_to_int4 (added tests for float, numeric which were missing as well and checked for bad input). agtype_to_bool was fine already",
+        "timestamp": "2023-05-09T17:31:36Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani I see that in the merged commit, regression tests fail as well although I ran `make installcheck` and all 24 tests passed successfully. Is there a need to fix this?",
+        "timestamp": "2023-05-10T17:39:22Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad I reran the test and it was successful. I also pulled down the latest master and it built successfully.",
+        "timestamp": "2023-05-10T17:42:13Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Okay. And about the JDBC test, is it acceptable that a driver test fails?",
+        "timestamp": "2023-05-10T17:46:13Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@Zainab-Saad Btw, for future reference, you don't need this much detail for your extended commit description -\r\n\r\n```\r\ncommit 87f860151fc17f7d124ddf3f409f2b24acd928de\r\nAuthor: Zainab Saad <105385638+Zainab-Saad@users.noreply.github.com>\r\nDate:   Wed May 10 22:33:42 2023 +0500\r\n\r\n    Typecast bool to integer and vice versa (#905)\r\n\r\n    * Typecast boolean to integer\r\n\r\n    - Modify agtype_typecast_int and agtype_to_int4 in agtype.c\r\n\r\n    * Add regression tests for typecast boolean to integer\r\n\r\n    - Add regression tests: sql script, expected results in agtype.sql, agtype.out\r\n    - Add regression tests: sql script, expected results in expr.sql, expr.out\r\n\r\n    * Typecast integer to boolean\r\n\r\n    - Modify transform_cypher_typecast in cypher_expr.c\r\n    - Modify agtype_to_bool in agtype.c\r\n\r\n    * Add regression tests for typecast integer to boolean\r\n\r\n    - Add/Modify regression tests in agtype.sql, agtype.out\r\n    - Add/Modify regression tests in expr.sql, expr.out\r\n\r\n    * Add regression tests for edge cases\r\n\r\n    - Add regression tests in expr.sql, expr.out\r\n    - These regression tests check the edge cases for typecasting\r\n\r\n    * Add regression tests for edge cases - II\r\n\r\n    - Add regression tests in agtype.sql, agtype.out\r\n    - Add edge cases for agtype_to_int4\r\n\r\n    * Fix & Add regression tests\r\n\r\n    - Fix comments in agtype.sql, agtype.out\r\n    - Add regression test for edge case\r\n```\r\n\r\nSomething like this would be more concise -\r\n\r\n```\r\ncommit 87f860151fc17f7d124ddf3f409f2b24acd928de\r\nAuthor: Zainab Saad <105385638+Zainab-Saad@users.noreply.github.com>\r\nDate:   Wed May 10 22:33:42 2023 +0500\r\n\r\n    Typecast bool to integer and vice versa (#905)\r\n\r\n    * Typecast boolean to integer\r\n\r\n    - Modify agtype_typecast_int and agtype_to_int4\r\n\r\n    * Typecast integer to boolean\r\n\r\n    - Modify transform_cypher_typecast\r\n    - Modify agtype_to_bool\r\n\r\n    - Add regression tests\r\n```\r\n",
+        "timestamp": "2023-05-10T17:47:48Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "> @jrgemignani Okay. And about the JDBC test, is it acceptable that a driver test fails?\r\n\r\nFor whatever reason, that test sometimes fails and sometimes doesn't. It is likely a resource issue. It isn't okay, but re-running it usually fixes it. I would worry if the actual build fails or some other test fails. But, only if rerunning the test isn't successful.",
+        "timestamp": "2023-05-10T17:51:03Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "@Zainab-Saad Hello, there are actually is an edge case with booleans that we found that this patch breaks.\n\nRETURN True AND 1 should fail due to a type mismatch, but implicit casting permits this invalid operation.\n\nAdmittedly, there should have been regression tests for this scenario so that it could have been caught earlier in the process, but can you go ahead and modify the code to address this?\n\nIt can be another pull request. Thank you!",
+        "timestamp": "2023-05-11T16:16:10Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@dehowef Thanks for pointing that out. \r\nShould the pull request revert implicit casting from integer to booleans only or from booleans to integers too? \r\nBecause at present, there is implicit casting both ways.\r\n",
+        "timestamp": "2023-05-11T16:30:04Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@dehowef Moreover, the query results as:\r\n`SELECT * FROM cypher('test', $$\r\nRETURN TRUE AND 1\r\n$$) AS (result agtype);\r\nERROR:  cannot cast agtype integer to type boolean`\r\nwithout the patch.",
+        "timestamp": "2023-05-11T16:33:24Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "Hey @Zainab-Saad , I think that that implicit casting and working around PG's Boolean type is tricky in general. If it requires removal of implicit boolean casting one way fixes this case, it may be wise to perform additional tests to see if any other edge cases may fail. Thank you~, let me know if there is anything else I can add to be more clear or helpful",
+        "timestamp": "2023-05-12T08:19:28Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@dehowef I have seen that a possible fix of this issue (eliminating int to bool implicit casting while retaining the explicit :: casting) is to define a new function `agtype_typecast_bool` which will be used for ::boolean casting while inside the `agtype_to_bool`, we simply remove the casting from int to bool.\r\nMoreover, I am looking into edge cases where implicit casting from bool to int/int8 can cause issues (did not find an edge case yet). The code base initially did not have `agtype_typecast_bool` defined (there is this function for other data types like `agtype_typecast_int`, `agtype_typecast_numeric` etc.) and I was wondering if there was a specific reason for this exclusion that I should be aware of.\r\nThanks",
+        "timestamp": "2023-05-12T15:52:07Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "A lot of the boolean checking and processing is done on the Postgres side of things, so being able to implicitly cast values into the boolean type without actually ensuring it's validity would cause errors like this. That is why we never included an implicit cast in the first place. We have discussed it and the boolean implementation in general, though.",
+        "timestamp": "2023-05-12T16:45:23Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@dehowef Yes, but including explicit typecast (with :: operator)can be done, right?\r\nlike this:\r\n```\r\nSELECT * FROM cypher('test', $$\r\nRETURN 0::bool\r\n$$) as r(result agtype);\r\n result \r\n--------\r\n false\r\n(1 row)\r\n```\r\nAnd yes I get it that the following two should be reverted:\r\n```\r\nSELECT * FROM cypher('test', $$\r\nRETURN 0      \r\n$$) as r(result bool);\r\n```\r\n\r\nand \r\n\r\n```\r\nSELECT agtype_to_bool(agtype_in('1'));\r\n```\r\nThese both should give errors.",
+        "timestamp": "2023-05-12T16:55:39Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "Yeah, I think explicit casting is fine-- implicit operations is where the errors usually pop up",
+        "timestamp": "2023-05-12T17:35:59Z"
+      },
+      {
+        "author": "Zainab-Saad",
+        "role": "CONTRIBUTOR",
+        "body": "@dehowef I have created PR #923 to address this issue. Kindly take a look.\r\nThanks",
+        "timestamp": "2023-05-14T09:22:06Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "Will do~ Thank you for your contributions, @Zainab-Saad ",
+        "timestamp": "2023-05-15T17:37:54Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b14c4d9",
+        "message": "Typecast boolean to integer\n\n- Modify agtype_typecast_int and agtype_to_int4 in agtype.c",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T04:53:12Z"
+      },
+      {
+        "sha": "ac0a431",
+        "message": "Add regression tests for typecast boolean to integer\n\n- Add regression tests: sql script, expected results in agtype.sql, agtype.out\n- Add regression tests: sql script, expected results in expr.sql, expr.out",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T05:06:14Z"
+      },
+      {
+        "sha": "78cbaee",
+        "message": "Typecast integer to boolean\n\n- Modify transform_cypher_typecast in cypher_expr.c\n- Modify agtype_to_bool in agtype.c",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T05:33:48Z"
+      },
+      {
+        "sha": "8c645c1",
+        "message": "Add regression tests for typecast integer to boolean\n\n- Add/Modify regression tests in agtype.sql, agtype.out\n- Add/Modify regression tests in expr.sql, expr.out",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T05:36:18Z"
+      },
+      {
+        "sha": "6599817",
+        "message": "Add regression tests for edge cases\n\n- Add regression tests in expr.sql, expr.out\n- These regression tests check the edge cases for typecasting",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T16:00:31Z"
+      },
+      {
+        "sha": "dbf8028",
+        "message": "Add regression tests for edge cases - II\n\n- Add regression tests in agtype.sql, agtype.out\n- Add edge cases for agtype_to_int4",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-09T17:28:29Z"
+      },
+      {
+        "sha": "33ce39c",
+        "message": "Fix & Add regression tests\n\n- Fix comments in agtype.sql, agtype.out\n- Add regression test for edge case",
+        "author": "Zainab Saad",
+        "timestamp": "2023-05-10T06:26:31Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#994",
+    "metadata": {
+      "title": "[AGE agtype_util.c] Fix issue #870 regarding orderability",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-06-29T01:13:22Z",
+      "reviewers": [
+        "rafsun42",
+        "jrgemignani",
+        "CapnSpek"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Fixed issue #870 \r\n Odd behavior in context of orderability of different agtypes.\r\n\r\nImplemented the solution suggested here:\r\nhttps://github.com/apache/age/issues/870#issuecomment-1545592359"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "Hey @CapnSpek , can you add some regression tests for this change that indicate the desired behavior and check for edge cases? I think this change might warrant further discussion. @jrgemignani  @rafsun42 @muhammadshoaib Thoughts? Thanks",
+        "timestamp": "2023-06-15T23:14:56Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@CapnSpek  Are you following these [documentation](https://age.apache.org/age-manual/master/intro/comparability.html#orderability-between-different-agtypes) for orders:\r\n\r\n> Edge\r\n> Path\r\n> Map\r\n> Vertex\r\n> Edge\r\n> Array\r\n> String\r\n> Bool\r\n> Numeric, Integer, Float\r\n> NULL",
+        "timestamp": "2023-06-16T17:47:46Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "@rafsun42 the issue only arose when I noticed the ambiguity in the position of edge in the documentation, regarding which I created an issue here https://github.com/apache/age-website/issues/143\r\n\r\nThen after discovering the odd behaviour I created the issue #870 \r\n\r\nIn which I and John discussed how the original purpose of having orderability was \"orderability was chosen over comparability in order to allow for the sorting, grouping, of output.\"\r\n\r\nBased on this information, I extrapolated the currently present priority order (which did not include edge or path at all btw)\r\nFrom\r\n\r\nObject, Vertex, Array String, Bool, Numbers, Null\r\n\r\nTo\r\n\r\nObject, (Path, Edge), Vertex, Array, String, Bool, Numbers, Null.\r\n\r\nI reached on this decision because if the aim was orderability and grouping, then, it correctly orders types as:-\r\n\r\nObjects, Collection of graph elements (path), Graph elements (edges and vertices), Array, String, Bool, Numbers, Null.\r\n\r\nBecause it only adds some priorities in between the previously defined priorities, and does not change the structure that previously was there, this change is backwards compatible, and fixes the bug adequately by defining the previously left ambiguous priorities.\r\n\r\nI'll come up with regression tests soon.",
+        "timestamp": "2023-06-16T19:18:50Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@CapnSpek  Sounds good. May I suggest the following order:\r\n```\r\n(Path, Edge, Vertex), (Object, Array), String, Bool, Numbers, Null.\r\n```\r\nI believe `object` refers to map. So, overall order would be: graph elements > composite types (map, list) > primitive types.",
+        "timestamp": "2023-06-16T20:40:47Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "My only issue with it is that we're changing the original priorities that are currently part of the code and it can have some unwanted effects. In the other solution, only some priorities are added in between the existing ones.\r\n\r\nI feel maybe having minimal changes to code can make it more backwards compatible and avoid any unwanted drawbacks.\r\n\r\nWhat do you think?",
+        "timestamp": "2023-06-16T20:52:40Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@CapnSpek I am okay with your argument. I am just curious about the unwanted effects. What are the side effects other than regression tests giving result in different order? For example, do we use the `get_type_sort_priority` function internally somewhere that changing it would break some other functionalities?",
+        "timestamp": "2023-06-19T15:16:00Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "@rafsun42 I think not. I'll test it further and get back to you regarding this by Wednesday.",
+        "timestamp": "2023-06-19T15:18:30Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "The function `get_type_sort_priority` is not used anywhere other than the function `compare_agtype_containers_orderability` which is the function that decides between 2 given agtypes (of the same type or different type) which one should be prioritized above other. \r\n\r\nThe function `get_type_sort_priority` is only used when deciding the orderability between different agtypes.\r\nAll other cases (of same agtypes) are handled with the function, or by other function `compare_agtype_scalar_values`.\r\n\r\nI changed the `get_type_sort_priority` function to the suggested priority, reinstalled AGE, and ran the test cases. All the test cases have been passed.\r\n\r\nIt also solves all the problems that were given in issue #870 .\r\n\r\nI think it is a good solution. Should I proceed to writing new regression tests?\r\n@rafsun42 ",
+        "timestamp": "2023-06-22T14:33:14Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@CapnSpek All PRs should have [as complete as possible] regression tests for the work added, modified, or removed. You don't need to ask :)",
+        "timestamp": "2023-06-22T20:00:24Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "Thank you for the putting in the work with your thorough explanation and documentation of this issue @CapnSpek . What you are saying makes sense to me.",
+        "timestamp": "2023-06-22T20:31:34Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "While going through the regression tests relating to different agtypes (given in /regress/sql/agtype.sql )\r\nI noticed all the tests are written in the following format: -\r\n\r\n`SELECT agtype_in( [some agtype ] ) < [other agtype;`\r\n\r\nI tried searching for a way to write an edge, or a vertex, or path that way, but I could not find anything.\r\n\r\nSo, I wanted to ask, would it be fine if I write the test case in the form of a cypher query?",
+        "timestamp": "2023-06-23T15:05:11Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "I ran into a problem while testing it: -\r\n\r\nEven after changing the priorities in the `get_type_sort_priority`, everything is good except for every query, object is the smallest agtype there is.\r\n\r\nWhile debugging, I discovered this issue does not arise from that function, but instead from `compare_agtype_containers_orderability` function (agtype_util.c: line 231)\r\n\r\n```\r\nint compare_agtype_containers_orderability(agtype_container *a,\r\n                                           agtype_container *b)\r\n{\r\n    agtype_iterator *ita;\r\n    agtype_iterator *itb;\r\n    int res = 0;\r\n\r\n    ita = agtype_iterator_init(a);\r\n    itb = agtype_iterator_init(b);\r\n\r\n```\r\n\r\nThe function takes 2 agtype_container values as parameters (the two values to be compared).\r\n\r\nThen it initializes an iterator for both, and declares the result variable in which the result of the comparison will be stored, then returned.\r\n\r\nThe issue takes place in the do-while loop: -\r\n\r\n```\r\ndo\r\n    {\r\n        agtype_value va;\r\n        agtype_value vb;\r\n        agtype_iterator_token ra;\r\n        agtype_iterator_token rb;\r\n\r\n        ra = agtype_iterator_next(&ita, &va, false);\r\n        rb = agtype_iterator_next(&itb, &vb, false);\r\n```\r\nThe bottom two lines of the code above set both `va.type` & `vb.type` to `AGTV_ARRAY` in case of all agtypes except object, in which they set it to `AGTV_OBJECT`\r\n\r\nThe wrong `AGTV_ARRAY` assignment to all values only takes place in the first iteration of the loop. In the second iteration it corrects itself to the correct type.\r\nThe second iteration only takes place if both values have same agtype, thus this correction step is skipped when `AGTV_OBJECT` and `AGTV_ARRAY` are compared, and decision is readily made that `AGTV_ARRAY > AGTV_OBJECT`.\r\n\r\nI believe it might be because `agtype_container` is an `ARRAY` or `OBJECT` type struct as written in its comment in agtype.h: line 224: -\r\n\r\n```\r\n/*\r\n * An agtype array or object node, within an agtype Datum.\r\n *\r\n * An array has one child for each element, stored in array order.\r\n *\r\n * An object has two children for each key/value pair.  The keys all appear\r\n * first, in key sort order; then the values appear, in an order matching the\r\n * key order.  This arrangement keeps the keys compact in memory, making a\r\n * search for a particular key more cache-friendly.\r\n */\r\ntypedef struct agtype_container\r\n{\r\n    uint32 header; /* number of elements or key/value pairs, and flags */\r\n    agtentry children[FLEXIBLE_ARRAY_MEMBER];\r\n\r\n    /* the data for each child node follows. */\r\n} agtype_container;\r\n```\r\n\r\nSolution: -\r\nBecause it is a very special case (when both Agtypes differ, one is an array, other is an object)\r\n\r\nThe correction can be made into a special case below line 370 as follows\r\n\r\n```\r\nif(va.type == AGTV_ARRAY && vb.type == AGTV_OBJECT)\r\n            {\r\n                ra = agtype_iterator_next(&ita, &va, false);\r\n            }\r\n            else if(va.type == AGTV_OBJECT && vb.type == AGTV_ARRAY)\r\n            {\r\n                rb = agtype_iterator_next(&itb, &vb, false);\r\n            }\r\n```\r\nThat fixes the problem without any side effects.\r\n",
+        "timestamp": "2023-06-26T15:22:58Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "@jrgemignani Can you take a look at this PR?",
+        "timestamp": "2023-06-27T08:38:31Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@CapnSpek Reviewed and requesting changes\r\n",
+        "timestamp": "2023-06-27T17:49:01Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@CapnSpek I would like to see some more regression tests for these changes. In particular, regression tests showing sorting/order by.",
+        "timestamp": "2023-06-27T19:17:23Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "So I wrote a test where a graph is created, then some vertices are added to that graph with a property having all the different agtypes for all the different vertices, and then I query for the vertices of that graph while also ordering them, and then the graph is dropped.\r\n\r\nHowever, it seems it changes the graph_id for the creation of a graph in the next set of regression tests (catalog.out), so I would be modifying that as well here.",
+        "timestamp": "2023-06-27T20:51:11Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@CapnSpek \r\n\r\n> So I wrote a test where a graph is created, then some vertices are added to that graph with a property having all the different agtypes for all the different vertices, and then I query for the vertices of that graph while also ordering them, and then the graph is dropped.\r\n> \r\n> However, it seems it changes the graph_id for the creation of a graph in the next set of regression tests (catalog.out), so I would be modifying that as well here.\r\n\r\nYou can add your new regression tests to the end of the sql file. Just make sure to state, in comments, what the regression tests are for, what they will do, and their expected results.",
+        "timestamp": "2023-06-27T21:08:31Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@CapnSpek Looks good, adding @rafsun42 to get his opinion too.\r\n",
+        "timestamp": "2023-06-27T22:27:37Z"
+      },
+      {
+        "author": "CapnSpek",
+        "role": "NONE",
+        "body": "Thank you. \r\n@jrgemignani Please merge.",
+        "timestamp": "2023-06-28T17:41:51Z"
+      },
+      {
+        "author": "dehowef",
+        "role": "MEMBER",
+        "body": "I gave my review a week ago, but now that @rafsun42 and @jrgemignani have approved, I'll go ahead and merge it in.",
+        "timestamp": "2023-06-29T01:13:16Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "1f30614",
+        "message": "[AGE agtype_util.c] Fix issue #870 regarding orderability and added regression tests\n\nFixed issue #870\n Odd behavior in context of orderability of different agtypes.\n\nImplemented the solution suggested here:\nhttps://github.com/apache/age/issues/870#issuecomment-1545592359\n\nClearance given here:\nhttps://github.com/apache/age/issues/870#issuecomment-1579189313\n\n-Added regression tests for both comparibility and orderability",
+        "author": "Bhaskar Sharma",
+        "timestamp": "2023-06-15T17:25:22Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#349",
+    "metadata": {
+      "title": "Issue 317: Graph naming convention",
+      "labels": [],
+      "qualities": [
+        "security",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-12-29T19:43:17Z",
+      "reviewers": [
+        "jrgemignani"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": null
+    },
+    "discussion_timeline": [
+      {
+        "author": "TropicalPenguin",
+        "role": "NONE",
+        "body": "I see two main issues with the proposed regex matching:\r\n\r\n1. It will fail for alphabetic characters outside the basic Latin alphabet. Code points only up to 255 forbids a lot of very reasonable characters. I think it's very important to support a far broader sweep of Unicode code points, to allow internationalised graph content.\r\n> This includes \"non-English\" characters, such as å, ä, ö, ü etc.\r\n2. It doesn't permit backtick specification of non-alphabetic strings. To not allow such a means of using characters that are otherwise restricted seems arbitrary and needlessly limiting:\r\n> Non-alphabetic characters, including numbers, symbols and whitespace characters, can be used in names, but must be escaped using backticks. For example: `^n`, `1first`, `$$n`, and `my variable has spaces`. Database names are an exception and may include dots without the need for escaping. For example: naming a database foo.bar.baz is perfectly valid.\r\n\r\nHave quoted those side-comments from the Neo4J docs: https://neo4j.com/docs/cypher-manual/current/syntax/naming/",
+        "timestamp": "2022-11-12T02:07:03Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@TropicalPenguin Your concern with item 1 is understandable. @rafsun42 can you address this and see if those can be added?\r\n\r\nHowever, item 2, is due to potential security holes that allowing those characters could enable. For now, this restriction needs to stay in place.",
+        "timestamp": "2022-11-14T18:40:49Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@rafsun42 have the changes for item 1 of @TropicalPenguin request been added? Also, can you rebase this pull request off the current master.",
+        "timestamp": "2022-11-30T19:04:52Z"
+      },
+      {
+        "author": "TropicalPenguin",
+        "role": "NONE",
+        "body": "I suspect the questions in https://github.com/apache/age/issues/317 are a blocker here :smile: ",
+        "timestamp": "2022-11-30T19:13:15Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@jrgemignani I added the changes for the item 1.",
+        "timestamp": "2022-12-01T19:45:48Z"
+      },
+      {
+        "author": "TropicalPenguin",
+        "role": "NONE",
+        "body": "Looks much more comprehensive; thanks!",
+        "timestamp": "2022-12-01T20:03:05Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "Also, my build returned these errors -\r\n\r\n```\r\nsrc/backend/utils/name_validation.c:57:36: warning: universal character names are only valid in C++ and C99 [enabled by default]\r\nsrc/backend/utils/name_validation.c:57:36: warning: universal character names are only valid in C++ and C99 [enabled by default]\r\nsrc/backend/utils/name_validation.c:57:36: warning: universal character names are only valid in C++ and C99 [enabled by default]\r\nsrc/backend/utils/name_validation.c:57:36: warning: universal character names are only valid in C++ and C99 [enabled by default]\r\nsrc/backend/utils/name_validation.c:57:36: warning: universal character names are only valid in C++ and C99 [enabled by default]\r\n```\r\n\r\n",
+        "timestamp": "2022-12-07T17:28:52Z"
+      },
+      {
+        "author": "susano0",
+        "role": "CONTRIBUTOR",
+        "body": "Oid create_label(args) should implement the methods is_valid_vertex_label(label_name_str) and is_valid_edge_label(label_name_str) since many internal functions use create_label(args) to create vertices and edges.",
+        "timestamp": "2022-12-09T07:35:52Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@jrgemignani I updated the code to follow the conventions and also implemented changes suggested by @susano0.",
+        "timestamp": "2022-12-12T19:32:10Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@rafsun42 Only 2 minor adjustments need to be done. First, it needs to be rebased off of the current master. Second, there are a few \"white\" spaces that need to be removed. Otherwise, it looks good!\r\n\r\n![image](https://user-images.githubusercontent.com/1505136/209037698-717c7217-b3c3-4622-b9da-8dbe7787f453.png)\r\n",
+        "timestamp": "2022-12-22T01:52:23Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "@jrgemignani Updated. ",
+        "timestamp": "2022-12-26T22:24:35Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "> @jrgemignani Updated.\r\n\r\nI looked and the whitespace is still there in `src/backend/utils/name_validation.c`",
+        "timestamp": "2022-12-28T00:53:22Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "> > @jrgemignani Updated.\r\n> \r\n> I looked and the whitespace is still there in `src/backend/utils/name_validation.c`\r\n\r\n@jrgemignani I checked, but I could not see the whitespaces in name_validation.c. \r\n\r\nHowever, there were some white spaces in the test sql files, which I thought were outside the coding conventions. Regardless, I updated them.",
+        "timestamp": "2022-12-28T22:32:36Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@rafsun42 Are you using vi or vim? If so -\r\n\r\n```\r\n[jgemignani@cent7nuc7i5bnk POSTGRESQL]$ cat ~jgemignani/.vimrc\r\nhighlight ExtraWhitespace ctermbg=red guibg=red\r\nmatch ExtraWhitespace /\\s\\+$/\r\nlet w:m2=matchadd('ErrorMsg', '\\%>80v.\\+', -1)\r\n[jgemignani@cent7nuc7i5bnk POSTGRESQL]$\r\n\r\n```",
+        "timestamp": "2022-12-29T01:18:18Z"
+      },
+      {
+        "author": "rafsun42",
+        "role": "MEMBER",
+        "body": "> @rafsun42 Are you using vi or vim? If so -\r\n> \r\n> ```\r\n> [jgemignani@cent7nuc7i5bnk POSTGRESQL]$ cat ~jgemignani/.vimrc\r\n> highlight ExtraWhitespace ctermbg=red guibg=red\r\n> match ExtraWhitespace /\\s\\+$/\r\n> let w:m2=matchadd('ErrorMsg', '\\%>80v.\\+', -1)\r\n> [jgemignani@cent7nuc7i5bnk POSTGRESQL]$\r\n> ```\r\n@jrgemignani I applied your vim config. I could verify red highlight works by adding extra space. But, `name_validation.c` has no highlight. This is what the bottom part of the file looks like.  \r\n![image](https://user-images.githubusercontent.com/86813745/210002877-89ddef03-4d53-4c88-8d6f-9526bd3228ce.png)\r\n",
+        "timestamp": "2022-12-29T19:32:19Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "> > @rafsun42 Are you using vi or vim? If so -\r\n> > ```\r\n> > [jgemignani@cent7nuc7i5bnk POSTGRESQL]$ cat ~jgemignani/.vimrc\r\n> > highlight ExtraWhitespace ctermbg=red guibg=red\r\n> > match ExtraWhitespace /\\s\\+$/\r\n> > let w:m2=matchadd('ErrorMsg', '\\%>80v.\\+', -1)\r\n> > [jgemignani@cent7nuc7i5bnk POSTGRESQL]$\r\n> > ```\r\n> \r\n> @jrgemignani I applied your vim config. I could verify red highlight works by adding extra space. But, `name_validation.c` has no highlight. This is what the bottom part of the file looks like. ![image](https://user-images.githubusercontent.com/86813745/210002877-89ddef03-4d53-4c88-8d6f-9526bd3228ce.png)\r\n\r\nOkay, I will try again. Maybe there was some weird glitch.",
+        "timestamp": "2022-12-29T19:37:17Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@rafsun42 looks good!",
+        "timestamp": "2022-12-29T19:43:00Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5a98c03",
+        "message": "add name validation for graphs and labels",
+        "author": "Rafsun Masud",
+        "timestamp": "2022-11-09T19:39:59Z"
+      },
+      {
+        "sha": "4b4a8af",
+        "message": "update test script to use valid graph name",
+        "author": "Rafsun Masud",
+        "timestamp": "2022-11-09T19:41:59Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2417",
+    "metadata": {
+      "title": "Restore contsel/contjoinsel for containment & key-existence operators (#2356)",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-08T23:55:50Z",
+      "reviewers": [
+        "crprashant",
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "# Restore contsel/contjoinsel for containment & key-existence operators\n\nCloses #2356.\n\n## Why\n\nThe containment (`@>`, `<@`, `@>>`, `<<@`) and key-existence (`?`, `?|`, `?&`) operators on `agtype` are bound to `matchingsel` / `matchingjoinsel`. `matchingsel` is intended for pattern operators (LIKE/regex) — during planning it invokes the operator's underlying function (`agtype_contains`) once **per `pg_statistic` MCV entry** (and per histogram bin). With realistic statistics targets that produces a planner-time regression that dominates simple OLTP-style point queries.\n\nThis PR rebinds those operators to the lightweight `contsel` / `contjoinsel` estimators, which return fixed selectivity constants without calling the operator function. This is a deliberate **planning-speed vs. estimate-accuracy trade-off**. Note this is **not** the binding PostgreSQL core uses for `jsonb` — core keeps jsonb's `@>`, `<@`, `?`, `?|`, `?&` on `matchingsel` / `matchingjoinsel` (verified on REL_16/17/18_STABLE in `pg_operator.dat`). So this is an AGE-specific choice favoring workloads where these operators appear in selective point lookups, not a core-precedent restoration. A future improvement (tracked separately) could add a custom `agtype` selectivity function that is both cheap and statistics-aware.\n\n## What\n\n- `sql/agtype_operators.sql`, `sql/agtype_exists.sql`: 10 operators flipped to `contsel` / `contjoinsel`.\n- `age--1.7.0--y.y.y.sql`: appended `ALTER OPERATOR ... SET (RESTRICT, JOIN)` for all 10 operators so existing installs flip on `ALTER EXTENSION age UPDATE`.\n- `regress/sql/containment_selectivity.sql`: new test that pins the bindings via `pg_operator`, a scoped *no-leaked-matchingsel* guard, functional smoke for all 10 operators, and an **upgrade-path assertion** that simulates a stale (pre-fix) install, replays the shipped `ALTER OPERATOR` block, and confirms every overload flips to `contsel` / `contjoinsel` (run in a rolled-back transaction).\n- `regress/expected/cypher_match.out`, `regress/expected/cypher_vle.out`: refresh expected — `test_enable_containment` now picks Nested Loop + Index Only Scans over Seq Scan/Hash Join (a direct, **better** plan), and two `MATCH p=...` and `show_list_use_vle` queries flip row order (they had no `ORDER BY`, now given a stable `ORDER BY`; result set unchanged).\n- `Makefile`: register the new test in `REGRESS`.\n\n## Validation\n\n### Regression suite\n36/37 pass with `EXTRA_TESTS=\"pgvector fuzzystrmatch pg_trgm\"`. Only `age_upgrade` fails — pre-existing on master at `774e781b` (verified by `git stash && installcheck` baseline of 32/33 with the same `age_upgrade` failure). The new `containment_selectivity` test (including the upgrade-path assertion) passes on PG18.\n\n### Reporter's exact methodology — reproduced\nReporter's three scripts (`generate_graph.sql`, `setup_func_for_workload.sql`, `workload_select.sql`) used unchanged. Run on PG18 with `default_statistics_target = 1000` to populate MCV lists, matching the reporter's analyzed-graph conditions:\n\n| Metric                       | matchingsel | contsel | Delta |\n|------------------------------|------------:|--------:|------:|\n| EXPLAIN planning time        |     1.42 ms | 0.97 ms |  −32% |\n| EXPLAIN execution time       |     0.34 ms | 0.31 ms |   ~0% |\n| pgbench TPS (8 clients × 30s) |        5247 |    7378 | +40.6% |\n\nThe −32% planning-time delta lines up with the reporter's \"~30% of execution time spent in agtype_contains during planning\" observation; the +40.6% TPS gain matches the \"severe TPS drop in OLTP-style workloads\" they reported. The win comes from discarding stats-based estimation at plan time (`contsel` returns a flat constant) — i.e. exactly the trade-off described above.\n\n### Upgrade path\nValidated end-to-end during the benchmark and pinned by the new regression assertion: operator bindings flip from `matchingsel` → `contsel` via the same `ALTER OPERATOR` statements the upgrade SQL ships, while operators remain functional throughout.\n\n### `pg_operator` snapshots\n```\n-- Before (matchingsel binding shipped on master)\n oprname |  lhs   |  rhs   |  restrict_fn |    join_fn\n---------+--------+--------+--------------+------------------\n <<@     | agtype | agtype | matchingsel  | matchingjoinsel\n <@      | agtype | agtype | matchingsel  | matchingjoinsel\n @>      | agtype | agtype | matchingsel  | matchingjoinsel\n @>>     | agtype | agtype | matchingsel  | matchingjoinsel\n ?       | agtype | agtype | matchingsel  | matchingjoinsel\n ?       | agtype | text   | matchingsel  | matchingjoinsel\n ?&      | agtype | agtype | matchingsel  | matchingjoinsel\n ?&      | agtype | text[] | matchingsel  | matchingjoinsel\n ?|      | agtype | agtype | matchingsel  | matchingjoinsel\n ?|      | agtype | text[] | matchingsel  | matchingjoinsel\n\n-- After (this PR)\n oprname |  lhs   |  rhs   | restrict_fn |   join_fn\n---------+--------+--------+-------------+-------------\n <<@     | agtype | agtype | contsel     | contjoinsel\n <@      | agtype | agtype | contsel     | contjoinsel\n @>      | agtype | agtype | contsel     | contjoinsel\n @>>     | agtype | agtype | contsel     | contjoinsel\n ?       | agtype | agtype | contsel     | contjoinsel\n ?       | agtype | text   | contsel     | contjoinsel\n ?&      | agtype | agtype | contsel     | contjoinsel\n ?&      | agtype | text[] | contsel     | contjoinsel\n ?|      | agtype | agtype | contsel     | contjoinsel\n ?|      | agtype | text[] | contsel     | contjoinsel\n```\n\n### Driver workflows\nIntentionally not run: this PR only adjusts `pg_operator` selectivity metadata. There is no C code, type, or wire-protocol change that python / go / node / JDBC drivers could observe.\n\n## Notes for reviewers\n- This is a deliberate accuracy-for-speed trade-off: `matchingsel` does provide better estimates when good statistics exist on heavily-analyzed `agtype` columns, so very-low-selectivity containment predicates may get worse estimates under `contsel`. The win is constant-time planning. PostgreSQL core keeps `jsonb` on `matchingsel`, so this is a deliberate AGE-specific divergence, not a precedent restoration. A future improvement (out of scope here) would be a cheap, statistics-aware `agtype` selectivity function; happy to file as a follow-up if there's interest.\n- The `containment_selectivity` regression test is intentionally precise so the diff is loud if anyone re-introduces `matchingsel` here. The scoped guard catches future operator additions that forget the right helper, and the upgrade-path assertion catches a silent regression in the shipped `ALTER OPERATOR` block."
+    },
+    "discussion_timeline": [
+      {
+        "author": "crprashant",
+        "role": "CONTRIBUTOR",
+        "body": "Self-review caught a bug in the smoke test: `SELECT ...::agtype ? 'a'` was being parsed as the `(agtype, agtype)` overload (so `'a'` was treated as an agtype literal — invalid syntax), producing an `ERROR` rather than verifying the `(agtype, text)` binding works. Added an explicit `::text` cast on the right-hand side and regenerated the expected output.\n\nForce-pushed amend `50beb10`. Full installcheck still 36/37 (only pre-existing `age_upgrade` fails on master too).\n",
+        "timestamp": "2026-04-29T00:00:32Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@crprashant Can you rebase this PR? There have been some significant updates to the master as of late",
+        "timestamp": "2026-06-08T18:32:12Z"
+      },
+      {
+        "author": "crprashant",
+        "role": "CONTRIBUTOR",
+        "body": "Done — rebased onto current master (73d0705e). Conflicts in \\Makefile\\ and \\\u0007ge--1.7.0--y.y.y.sql\\ resolved (kept the new \\\u0007gtype_jsonb_cast\\ test entry and jsonb cast functions that landed since, appended the contsel ALTER OPERATOR block after). Ready for re-review.",
+        "timestamp": "2026-06-08T21:01:31Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@crprashant -\r\n<img width=\"523\" height=\"96\" alt=\"image\" src=\"https://github.com/user-attachments/assets/075b797a-a1c8-4010-b475-8b4e2ccd732b\" />\r\n",
+        "timestamp": "2026-06-08T21:23:52Z"
+      },
+      {
+        "author": "crprashant",
+        "role": "CONTRIBUTOR",
+        "body": "Pushed a fix addressing the latest review. During the rebase, an automated merge garbled `age--1.7.0--y.y.y.sql` (it inlined the new `agtype<->jsonb` cast section *inside* the `agtype_to_jsonb` function's string literal, leaving an unclosed quote) and left a double backslash in the `Makefile` REGRESS continuation.\n\n**Fixes in the latest push (`f090a094`):**\n- `Makefile`: restored a single trailing backslash so `agtype_jsonb_cast` and `containment_selectivity` chain correctly. Resolves the `missing separator` build failure.\n- `age--1.7.0--y.y.y.sql`: regenerated from the pristine master version with only the 10 `ALTER OPERATOR ... SET (RESTRICT, JOIN)` statements appended. The `agtype_to_jsonb` definition is back to a clean one-liner and the file's diff vs master is now exactly the 34-line selectivity block — no unclosed quotes or stray fragments.\n\nAll three earlier review items (deterministic `ORDER BY` in `cypher_match.sql`/`cypher_vle.sql` and the scoped `matchingsel` guard) are preserved through the rebase. The PR is current with master and ready for re-review.",
+        "timestamp": "2026-06-08T21:40:51Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@crprashant Opus has opinions. Could you address these before I merge it?\r\n\r\n## Review summary\r\n\r\nThanks for the detailed writeup and benchmarks, @crprashant — the planner-time problem is real and the `contsel`/`contjoinsel` rebind is a reasonable fix. The operator coverage is complete (all 10 are currently on `matchingsel`) and the install/upgrade SQL lines up. Before merging, though, I'd like the **rationale corrected**, because the central justification doesn't match current PostgreSQL.\r\n\r\n### The \"core precedent\" claim is inaccurate\r\n\r\nThe PR's **Why** states:\r\n\r\n> PostgreSQL core binds jsonb's analogous operators (`@>`, `<@`, `?` on `jsonb`) to `contsel` / `contjoinsel` for exactly this reason. This PR restores that precedent for `agtype`.\r\n\r\nThat isn't what core does. In `src/include/catalog/pg_operator.dat`, every jsonb containment / key-existence operator binds to **`matchingsel` / `matchingjoinsel`** — the same estimators AGE uses today — on every currently-supported major:\r\n\r\n| Operator (OID) | PG16 | PG17 | PG18 |\r\n|---|---|---|---|\r\n| `@>` jsonb,jsonb (3246) | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel |\r\n| `?` jsonb,text (3247) | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel |\r\n| `?\\|` jsonb,_text (3248) | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel |\r\n| `?&` jsonb,_text (3249) | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel |\r\n| `<@` jsonb,jsonb (3250) | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel | matchingsel/matchingjoinsel |\r\n\r\nSources (`src/include/catalog/pg_operator.dat`, search `oid => '3246'`):\r\n- PG18: https://github.com/postgres/postgres/blob/REL_18_STABLE/src/include/catalog/pg_operator.dat\r\n- PG17: https://github.com/postgres/postgres/blob/REL_17_STABLE/src/include/catalog/pg_operator.dat\r\n- PG16: https://github.com/postgres/postgres/blob/REL_16_STABLE/src/include/catalog/pg_operator.dat\r\n\r\nSo this isn't \"restoring core precedent\" — core deliberately keeps jsonb on `matchingsel`. What the PR actually does is make a **planning-speed vs. estimate-accuracy trade-off** that diverges from core. That's a defensible call given how expensive `agtype_contains` is at plan time, but the reasoning should say so rather than appeal to a precedent that doesn't exist.\r\n\r\nThis also surfaces an internal contradiction: the **Notes for reviewers** section already says *\"matchingsel does provide better estimates when good statistics exist; PostgreSQL core accepts the same trade-off for jsonb\"* — the opposite of the **Why** section. (Minor: there's no `jsonb_sel` in core to mirror; jsonb itself just uses `matchingsel`.)\r\n\r\n### The mechanism (and thus the perf win) is genuine\r\n\r\nFor the record, the cost model checks out: `matchingsel` → `generic_restriction_selectivity()` → `mcv_selectivity()` + `histogram_selectivity()`, both of which `fmgr_info(get_opcode(...))` and invoke the operator's function against each MCV / histogram bin during planning. With `default_statistics_target = 1000` that's ~1000 `agtype_contains` calls per clause at plan time. `contsel` is a flat constant (`0.001`), so the speedup is real — it just comes from discarding stats-based estimation, which is exactly the trade-off to document.\r\n\r\n### One coverage gap\r\n\r\n`containment_selectivity.sql` pins the bindings nicely on a **fresh install**, but it never exercises the **upgrade path** — and the appended `ALTER OPERATOR ... SET (RESTRICT, JOIN)` block is the whole point for existing installs. Could you add a check that runs `ALTER EXTENSION age UPDATE` (or the shipped `ALTER OPERATOR` statements) and re-queries `pg_operator` to confirm the bindings actually flip? Right now nothing fails if that block silently regresses.\r\n\r\n### Bottom line\r\n\r\nMechanically correct, complete operator coverage, real perf win. Happy to approve once:\r\n1. **Why** is reworded to drop the inaccurate core-precedent claim and frame it as a speed/accuracy trade-off (and the contradiction with Notes for reviewers is resolved);\r\n2. the **upgrade-path assertion** is added to the regression test.\r\n\r\nOptional: a one-line note that very-low-selectivity containment predicates may get worse estimates under `contsel` (the flip side of the trade-off).",
+        "timestamp": "2026-06-08T23:18:21Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@crprashant Btw, this was what it suggests -\r\n## Why\r\n\r\nThe containment (`@>`, `<@`, `@>>`, `<<@`) and key-existence (`?`, `?|`, `?&`) operators on `agtype` are bound to `matchingsel` / `matchingjoinsel`. During planning, `matchingsel` invokes the operator's underlying function (`agtype_contains`) once per `pg_statistic` MCV entry (and per histogram bin). With a realistic `default_statistics_target`, that planning cost dominates simple OLTP-style point queries — the regression reported in #2356.\r\n\r\nThis PR rebinds those operators to the lightweight `contsel` / `contjoinsel` estimators, which return fixed selectivity constants without calling the operator function. This is a deliberate trade-off: we give up MCV/histogram-based estimate accuracy for `agtype` containment in exchange for constant-time planning.\r\n\r\nNote this is **not** the binding PostgreSQL core uses for `jsonb` — core keeps jsonb's `@>`, `<@`, `?`, `?|`, `?&` on `matchingsel` / `matchingjoinsel` (verified on REL_16/17/18_STABLE). So this is an AGE-specific choice favoring workloads where these operators appear in selective point lookups, not a core-precedent restoration. A future improvement (tracked separately) could add a custom `agtype` selectivity function that is both cheap and statistics-aware.",
+        "timestamp": "2026-06-08T23:19:37Z"
+      },
+      {
+        "author": "crprashant",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the careful review — both points addressed in the latest push (`85bca9f0`).\n\n**1. Rationale corrected.** You're right, the core-precedent claim was wrong — core keeps jsonb's `@>`/`<@`/`?`/`?|`/`?&` on `matchingsel`/`matchingjoinsel` on REL_16/17/18_STABLE. I reworded the **Why** (PR body), the comment block in `age--1.7.0--y.y.y.sql`, and the commit message to frame this as a deliberate planning-speed vs. estimate-accuracy trade-off that **diverges** from core, rather than a precedent restoration. I also fixed the contradictory **Notes for reviewers** line (dropped the inaccurate \"core accepts the same trade-off for jsonb\" / non-existent `jsonb_sel`) and added the one-line caveat that very-low-selectivity predicates may get worse estimates under `contsel`.\n\n**2. Upgrade-path assertion added.** `containment_selectivity.sql` now has an upgrade-path section that:\n- forces all 10 overloads back onto `matchingsel`/`matchingjoinsel` (simulating a stale pre-fix install) and asserts that state via `pg_operator`;\n- replays the exact `ALTER OPERATOR ... SET (RESTRICT, JOIN)` block the upgrade script ships;\n- asserts via `pg_operator` that every overload (both `oprrest` and `oprjoin`) flipped to `contsel`/`contjoinsel`.\n\nThe whole section runs in a `BEGIN ... ROLLBACK` so it observes the flip without mutating catalog state for any later test. I replayed the shipped statements rather than running `ALTER EXTENSION age UPDATE` because the dev upgrade script targets the placeholder version `y.y.y` and isn't a stable version-chain target in the regress harness — there's a comment in the test explaining this. Expected output was regenerated by building + installing against PG18 and running `make installcheck REGRESS=containment_selectivity` (passes).",
+        "timestamp": "2026-06-08T23:34:16Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "85bca9f",
+        "message": "Restore contsel/contjoinsel for containment & key-existence operators (#2356)\n\nThe containment (`@>`, `<@`, `@>>`, `<<@`) and key-existence (`?`, `?|`,\n`?&`) operators on `agtype` were bound to `matchingsel`/`matchingjoinsel`\non the PG14+ source tree. `matchingsel` is built for pattern operators\n(LIKE/regex) and during planning invokes the operator's underlying\nfunction (`agtype_contains`) once per `pg_statistic` MCV. With realistic\nstatistics targets that produces a planner-time regression that\ndominates simple OLTP-style point queries.\n\nRebind those operators to the lighter `contsel`/`contjoinsel` estimators,\nwhich return fixed selectivity constants without invoking the operator\nfunction during planning. This is a deliberate planning-speed vs.\nestimate-accuracy trade-off. Note it DIVERGES from PostgreSQL core, which\nkeeps jsonb's `@>`, `<@`, `?`, `?|`, `?&` on `matchingsel`/`matchingjoinsel`\n(verified on REL_16/17/18_STABLE in `pg_operator.dat`); it is an\nAGE-specific choice favoring workloads where these operators appear in\nselective point lookups. A future improvement could add a custom `agtype`\nselectivity function that is both cheap and statistics-aware.\n\nChanges:\n\n* `sql/agtype_operators.sql`, `sql/agtype_exists.sql`: 10 operators\n  flipped from `matchingsel`/`matchingjoinsel` to\n  `contsel`/`contjoinsel`.\n* `age--1.7.0--y.y.y.sql`: appended `ALTER OPERATOR ... SET (RESTRICT,\n  JOIN)` for all 10 operators so existing installs flip on\n  `ALTER EXTENSION age UPDATE`.\n* `regress/sql/containment_selectivity.sql` (+ `expected/.out`): pin\n  the bindings via `pg_operator`, plus a scoped \"no leaked matchingsel\"\n  guard and functional smoke for all 10 operators. Adds an upgrade-path\n  assertion that simulates a stale (pre-fix) install, replays the\n  shipped `ALTER OPERATOR` block, and confirms every overload flips to\n  `contsel`/`contjoinsel` (run in a rolled-back transaction).\n* `regress/expected/cypher_match.out`, `regress/expected/cypher_vle.out`:\n  refresh expected to reflect new (and better) plan shapes that the\n  lower-selectivity helper produces — `test_enable_containment` now\n  picks Nested Loop + Index Only Scans over a Seq Scan/Hash Join, and\n  two `MATCH p=...` and `show_list_use_vle` queries flip row order\n  (queries had no `ORDER BY`; result set is unchanged, only ordering).\n* `Makefile`: register `containment_selectivity` in `REGRESS`.\n\nValidation:\n\n* Build: clean, `-Werror`.\n* Regression: 36/37 tests pass under `EXTRA_TESTS=\"pgvector\n  fuzzystrmatch pg_trgm\"`. Only `age_upgrade` fails — pre-existing on\n  master at 774e781b (verified by `git stash && installcheck`).\n* Reporter's exact methodology (LDBC-SNB-style snb_graph + pgbench on\n  `bench_message_content`) reproduces the regression and the fix:\n\n  | Metric                     | matchingsel | contsel | Delta |\n  |----------------------------|-------------|---------|-------|\n  | EXPLAIN planning time (ms) | 1.42        | 0.97    | -32%  |\n  | EXPLAIN execution time (ms)| 0.34        | 0.31    | ~equal|\n  | pgbench TPS (8c x 30s)     | 5247        | 7378    | +40.6%|\n\n  Run with `default_statistics_target = 1000` to populate MCV lists,\n  matching the reporter's analyzed-graph conditions.\n\n* Upgrade path: validated end-to-end during the benchmark — operator\n  bindings were flipped from `matchingsel` -> `contsel` via the same\n  `ALTER OPERATOR` statements the upgrade SQL ships, while operators\n  remained functional throughout.\n\nDriver workflows (python/go/node/jdbc) intentionally not run: this PR\nonly adjusts pg_operator selectivity metadata. There is no C, type, or\nprotocol change that drivers could observe.\n\nCloses #2356.",
+        "author": "crprashant",
+        "timestamp": "2026-05-04T19:23:30Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2341",
+    "metadata": {
+      "title": "Fix MATCH on brand-new label after CREATE returning 0 rows",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-04-06T15:34:47Z",
+      "reviewers": [
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "## Issue\n\nFixes #2193\n\n## Problem\n\nWhen `CREATE` introduces a new label and a subsequent `MATCH` references it via `WITH`, the query returns **0 rows on first execution** but works correctly on the second:\n\n```sql\nSELECT * FROM cypher('test_graph', $$\n   CREATE (a:Person {name: 'Jane'}), (b:Person {name: 'Tom'})\n   WITH a, b\n   MATCH (p:Person)\n   RETURN p.name\n$$) AS (result agtype);\n```\n\n**First execution:** 0 rows, `EXPLAIN` shows `One-Time Filter: false`\n**Second execution:** 2 rows, `EXPLAIN` shows `Seq Scan on \"Person\"`\n\n## Root Cause\n\n`match_check_valid_label()` in `transform_cypher_match()` runs **before** `transform_prev_cypher_clause()` processes the predecessor chain. Since CREATE's transform has not yet executed (which creates the label table as a side effect), the `Person` label is not in the label cache. The check concludes the label is invalid and generates a paradoxical `WHERE true = false` clause, producing a `One-Time Filter: false` plan that returns no rows.\n\nOn the second execution the label table already exists from the first run, so the check passes.\n\n## Fix\n\n**Defer the label check when the predecessor chain contains DML:**\n\n1. In `transform_cypher_match()`: skip the early `match_check_valid_label()` when `clause_chain_has_dml(clause->prev)` is true (CREATE, SET, DELETE, or MERGE in the predecessor chain). When not deferred, a constant false predicate (`true = false`) is injected -- safe since no DML predecessor needs to execute.\n\n2. In `transform_cypher_match_pattern()`: after `transform_prev_cypher_clause()` completes and any new labels exist in the cache, run a deferred label check. If labels are still invalid, inject a volatile false predicate (`random() IS NULL`) instead of a constant one. The volatile function prevents PG's `eval_const_expressions()` from folding the predicate into a `One-Time Filter: false` that would eliminate the DML predecessor scan without executing it.\n\nThis preserves existing behavior for MATCH without DML predecessors -- e.g., `MATCH (a) MATCH (a:invalid_label)` still produces the proper \"multiple labels\" error.\n\n## EXPLAIN after fix (first execution)\n\n```\n Nested Loop\n   ->  Result\n         ->  Custom Scan (Cypher Create)\n               ->  Subquery Scan on _age_default_alias_previous_cypher_clause\n                     ->  Result\n   ->  Seq Scan on \"Person\" p\n```\n\n## Dependencies\n\nThis PR is based on PR #2340 (`clause_chain_has_dml` helper and `security_barrier` fix for issue #2308).\n\n## Regression tests added\n\n- Reporter's exact case (CREATE two nodes, WITH, MATCH -- expects 2 rows)\n- Single CREATE + MATCH on brand-new label\n- CREATE + MATCH when label already exists (second execution)\n- MATCH on non-existent label without DML predecessor (still returns 0 rows)\n- DML side-effect verification: confirms CREATE actually executed even when deferred MATCH returns 0 rows\n\nAll 31 regression tests pass."
+    },
+    "discussion_timeline": [
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@gregfelice Dependencies? \r\n\r\n> Dependencies\r\n> This PR is based on PR https://github.com/apache/age/pull/2340 (clause_chain_has_dml helper and security_barrier fix for issue https://github.com/apache/age/issues/2308).",
+        "timestamp": "2026-02-27T17:16:41Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@gregfelice Please see Copilot's comments. Additionally, this PR likely needs to be rebased after #2340 has been merged.",
+        "timestamp": "2026-02-27T17:28:17Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "This branch was already built on top of #2340 — confirmed the base includes commit 217467a3. All 31 regression tests pass on the current branch against master. No rebase needed.",
+        "timestamp": "2026-02-28T20:33:47Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Just to close the loop — #2340 has been merged and this branch already includes that commit (217467a3) as its base. All regression tests pass. Ready for re-review whenever you get a chance.",
+        "timestamp": "2026-03-01T03:47:33Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "Branch is already rebased on top of master (includes #2340). Ready for re-review. No conflicts.",
+        "timestamp": "2026-03-01T23:20:26Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "Addressed the Copilot suggestions:\n\n1. **DRY false-where construction** — Factored the duplicated `WHERE true = false` construction into `make_false_where_clause()` helper, used by both the early check in `transform_cypher_match()` and the deferred check in `transform_cypher_match_pattern()`.\n2. **Cache `clause_chain_has_dml`** — Computed once and reused for both `security_barrier` and deferred label validation, avoiding repeated clause chain traversal.\n3. **ORDER BY in regression test** — Added `ORDER BY c.name` to the single-CREATE City test for deterministic result ordering.\n\nAll regression tests pass (`cypher_match`: ok).",
+        "timestamp": "2026-03-02T20:13:43Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@gregfelice If you could look at the remaining 3 Copilot suggestions above :)",
+        "timestamp": "2026-03-04T15:51:48Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "Addressed the remaining Copilot suggestions:\n\n1. **Non-constant false predicate for DML predecessor path** — Replaced `WHERE true = false` with `random() IS NULL` in the deferred label check. `random()` is VOLATILE, so `eval_const_expressions()` cannot fold it into a One-Time Filter that would eliminate the DML predecessor scan. The constant variant is still used in the early check (no DML predecessor, safe to fold).\n\n2. **Unified `make_false_where_clause(bool volatile_needed)`** — Merged the constant and volatile variants into a single parameterized function. Added a comment documenting why AGE's existing `add_volatile_wrapper()` can't be reused here (it operates post-transform at the Expr level and returns agtype).\n\n3. **DML side-effect regression test** — Added a follow-up query after `CREATE ... WITH ... MATCH (p:NonExistentLabel) RETURN p` that verifies the CREATE actually executed (`MATCH (a:Person {name: 'Alice'}) RETURN a.name` → `\"Alice\"`).\n\nAll regression tests pass (`cypher_match`: ok).",
+        "timestamp": "2026-03-06T16:57:09Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@gregfelice Almost there, just 2 more :)\r\n",
+        "timestamp": "2026-03-06T18:32:23Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "Addressed the remaining 2 Copilot suggestions:\n\n1. **Non-ASCII em dashes replaced** -- All `—` characters in C comments replaced with `--` to maintain ASCII-only convention. Four occurrences in `make_false_where_clause()` and its call sites.\n\n2. **PR description updated** -- Description now accurately describes the volatile predicate approach (`random() IS NULL`) instead of the outdated `makeBoolConst(false, false)` reference.\n\nAll regression tests pass (`cypher_match`: ok).",
+        "timestamp": "2026-03-06T18:55:18Z"
+      },
+      {
+        "author": "gregfelice",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @jrgemignani — just checking in. All Copilot suggestions have been addressed (volatile false predicate, unified helper, DML side-effect test, ASCII comments, updated description). Regression tests pass clean. Let me know if there's anything else needed — happy to rebase if master has moved.",
+        "timestamp": "2026-03-25T01:50:22Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d2d7245",
+        "message": "Fix MATCH on brand-new label after CREATE returning 0 rows (issue #2193)\n\nWhen CREATE introduces a new label and a subsequent MATCH references it\n(e.g., CREATE (:Person) WITH ... MATCH (p:Person)), the query returns\n0 rows on first execution but works on the second.\n\nRoot cause: match_check_valid_label() in transform_cypher_match() runs\nbefore transform_prev_cypher_clause() processes the predecessor chain.\nSince CREATE has not yet executed its transform (which creates the label\ntable as a side effect), the label is not in the cache and the check\ngenerates a One-Time Filter: false plan that returns no rows.\n\nFix: Skip the early label validity check when the predecessor clause\nchain contains a data-modifying operation (CREATE, SET, DELETE, MERGE).\nAfter transform_prev_cypher_clause() completes and any new labels exist\nin the cache, run a deferred label check. If the labels are still\ninvalid at that point, generate an empty result via makeBoolConst(false).\n\nThis preserves the existing behavior for MATCH without DML predecessors\n(e.g., MATCH-MATCH chains still get the early check and proper error\nmessages for invalid labels).\n\nDepends on: PR #2340 (clause_chain_has_dml helper)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+        "author": "Greg Felice",
+        "timestamp": "2026-02-26T04:05:13Z"
+      },
+      {
+        "sha": "bcc3e74",
+        "message": "Address review feedback: fix variable registration for deferred label check\n\nWhen the deferred label validity check (DML predecessor + non-existent\nlabel) found an invalid label, the code skipped transform_match_pattern()\nentirely, which meant MATCH-introduced variables were never registered\nin the namespace. This would cause errors if a later clause referenced\nthose variables (e.g., RETURN p).\n\nFix: mirror the early-check strategy by injecting a paradoxical WHERE\n(true = false) and always calling transform_match_pattern(). Variables\nget registered normally; zero rows are returned via the impossible qual.\n\nAlso add ORDER BY to multi-row regression tests for deterministic output,\nand add a test case for DML predecessor + non-existent label + returning\na MATCH-introduced variable.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+        "author": "Greg Felice",
+        "timestamp": "2026-02-27T20:33:21Z"
+      },
+      {
+        "sha": "a35793d",
+        "message": "Address Copilot review: DRY false-where helper, cache has_dml, ORDER BY in tests\n\n- Factor duplicated WHERE true=false construction into\n  make_false_where_clause() helper (used in both early and deferred\n  label validation paths)\n- Compute clause_chain_has_dml() once and reuse, avoiding repeated\n  clause chain traversal\n- Add ORDER BY to the single-CREATE City regression test for\n  deterministic result ordering",
+        "author": "Greg Felice",
+        "timestamp": "2026-03-02T20:07:22Z"
+      },
+      {
+        "sha": "9179849",
+        "message": "Address Copilot review: volatile false predicate, DML side-effect test\n\n1. Prevent plan elimination of DML predecessor: replace constant\n   (true = false) with volatile (random() IS NULL) in the deferred\n   label check path. PG's planner can constant-fold the former into\n   a One-Time Filter: false, skipping the DML scan entirely.\n\n2. Unify make_false_where_clause(bool volatile_needed): merge the\n   constant and volatile variants into a single parameterized\n   function. Call sites are now self-documenting:\n   - make_false_where_clause(false) for non-DML path\n   - make_false_where_clause(true) for DML predecessor path\n\n3. Document why add_volatile_wrapper() cannot be reused here (it\n   operates post-transform at the Expr level and returns agtype,\n   while the WHERE clause is built at the parse-tree level).\n\n4. Add regression test verifying CREATE side effects persist when\n   MATCH references a non-existent label after a DML predecessor.\n\nAll regression tests pass (cypher_match: ok).\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+        "author": "Greg Felice",
+        "timestamp": "2026-03-06T16:56:01Z"
+      },
+      {
+        "sha": "58132fa",
+        "message": "Replace non-ASCII em dashes with -- in C comments\n\nASCII-only codebase convention; avoids encoding/tooling issues.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>",
+        "author": "Greg Felice",
+        "timestamp": "2026-03-06T18:54:36Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2438",
+    "metadata": {
+      "title": "Make age extension usable from shared_preload_libraries",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-20T16:53:25Z",
+      "reviewers": [
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "When AGE is loaded via `shared_preload_libraries`, its hooks (`post_parse_analyze`, `set_rel_pathlist`, `object_access`) are active before `CREATE EXTENSION age` is run. This causes errors when non-Cypher queries trigger those hooks and `ag_catalog` does not yet exist.\r\n\r\n## Changes\r\n\r\n- Add `is_age_extension_exist()` with a relcache callback cache so that checking `pg_extension` is not repeated on every hook invocation.\r\n- Guard `post_parse_analyze`, `set_rel_pathlist`, and `object_access` hooks with `is_age_extension_exist()` so they become no-ops when the extension is not installed.\r\n- Refactor `ag_ProcessUtility_hook` to detect `CREATE`/`DROP EXTENSION age` and broadcast a relcache invalidation via `CacheInvalidateRelcacheByRelid(ExtensionRelationId)` so other backends update their cached extension state.\r\n- Wrap `DROP EXTENSION` processing in `PG_TRY`/`PG_CATCH` to restore `object_access_hook` if the drop fails (e.g. dependent objects).\r\n- Skip `_PG_init` during `pg_upgrade` (`IsBinaryUpgrade`) to avoid hook registration when the binary-upgrade machinery is running.\r\n- Add regression tests that verify hooks do not error when `ag_catalog` schema is absent."
+    },
+    "discussion_timeline": [
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@serdarmumcu The build has an error -\r\n\r\n<img width=\"1297\" height=\"111\" alt=\"image\" src=\"https://github.com/user-attachments/assets/dae17788-4dc0-4ba8-b750-a675c8c2d91c\" />\r\n\r\nThis needs to be fixed.\r\n",
+        "timestamp": "2026-06-11T21:07:52Z"
+      },
+      {
+        "author": "serdarmumcu",
+        "role": "CONTRIBUTOR",
+        "body": "> @serdarmumcu The build has an error -\r\n> \r\n> <img alt=\"image\" width=\"1297\" height=\"111\" src=\"https://private-user-images.githubusercontent.com/1505136/606690005-dae17788-4dc0-4ba8-b750-a675c8c2d91c.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODEyNjc5OTgsIm5iZiI6MTc4MTI2NzY5OCwicGF0aCI6Ii8xNTA1MTM2LzYwNjY5MDAwNS1kYWUxNzc4OC00ZGMwLTRiYTgtYjc1MC1hNjc1YzhjMmQ5MWMucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MDYxMiUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjA2MTJUMTIzNDU4WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YWVjYzZjODkxMzJkYmNjN2EwZDFiODA0MGE5NTVjMjRmZTcwZDliYjJhM2Q1OGUyYzQxNzU2ZmJlYTAyNDA5MiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.6O1i_-3D0W_xTV2p__ucKTj1OwP1HF3grxPUTHBT0-E\">\r\n> This needs to be fixed.\r\n\r\n@jrgemignani Fixed — removed the dead drop_age_extension() function and also cleaned up unrelated changes from internal branches that had leaked into the PR. The commit now only contains changes related to shared_preload_libraries support. Ready for re-review.",
+        "timestamp": "2026-06-12T12:36:53Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@serdarmumcu A regression test is failing \r\n\r\n<img width=\"480\" height=\"82\" alt=\"image\" src=\"https://github.com/user-attachments/assets/c93417b8-04ad-404c-8c39-54993572f9dc\" />\r\n\r\nYou are running **make installcheck** locally to see these, right?\r\n\r\nAlso, if you can look at Copilot's suggestions and resolve them, please :)",
+        "timestamp": "2026-06-17T20:23:07Z"
+      },
+      {
+        "author": "serdarmumcu",
+        "role": "CONTRIBUTOR",
+        "body": "> @serdarmumcu A regression test is failing\r\n> \r\n> <img alt=\"image\" width=\"480\" height=\"82\" src=\"https://private-user-images.githubusercontent.com/1505136/609462916-c93417b8-04ad-404c-8c39-54993572f9dc.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3ODE4ODg1MDYsIm5iZiI6MTc4MTg4ODIwNiwicGF0aCI6Ii8xNTA1MTM2LzYwOTQ2MjkxNi1jOTM0MTdiOC0wNGFkLTQwNGMtOGMzOS01NDk5MzU3MmY5ZGMucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MDYxOSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjA2MTlUMTY1NjQ2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YzIxNmYwZTU5OTUxMDAxZDI5YjRmZmVkMWUyYWEyYjU2MTJlNTdhZGZiMjZkZTQxOTkwMWY3ZmQ4MzNlYmFlOSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.olT5xZNBeiy752AXfsevde15IU2C5SFdANKqauUD-OU\">\r\n> You are running **make installcheck** locally to see these, right?\r\n> \r\n> Also, if you can look at Copilot's suggestions and resolve them, please :)\r\n\r\nHi @jrgemignani , updated commit addresses everything:\r\n\r\nRegression test fixed — used DROP SCHEMA IF EXISTS ag_catalog CASCADE with suppressed notices to handle leftover objects from prior tests. Also updated drop_label expected error messages to match current upstream.\r\nCopilot suggestions resolved — added InvalidOid handling in cache callback, renamed is_age_extension_exist → is_age_extension_exists.\r\nAll 37 regression tests pass on PG18.",
+        "timestamp": "2026-06-19T16:59:29Z"
+      },
+      {
+        "author": "serdarmumcu",
+        "role": "CONTRIBUTOR",
+        "body": "> See comments\r\n\r\n@jrgemignani Fixed — all if blocks are now wrapped with {}. Thanks for the catch.\r\n",
+        "timestamp": "2026-06-20T11:22:20Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "340a0dd",
+        "message": "Make age extension usable from shared_preload_libraries\n\nWhen AGE is loaded via shared_preload_libraries, its hooks\n(post_parse_analyze, set_rel_pathlist, object_access) are active\nbefore CREATE EXTENSION age is run. This causes errors when\nnon-Cypher queries trigger those hooks and ag_catalog does not\nyet exist.\n\nChanges:\n\n- Add is_age_extension_exist() with a relcache callback cache so that\n  checking pg_extension is not repeated on every hook invocation.\n- Guard post_parse_analyze, set_rel_pathlist, and object_access hooks\n  with is_age_extension_exist() so they become no-ops when the\n  extension is not installed.\n- Refactor ag_ProcessUtility_hook to detect CREATE/DROP EXTENSION age\n  and broadcast a relcache invalidation via\n  CacheInvalidateRelcacheByRelid(ExtensionRelationId) so other\n  backends update their cached extension state.\n- Wrap DROP EXTENSION processing in PG_TRY/PG_CATCH to restore\n  object_access_hook if the drop fails (e.g. dependent objects).\n- Skip _PG_init during pg_upgrade (IsBinaryUpgrade) to avoid hook\n  registration when the binary-upgrade machinery is running.\n- Add regression tests that verify hooks do not error when ag_catalog\n  schema is absent.",
+        "author": "Serdar Mumcu",
+        "timestamp": "2026-06-11T19:19:29Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2374",
+    "metadata": {
+      "title": "feat(python-driver): add public API for connection pooling and model dict conversion",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-05-13T15:16:14Z",
+      "reviewers": [
+        "uesleilima",
+        "tcolo",
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "## Summary\n\nTwo enhancements to the Python driver's public API:\n\n### 1. Public API for connection pooling / external connection management (#2369)\n\nThe `Age` class creates and owns a single connection internally. There's no supported way to register agtype adapters on externally-managed connections (e.g., from `psycopg_pool.ConnectionPool`).\n\n**Solution:** Add `configure_connection(conn, graph_name=None, skip_load=False)` that:\n- Sets `search_path` to `ag_catalog`\n- Fetches agtype OIDs and registers `AgeLoader`\n- Optionally checks/creates the graph\n- Does **not** call `LOAD 'age'` by default (suitable for managed PostgreSQL services)\n\nAlso explicitly exports `AgeLoader`, `ClientCursor`, and `configure_connection` as public symbols in `age/__init__.py`, eliminating the need for `# type: ignore` when accessing driver internals.\n\n**Usage with connection pool:**\n```python\nfrom age import configure_connection, ClientCursor\nfrom psycopg_pool import ConnectionPool\n\npool = ConnectionPool(\n    conninfo=\"host=localhost dbname=mydb\",\n    configure=configure_connection,\n    kwargs={\"cursor_factory\": ClientCursor},\n)\n```\n\n### 2. Vertex/Edge/Path model classes dict/JSON conversion (#2371)\n\nThe driver's model classes lack conversion to plain Python data structures, forcing every consumer to write custom normalization.\n\n**Solution:** Add `to_dict()` methods:\n- `Vertex.to_dict()` → `{\"id\", \"label\", \"properties\"}`\n- `Edge.to_dict()` → `{\"id\", \"label\", \"start_id\", \"end_id\", \"properties\"}`\n- `Path.to_dict()` → list of `to_dict()` results\n\nAll return plain dicts/lists that work directly with `json.dumps()`.\n\n## Tests\n\nAdded 8 new unit tests (no DB required):\n- `TestModelToDict` (5 tests): vertex, edge, path `to_dict()`, empty properties, JSON serializability\n- `TestPublicImports` (3 tests): verify `configure_connection`, `AgeLoader`, `ClientCursor` are importable\n\n## Closes\n\n- Closes #2369\n- Closes #2371"
+    },
+    "discussion_timeline": [
+      {
+        "author": "tcolo",
+        "role": "NONE",
+        "body": "@uesleilima thanks a lot for your patch. I let Claude code review run over the patch. Can you please address the issues ?\r\n\r\n## Code Review\r\n\r\n### Summary\r\nAdds two useful features to the Python driver: a `configure_connection()` function for externally-managed connection pools, and `to_dict()` serialization methods on graph model classes. The overall approach is sound and the test coverage is solid. A few correctness and consistency issues are worth addressing before merging.\r\n\r\n---\r\n\r\n### 🔴 Critical Issues\r\n\r\n| # | File | Issue |\r\n|---|------|-------|\r\n| 1 | `age/age.py` | **`TypeInfo.fetch()` is called outside the `with conn.cursor()` block.** In `setUpAge` it lives inside the block. If the connection is in `autocommit=False` mode the `SET search_path` change may not be visible to `TypeInfo.fetch` depending on transaction isolation. Move `TypeInfo.fetch` inside the cursor block (or at least after `conn.commit()`). |\r\n| 2 | `age/age.py` | **`load_from_plugins=True` without `load=True` is silently ignored.** A caller who passes `load_from_plugins=True` expecting plugins-path loading will get no LOAD at all and no warning. Raise a `ValueError` or at least emit a warning. |\r\n\r\n---\r\n\r\n### 🟡 Suggestions\r\n\r\n| # | File | Suggestion | Category |\r\n|---|------|------------|----------|\r\n| 1 | `age/age.py` | Add type annotations consistent with the rest of the file (`conn: psycopg.connection`, `graph_name: Optional[str] = None`, etc.). | Maintainability |\r\n| 2 | `age/age.py` | Consider adding `__all__` to `age.py` to cleanly control the public surface instead of double-importing in `__init__.py`. | Maintainability |\r\n| 3 | `age/models.py` | `Path.to_dict()` falls back to `else e` for non-`AGObj` entities — this may return non-JSON-serializable objects. Add a comment or use `str(e)` as a safe fallback. | Correctness |\r\n| 4 | `age/models.py` | `dict(self.properties)` is a shallow copy. Nested mutable values will still be shared references. Document this or use `copy.deepcopy` if full JSON safety is the goal. | Correctness |\r\n| 5 | `test_age_py.py` | Missing test: `AgeNotSet` is raised when `TypeInfo.fetch` returns `None`. This is a key code path in `configure_connection` with no coverage. | Testing |\r\n| 6 | `test_age_py.py` | No test asserting that `load_from_plugins=True, load=False` does **not** execute any LOAD. Ties directly to the silent-ignore issue above. | Testing |\r\n| 7 | `test_age_py.py` | Asserting `\"LOAD\" not in str(call_args)` is fragile — depends on Python's internal repr. Prefer explicit `assert_called_with(...)` checks. | Testing |\r\n\r\n---\r\n\r\n### ✅ What Looks Good\r\n\r\n- The `configure_connection` docstring is clear and explicitly explains the managed-PostgreSQL use case (Azure, AWS RDS) — genuinely useful.\r\n- Default `load=False` is the right choice for a connection-pool scenario and the rationale is well communicated.\r\n- `to_dict()` implementations are clean, simple, and consistent across `Vertex`, `Edge`, and `Path`.\r\n- `TestConfigureConnection` correctly uses `unittest.mock` to test without a live database.\r\n- `test_registers_agtype_adapters` asserts adapter registration by OID — precise and correct.\r\n- `TestPublicImports` is a lightweight but effective guard against accidental API regressions.\r\n\r\n---\r\n\r\n**Verdict: Request Changes** — The silent `load_from_plugins` ignore and the `TypeInfo.fetch` cursor-scope issue are real correctness risks worth fixing. The feature direction is right and most of the code is clean.\r\n\r\n\r\n",
+        "timestamp": "2026-04-05T19:08:08Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "All review feedback has been addressed:\n\n**tcolo's review:**\n- ✅ Moved `TypeInfo.fetch()` inside the cursor block so `search_path` change is visible regardless of transaction isolation.\n- ✅ `ValueError` raised when `load_from_plugins=True` but `load=False`.\n- ✅ Added type annotations to `configure_connection` signature.\n- ✅ Documented shallow-copy semantics in `Vertex.to_dict()` and `Edge.to_dict()`.\n- ✅ Added test for `AgeNotSet` when `TypeInfo.fetch` returns `None`.\n- ✅ Replaced fragile string assertions with `assert_called_with` / `assert_any_call`.\n\n**Copilot review:**\n- ✅ Fixed `Path.to_dict()`: JSON-native types (dict, list, str, int, float, bool, None) now pass through unchanged; `str()` is only used as a safety net for non-serializable objects. Also handles `entities=None` safely.\n- ✅ Added `TestModelToDict`, `TestPublicImports`, `TestConfigureConnection` to the `__main__` suite so they run via direct script execution.\n- ⚠️ `configure_connection()` duplicating `setUpAge()`: Valid observation but refactoring scope is too large for this PR. Happy to address in a follow-up.\n- ⚠️ PR description mentions `skip_load` but API uses `load`: This is intentional — `configure_connection(load=False)` uses positive opt-in semantics (`load=True` to enable), unlike `setUpAge(skip_load=True)` which uses opt-out. The distinction is documented in the docstring.",
+        "timestamp": "2026-04-06T20:42:58Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@uesleilima Please see Copilot's last one.",
+        "timestamp": "2026-04-10T18:48:51Z"
+      },
+      {
+        "author": "MuhammadTahaNaveed",
+        "role": "MEMBER",
+        "body": "@uesleilima needs rebase",
+        "timestamp": "2026-04-19T12:14:30Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "@MuhammadTahaNaveed rebased on latest `master`. Conflicts in `age/age.py` and `test_age_py.py` resolved by taking upstream's merged setup from #2366 alongside this PR's `configure_connection` / `to_dict` additions. `__main__` suite now runs `TestSetUpAge` (upstream) plus `TestModelToDict`, `TestPublicImports`, `TestConfigureConnection` (this PR). Full local CI suite passes.",
+        "timestamp": "2026-04-20T08:01:59Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "@MuhammadTahaNaveed re-rebased on top of latest `master` (which now includes the just-merged #2373). Conflicts in `test_age_py.py` resolved by keeping `TestSetUpAge` (from #2366) + `TestBuildCypher` (from #2373) + this PR's `TestModelToDict` / `TestPublicImports` / `TestConfigureConnection`, all wired into the `__main__` suite. Full local CI-equivalent suite passes (41 tests in `test_age_py.py`, plus networkx/agtypes/security).",
+        "timestamp": "2026-04-20T10:14:51Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "Added an end-to-end integration test that exercises both new features against a live AGE database, since the existing tests were unit-only:\n\n- `TestConfigureConnection` mocks the psycopg connection — it never proves `AgeLoader` registers against real `agtype` OIDs.\n- `TestModelToDict` hand-constructs `Vertex`/`Edge`/`Path` via kwargs — it never serialises parser-produced objects.\n\nThe new `TestAgeBasic.testConfigureConnection`:\n\n1. opens a raw `psycopg` connection (deliberately bypassing `age.connect()` — that's the whole point of `configure_connection()`),\n2. calls `configure_connection(raw, graph_name=..., load=True)`,\n3. runs a Cypher `CREATE ... RETURN a, r, b` and asserts the returned values are real `Vertex`/`Edge` instances with the expected properties,\n4. round-trips `to_dict()` through `json.dumps()` and asserts the resulting `label`/`start_id`/`end_id`/`properties` shape,\n5. repeats the round-trip for a `Path` returned by `MATCH`.\n\nValidated locally against `apache/age:dev_snapshot_master` — all 42 tests pass.\n\nCommit: https://github.com/uesleilima/age/commit/9661b7a4c1c4cd799315326868b08362c2a3f2dc",
+        "timestamp": "2026-04-20T11:55:03Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "@MuhammadTahaNaveed please let me know if something else is missing here, thanks!",
+        "timestamp": "2026-04-29T10:54:33Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "518d57e",
+        "message": "feat(python-driver): add public API for connection pooling and model dict conversion\n\nAdd two enhancements to the Python driver's public API:\n\n1. Add configure_connection() function that registers AGE agtype adapters\n   on an existing psycopg connection without creating a new one. This\n   enables use with external connection pools (e.g. psycopg_pool) and\n   managed PostgreSQL services where LOAD 'age' may be restricted.\n   Also explicitly export AgeLoader and ClientCursor as public symbols\n   in age/__init__.py. (#2369)\n\n2. Add to_dict() methods to Vertex, Edge, and Path model classes for\n   conversion to plain Python dicts. This enables direct JSON\n   serialization with json.dumps() without requiring custom conversion\n   logic. (#2371)\n\n   - Vertex.to_dict() returns {id, label, properties}\n   - Edge.to_dict() returns {id, label, start_id, end_id, properties}\n   - Path.to_dict() returns a list of to_dict() results\n\nCloses #2369\nCloses #2371",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T11:47:28Z"
+      },
+      {
+        "sha": "c1ef604",
+        "message": "Fix configure_connection: correct parameter semantics, add load_from_plugins\n\n- Replace confusing `skip_load` (double-negative) with `load` (positive\n  boolean, default False). The default now correctly matches the intent:\n  no LOAD by default for connection pool / managed PostgreSQL use cases.\n- Add `load_from_plugins` parameter for parity with setUpAge().\n- Fix docstring to accurately describe parameter behavior.\n- Add 6 unit tests for configure_connection covering: default no-load,\n  explicit load, load_from_plugins, search_path always set, adapter\n  registration, and graph_name check delegation.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T13:18:59Z"
+      },
+      {
+        "sha": "1f7570b",
+        "message": "Address review feedback for configure_connection and to_dict\n\n- Move TypeInfo.fetch() inside cursor block so search_path change is\n  visible regardless of transaction isolation mode\n- Raise ValueError when load_from_plugins=True but load=False\n- Add type annotations to configure_connection signature\n- Document shallow-copy semantics in Vertex/Edge to_dict()\n- Path.to_dict() uses str() fallback for non-AGObj entities to\n  guarantee JSON-serializable output\n- Add test for AgeNotSet when TypeInfo.fetch returns None\n- Add test for load_from_plugins=True without load=True\n- Replace fragile string assertions with assert_called_with/assert_any_call\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T22:56:20Z"
+      },
+      {
+        "sha": "52f2e1c",
+        "message": "Fix Path.to_dict() to preserve JSON-native types, add tests to suite\n\n- Path.to_dict(): leave dict/list/str/int/float/bool/None unchanged\n  instead of converting to str(); handle entities=None safely\n- Add TestModelToDict, TestPublicImports, TestConfigureConnection to\n  the __main__ suite so they run via direct script execution\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-06T20:39:01Z"
+      },
+      {
+        "sha": "3e2318a",
+        "message": "fix(python-driver): Python 3.9-safe hints and correct $user in search_path\n\n- Use Optional[str] for configure_connection graph_name (PEP 604 unions are\n  invalid on Python 3.9).\n- Import Any/Optional from typing for annotations.\n- Quote $user in SET search_path; align unit test expectations.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-10T19:30:58Z"
+      },
+      {
+        "sha": "9661b7a",
+        "message": "test(python-driver): add configure_connection + to_dict integration test\n\nExisting tests for the new public API are unit-only:\n- TestConfigureConnection mocks the psycopg connection, so it never\n  proves that AgeLoader actually registers against real agtype OIDs.\n- TestModelToDict hand-constructs Vertex/Edge/Path via kwargs, so it\n  never serialises objects produced by the ANTLR parser.\n\nAdd a single TestAgeBasic.testConfigureConnection that:\n- opens a raw psycopg connection (bypassing age.connect()),\n- calls configure_connection(..., load=True) on it,\n- runs a Cypher CREATE/RETURN through the configured connection,\n- asserts the returned values are real Vertex/Edge instances and that\n  their to_dict() output is JSON-serialisable with the expected\n  label/start_id/end_id/properties shape,\n- repeats the round-trip for a Path returned by MATCH.\n\nThis is the smallest test that proves the configure_connection +\nto_dict pipeline works end-to-end against a live AGE database.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-20T11:54:40Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2286",
+    "metadata": {
+      "title": "feat: Add 32-bit platform support for graphid type",
+      "labels": [
+        "master"
+      ],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-01-12T20:10:08Z",
+      "reviewers": [
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "This enables AGE to work on 32-bit platforms including WebAssembly (WASM).\r\n\r\n**Problem:**\r\n- `graphid` is int64 (8 bytes) with PASSEDBYVALUE\r\n- On 32-bit systems, Datum is only 4 bytes\r\n- PostgreSQL rejects pass-by-value types larger than Datum\r\n\r\n**Solution:**\r\n- Makefile-only change (no C code modifications)\r\n- When `SIZEOF_DATUM=4` is passed to make, strip PASSEDBYVALUE from the generated SQL\r\n- If not specified, normal 64-bit behavior is preserved (PASSEDBYVALUE kept)\r\n\r\n**Usage:**\r\n- 64-bit build: `make` (default, unchanged behavior)\r\n- 32-bit build: `make SIZEOF_DATUM=4`\r\n\r\n**This change is backward compatible:**\r\n- 64-bit systems: unchanged behavior (pass-by-value)\r\n- 32-bit systems: now work with pass-by-reference when built with SIZEOF_DATUM=4\r\n- Source files unchanged (sql/age_main.sql, graphid.h)\r\n\r\n**Motivation:** PGlite (PostgreSQL compiled to WebAssembly) uses 32-bit pointers and requires this patch to run AGE.\r\n\r\n**Tested on:**\r\n- 64-bit Linux (all 29 regression tests pass)\r\n- 32-bit WebAssembly via PGlite"
+    },
+    "discussion_timeline": [
+      {
+        "author": "tdrz",
+        "role": "NONE",
+        "body": "I'm one of the maintainers of [PGlite](https://pglite.dev) a WASM build of Postgres. We support [multiple extensions](https://pglite.dev/extensions/) and would love to have `age` as well but we'd need this PR merged for it. ",
+        "timestamp": "2026-01-06T12:06:47Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@jpabbuehl @tdrz\r\n\r\n> This change is backward compatible:\r\n> \r\n> 64-bit systems continue using pass-by-value\r\n> 32-bit systems now work with pass-by-reference\r\n\r\n Unfortunately, this PR breaks nearly all of the regression tests, so it isn't backward compatible. I would strongly suggest to anyone that before a PR is submitted, `make installcheck` is run locally to verify all regression tests. Keep in mind that all of our regression tests run under standard PostgreSQL.\r\n\r\nNo PR can be accepted until it can pass all regression tests.\r\n\r\n```\r\nRun make PG_CONFIG=$HOME/pg17/bin/pg_config installcheck EXTRA_TESTS=\"pgvector fuzzystrmatch pg_trgm\"\r\necho \"# +++ regress install-check in  +++\" && /home/runner/pg17/lib/postgresql/pgxs/src/makefiles/../../src/test/regress/pg_regress --inputdir=./ --bindir='/home/runner/pg17/bin'    --load-extension=age --inputdir=.//regress --outputdir=.//regress --temp-instance=.//regress/instance --port=61958 --encoding=UTF-8 --temp-config .//regress/age_regression.conf --dbname=contrib_regression scan graphid agtype agtype_hash_cmp catalog cypher expr cypher_create cypher_match cypher_unwind cypher_set cypher_remove cypher_delete cypher_with cypher_vle cypher_union cypher_call cypher_merge cypher_subquery age_global_graph age_load index analyze graph_generation name_validation jsonb_operators list_comprehension map_projection pgvector fuzzystrmatch pg_trgm drop\r\n# +++ regress install-check in  +++\r\n# initializing database system by running initdb\r\n# using temp instance on port 61958 with PID 2978\r\nok 1         - scan                                      309 ms\r\nnot ok 2     - graphid                                   423 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 3     - agtype                                     28 ms\r\nok 4         - agtype_hash_cmp                            19 ms\r\nnot ok 5     - catalog                                   409 ms\r\n# (test process exited with exit code 2)\r\nnot ok 6     - cypher                                     32 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 7     - expr                                        2 ms\r\nnot ok 8     - cypher_create                             425 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 9     - cypher_match                               33 ms\r\nnot ok 10    - cypher_unwind                             428 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 11    - cypher_set                                 27 ms\r\n# (test process exited with exit code 2)\r\nnot ok 12    - cypher_remove                               3 ms\r\nnot ok 13    - cypher_delete                             428 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 14    - cypher_with                                27 ms\r\n# (test process exited with exit code 2)\r\nnot ok 15    - cypher_vle                                  3 ms\r\nnot ok 16    - cypher_union                              458 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 17    - cypher_call                                28 ms\r\nnot ok 18    - cypher_merge                              461 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 19    - cypher_subquery                            25 ms\r\n# (test process exited with exit code 2)\r\nnot ok 20    - age_global_graph                            3 ms\r\n# (test process exited with exit code 2)\r\nnot ok 21    - age_load                                  438 ms\r\nnot ok 22    - index                                      28 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 23    - analyze                                     3 ms\r\n# (test process exited with exit code 2)\r\nnot ok 24    - graph_generation                          447 ms\r\n# (test process exited with exit code 2)\r\nnot ok 25    - name_validation                            32 ms\r\n# (test process exited with exit code 2)\r\nnot ok 26    - jsonb_operators                             3 ms\r\n# (test process exited with exit code 2)\r\nnot ok 27    - list_comprehension                        422 ms\r\n# (test process exited with exit code 2)\r\nnot ok 28    - map_projection                             27 ms\r\n# (test process exited with exit code 2)\r\nnot ok 29    - pgvector                                    3 ms\r\n# (test process exited with exit code 2)\r\nnot ok 30    - fuzzystrmatch                             439 ms\r\nnot ok 31    - pg_trgm                                    27 ms\r\n# (test process exited with exit code 2)\r\n# (test process exited with exit code 2)\r\nnot ok 32    - drop                                        4 ms\r\n# 30 of 32 tests failed.\r\n1..32\r\n# The differences that caused some tests to fail can be viewed in the file \"/home/runner/work/age/age/regress/regression.diffs\".\r\n# A copy of the test summary that you see above is saved in the file \"/home/runner/work/age/age/regress/regression.out\".\r\nmake: *** [/home/runner/pg17/lib/postgresql/pgxs/src/makefiles/pgxs.mk:436: installcheck] Error 1\r\nError: Process completed with exit code 2.\r\n```",
+        "timestamp": "2026-01-06T19:04:16Z"
+      },
+      {
+        "author": "tdrz",
+        "role": "NONE",
+        "body": "@jrgemignani Thank you for having a look. Lesson learned for next time!",
+        "timestamp": "2026-01-07T08:28:54Z"
+      },
+      {
+        "author": "jpabbuehl",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani I overlook the regression test suite. \r\n\r\nI adjusted PR to keep the source SQL (sql/age_main.sql) completely unchanged and instead conditionally strip PASSEDBYVALUE from the generated SQL file at build time when SIZEOF_DATUM=4.\r\n\r\nNow, all 29 regression tests pass identically on 64-bit while enabling 32-bit WASM/PGlite support through build-time detection.",
+        "timestamp": "2026-01-07T12:42:36Z"
+      },
+      {
+        "author": "jpabbuehl",
+        "role": "CONTRIBUTOR",
+        "body": "Ran test in docker given make installcheck has some tmp path resolution issue with macos\r\n\r\n```\r\ndocker build -f docker/Dockerfile.dev -t age-test .\r\n# +++ regress install-check in  +++\r\n# initializing database system by running initdb\r\n# using temp instance on port 61958 with PID 80\r\nok 1         - scan                                       54 ms\r\nok 2         - graphid                                     4 ms\r\nok 3         - agtype                                     21 ms\r\nok 4         - agtype_hash_cmp                             3 ms\r\nok 5         - catalog                                    51 ms\r\nok 6         - cypher                                     10 ms\r\nok 7         - expr                                     1489 ms\r\nok 8         - cypher_create                              28 ms\r\nok 9         - cypher_match                             7464 ms\r\nok 10        - cypher_unwind                             176 ms\r\nok 11        - cypher_set                                 28 ms\r\nok 12        - cypher_remove                             100 ms\r\nok 13        - cypher_delete                              52 ms\r\nok 14        - cypher_with                               109 ms\r\nok 15        - cypher_vle                               2153 ms\r\nok 16        - cypher_union                                7 ms\r\nok 17        - cypher_call                                 9 ms\r\nok 18        - cypher_merge                               66 ms\r\nok 19        - cypher_subquery                           158 ms\r\nok 20        - age_global_graph                           26 ms\r\nok 21        - age_load                                  545 ms\r\nok 22        - index                                      97 ms\r\nok 23        - analyze                                     6 ms\r\nok 24        - graph_generation                           16 ms\r\nok 25        - name_validation                            29 ms\r\nok 26        - jsonb_operators                            16 ms\r\nok 27        - list_comprehension                        135 ms\r\nok 28        - map_projection                              9 ms\r\nok 29        - drop                                       51 ms\r\n1..29\r\n# All 29 tests passed.\r\n```",
+        "timestamp": "2026-01-07T12:50:35Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@jpabbuehl Thank you for your work so far! \r\n\r\nI do, however, have a few requests due to Copilot and reviewing the code changes.\r\n\r\nI'm not sure if you can see Copilot's remarks above? But, if you could review them, especially the one about sed and fragility **and** the PR description -\r\n\r\n> The sed replacement pattern uses a complex regular expression that may not be portable across all sed implementations. Specifically, the character class [[:space:]] is a POSIX extension that may not work with all versions of sed (though it's widely supported).\r\n> ...\r\n\r\n> The PR description states \"Add conditional compilation in graphid.h\" to use pass-by-value on 64-bit and pass-by-reference on 32-bit systems. However, the actual code changes do not include any modifications to graphid.h or any other C header/source files.\r\n> ...\r\n\r\nI just want your thoughts on them.\r\n\r\nAs for the code, I would feel more comfortable if the code changes didn't auto-detect -\r\n\r\n```\r\n# 32-bit platform support: detect SIZEOF_DATUM (override with make SIZEOF_DATUM=4)\r\n# Only attempt auto-detection if SIZEOF_DATUM was not provided on the command line.\r\nifeq ($(origin SIZEOF_DATUM), undefined)\r\n```\r\n\r\nI would prefer that the parameter `SIZEOF_DATUM` be passed **and** if not found, nothing happens. This way it is more expected. Is that okay with you? For this case you would need to validate that it is 4.",
+        "timestamp": "2026-01-08T16:46:17Z"
+      },
+      {
+        "author": "jpabbuehl",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Thanks for your feedback. Indeed the PR description needs to be adjusted.I pivoted to a more targeted Makefile-only approach instead of modifying graphid.h\r\n\r\nGood idea on the explicit parameter approach - I've removed the auto-detection logic. Now SIZEOF_DATUM must be explicitly passed (e.g., make SIZEOF_DATUM=4) for 32-bit builds. When unspecified, normal 64-bit behavior goes on.\r\n\r\nOn the sed replacement from Copilot's feedback - I've simplified to an exact pattern match (^ PASSEDBYVALUE,$)",
+        "timestamp": "2026-01-11T16:18:59Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "Merged",
+        "timestamp": "2026-01-12T20:10:21Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "cbdae80",
+        "message": "feat: Add 32-bit platform support for graphid type\n\nThis enables AGE to work on 32-bit platforms including WebAssembly (WASM).\n\nProblem:\n- graphid is int64 (8 bytes) with PASSEDBYVALUE\n- On 32-bit systems, Datum is only 4 bytes\n- PostgreSQL rejects pass-by-value types larger than Datum\n\nSolution:\n- Add conditional compilation in graphid.h\n- Use pass-by-value on 64-bit (SIZEOF_DATUM >= 8)\n- Use pass-by-reference on 32-bit (SIZEOF_DATUM < 8)\n- Remove PASSEDBYVALUE from SQL type definition\n\nThis change is backward compatible:\n- 64-bit systems continue using pass-by-value\n- 32-bit systems now work with pass-by-reference\n\nMotivation: PGlite (PostgreSQL compiled to WebAssembly) uses 32-bit\npointers and requires this patch to run AGE.\n\nTested on:\n- 64-bit Linux (regression tests pass)\n- 32-bit WebAssembly via PGlite (all operations work)",
+        "author": "abbuehlj",
+        "timestamp": "2025-12-23T08:47:10Z"
+      },
+      {
+        "sha": "09c7d3a",
+        "message": "feat: Enhance 32-bit platform support for graphid type\n\nThis update introduces conditional compilation in the Makefile to support 32-bit platforms by detecting the size of Datum. The graphid type now uses pass-by-reference on 32-bit systems, ensuring compatibility with PostgreSQL's limitations on pass-by-value types larger than Datum.\n\nChanges include:\n- Added SIZEOF_DATUM detection in the Makefile.\n- Updated the SQL definition of graphid to conditionally remove PASSEDBYVALUE for 32-bit systems.\n\nThis change maintains backward compatibility for 64-bit systems while enabling functionality on 32-bit platforms, including WebAssembly.",
+        "author": "abbuehlj",
+        "timestamp": "2026-01-07T12:40:31Z"
+      },
+      {
+        "sha": "ef3fed9",
+        "message": "revert graphid.h to upstream",
+        "author": "abbuehlj",
+        "timestamp": "2026-01-07T12:46:27Z"
+      },
+      {
+        "sha": "d16be32",
+        "message": "Update Makefile\r\n\r\nEnsures replacement succeeds; fails fast if format changes\n\nCo-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>",
+        "author": "Jean-Paul Abbuehl",
+        "timestamp": "2026-01-08T04:42:19Z"
+      },
+      {
+        "sha": "9c3f409",
+        "message": "Update Makefile\r\n\r\nValidates values (4 or 8); clearer warnings; uses $(origin)\n\nCo-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>",
+        "author": "Jean-Paul Abbuehl",
+        "timestamp": "2026-01-08T04:43:30Z"
+      },
+      {
+        "sha": "039da8a",
+        "message": "Helps debugging by pointing to Makefile source",
+        "author": "abbuehlj",
+        "timestamp": "2026-01-08T04:49:17Z"
+      },
+      {
+        "sha": "0a4f4b3",
+        "message": "Refactor Makefile for 32-bit platform support\n\nThis update simplifies the handling of SIZEOF_DATUM in the Makefile for 32-bit builds. The previous auto-detection logic has been removed in favor of a clearer instruction to pass SIZEOF_DATUM=4 when needed. Additionally, the replacement logic for PASSEDBYVALUE in the SQL definition has been enhanced to provide better error handling and messaging.\n\nChanges include:\n- Removed complex SIZEOF_DATUM detection logic.\n- Updated comments for clarity on 32-bit support.\n- Improved error messages for PASSEDBYVALUE replacement failures.",
+        "author": "abbuehlj",
+        "timestamp": "2026-01-11T16:18:48Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2372",
+    "metadata": {
+      "title": "fix(python-driver): add null-guards in ANTLR parser and relax runtime version pin",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-04-20T10:41:03Z",
+      "reviewers": [
+        "uesleilima",
+        "tcolo",
+        "MuhammadTahaNaveed",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "## Summary\n\nFix two related issues in the Python driver's ANTLR4 parsing pipeline:\n\n### 1. ANTLR4 agtype parser crashes on vertices with complex properties (#2367)\n\nThe `ResultVisitor` in `builder.py` crashes with `AttributeError: 'NoneType' object has no attribute 'stop'` when deserializing certain vertex records whose properties contain large arrays, long text fields with special characters, or deeply nested structures.\n\n**Root cause:** Several visitor methods access child nodes (`.symbol`, `.getText()`, `.accept()`) without null-checking first. When the ANTLR4 parser tree contains `None` nodes, these calls crash.\n\n**Fix:** Add null-guards in `visitAgValue`, `visitFloatLiteral`, `visitPair`, `visitObj`, and `handleAnnotatedValue`. Also replaces shadowing of builtin `dict` with `d` in `handleAnnotatedValue`, and uses `.get()` for safer key access on parsed vertex/edge dicts.\n\n### 2. `antlr4-python3-runtime==4.11.1` is incompatible with Python >= 3.13 (#2368)\n\nThe exact version pin `==4.11.1` causes runtime errors on Python 3.13+ due to deprecated/removed CPython internals that ANTLR 4.11.x relies on.\n\n**Fix:** Relax the constraint from `==4.11.1` to `>=4.11.1,<5.0` in both `pyproject.toml` and `requirements.txt`. The ANTLR ATN serialized format is unchanged between 4.11 and 4.13, so the generated lexer/parser files are compatible. Validated with `antlr4-python3-runtime==4.13.2` on Python 3.11-3.14.\n\n## Tests\n\nAdded 9 new test cases in `test_agtypes.py`:\n- Vertices with large array properties (12 elements)\n- Vertices with special characters in properties\n- Deeply nested property structures (3 levels)\n- Empty properties\n- Null property values\n- Edges with complex properties (arrays, booleans)\n- Paths with multiple edges\n- Empty/null input handling\n- Arrays of mixed types including nested arrays\n\nAll 12 tests pass with `antlr4-python3-runtime==4.13.2`.\n\n## Closes\n\n- Closes #2367\n- Closes #2368"
+    },
+    "discussion_timeline": [
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "All review feedback has been addressed:\n\n**tcolo's review:**\n- ✅ `visitFloatLiteral`: now raises `AGTypeError` on malformed child node instead of silent fallback.\n- ✅ `handleAnnotatedValue`: added comment explaining partial-construction behavior.\n- ✅ `visitObj`/`visitPair`: added comment documenting that `visitPair`'s validation makes the None-guard defensive-only.\n- ✅ `pyproject.toml`: added inline comment explaining ANTLR4 version range rationale.\n- ✅ Malformed/truncated input tests now assert `AGTypeError` or validate recovery shape (not just absence of `AttributeError`).\n\n**Copilot review:**\n- ✅ Vertex and edge branches now default `properties` to `{}` via `d.get(\"properties\") or {}`, preventing `__getitem__` crashes.\n- ✅ Replaced weak `assertNotIsInstance(result, type(NotImplemented))` with structural type checks.\n- ✅ Fixed `test_truncated_agtype` docstring to match actual assertion behavior.",
+        "timestamp": "2026-04-06T20:42:52Z"
+      },
+      {
+        "author": "MuhammadTahaNaveed",
+        "role": "MEMBER",
+        "body": "@uesleilima needs rebase",
+        "timestamp": "2026-04-19T12:13:30Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "@MuhammadTahaNaveed rebased on latest `master`. Conflicts in `age/age.py` resolved by taking upstream's merged `skip_load` / `load_from_plugins` / `\"$user\"` setup from #2366 (no functional changes from this PR's scope). Full local CI suite (`test_age_py.py`, `test_networkx.py`, `test_agtypes.py`, `test_security.py`) passes against `apache/age:dev_snapshot_master`.",
+        "timestamp": "2026-04-20T08:01:53Z"
+      },
+      {
+        "author": "MuhammadTahaNaveed",
+        "role": "MEMBER",
+        "body": "@uesleilima getting this on running test suite.\r\n\r\n```\r\nANTLR runtime and generated code versions disagree: 4.13.2!=4.11.1\r\nANTLR runtime and generated code versions disagree: 4.13.2!=4.11.1\r\n```",
+        "timestamp": "2026-04-20T09:14:40Z"
+      },
+      {
+        "author": "uesleilima",
+        "role": "CONTRIBUTOR",
+        "body": "@MuhammadTahaNaveed Good catch — the warning came from the generated lexer/parser hardcoding `checkVersion(\"4.11.1\")` while this PR relaxed the runtime pin to `>=4.11.1,<5.0`, so any default install pulled 4.13.2 and triggered the mismatch.\n\nFixed in [`1b3167a1`](https://github.com/uesleilima/age/commit/1b3167a1) by:\n\n1. Regenerating `AgtypeLexer.py`, `AgtypeParser.py`, `AgtypeListener.py`, `AgtypeVisitor.py` from `Agtype.g4` using ANTLR 4.13.2 (preserving the ASF license header). Diff is minimal: `checkVersion(\"4.11.1\")` → `checkVersion(\"4.13.2\")` plus a couple of cosmetic ANTLR-tool style changes (`if __name__ is not None and \".\" in __name__` → `if \".\" in __name__`).\n2. Bumping the dependency floor to `antlr4-python3-runtime>=4.13.2,<5.0` so a fresh `pip install` is warning-free out of the box.\n\nVerified locally with `antlr4-python3-runtime==4.13.2` against `apache/age:dev_snapshot_master` — full CI-equivalent suite (`test_age_py.py` 25 tests, `test_networkx.py` 11, `test_agtypes.py` 14, `test_security.py` 46) passes with no version-disagree warning emitted.",
+        "timestamp": "2026-04-20T10:14:48Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2ed928d",
+        "message": "fix(python-driver): add null-guards in ANTLR parser and relax runtime version pin\n\nFix two related issues in the Python driver's ANTLR4 parsing pipeline:\n\n1. Add null-guards in ResultVisitor methods (visitAgValue, visitFloatLiteral,\n   visitPair, visitObj, handleAnnotatedValue) to prevent AttributeError crashes\n   when the ANTLR4 parse tree contains None child nodes. This occurs with\n   vertices that have complex properties (large arrays, special characters,\n   deeply nested structures). (#2367)\n\n2. Relax antlr4-python3-runtime version constraint from ==4.11.1 to\n   >=4.11.1,<5.0 in both pyproject.toml and requirements.txt. The 4.11.1\n   pin is incompatible with Python >= 3.13. The ANTLR ATN serialized format\n   is unchanged between 4.11 and 4.13, so the generated lexer/parser files\n   are compatible. Validated with antlr4-python3-runtime==4.13.2 on\n   Python 3.11-3.14. (#2368)\n\nAlso replaces shadowing of builtin 'dict' in handleAnnotatedValue with 'd',\nand uses .get() for safer key access on parsed vertex/edge dicts.\n\nCloses #2367\nCloses #2368",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T11:43:43Z"
+      },
+      {
+        "sha": "4220a0f",
+        "message": "Add tests for malformed/truncated agtype input handling\n\nVerify that malformed and truncated agtype strings raise AGTypeError\n(or recover gracefully) rather than crashing with AttributeError.\nThis tests the null-guards added to the ANTLR parser visitor.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T13:17:33Z"
+      },
+      {
+        "sha": "e2899cc",
+        "message": "Address review feedback: tighten error handling and tests\n\n- visitFloatLiteral: raise AGTypeError on malformed child node instead\n  of silently returning a fallback value\n- visitObj: add comment documenting that visitPair's validation makes\n  the None-guard defensive-only\n- handleAnnotatedValue: add comment explaining partial-construction\n  behavior on type-check failure\n- pyproject.toml: add comment explaining ANTLR4 version range rationale\n- Tests: assert AGTypeError (or graceful recovery) for malformed and\n  truncated inputs, not just absence of AttributeError\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-05T22:53:27Z"
+      },
+      {
+        "sha": "300eae9",
+        "message": "Default properties to {} in vertex/edge parsing, tighten tests\n\n- handleAnnotatedValue: default properties to {} when missing from\n  parsed dict, preventing __getitem__ crashes on access\n- Tests: replace weak assertNotIsInstance with structural type checks\n- Fix truncated test docstring to match actual assertion behavior\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-06T20:37:58Z"
+      },
+      {
+        "sha": "ab20f79",
+        "message": "fix(python-driver): address Copilot follow-ups on antlr/parser PR\n\n- Use PostgreSQL \"$user\" placeholder in SET search_path.\n- Exercise real escapes and Unicode in special-characters vertex test (json.dumps).\n- Add Python 3.9 trove classifier to match requires-python and dependency comment.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-10T19:30:38Z"
+      },
+      {
+        "sha": "6eb20ce",
+        "message": "test(python-driver): fix special-chars vertex test (f-string + parser escape semantics)\n\n- Build vertex agtype with string concat to avoid invalid f-string braces.\n- Assert stored description matches parser behavior: JSON escapes remain\n  literal, UTF-8 decodes normally (ensure_ascii=False on json.dumps).\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-10T19:41:48Z"
+      },
+      {
+        "sha": "30edd80",
+        "message": "fix(python-driver): regenerate parser with ANTLR 4.13.2 to silence runtime-version-mismatch warning\n\nThe generated lexer/parser were hardcoded to check for ANTLR runtime\n4.11.1, which triggered a noisy 'ANTLR runtime and generated code\nversions disagree' warning when installed against a newer runtime like\n4.13.2. Regenerating from Agtype.g4 with the 4.13.2 tool aligns the\ngenerated checkVersion() call with the default-installed runtime in\nthe allowed dependency range and eliminates the warning.\n\nBumps the declared floor of antlr4-python3-runtime to 4.13.2 so the\ndefault install path is warning-free.\n\nMade-with: Cursor",
+        "author": "Ueslei Santos Lima",
+        "timestamp": "2026-04-20T10:11:39Z"
+      }
+    ]
+  },
+  {
+    "story_id": "apache/age#2425",
+    "metadata": {
+      "title": "python driver: preserve trailing quotes in agtype string values",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-02T00:05:17Z",
+      "reviewers": [
+        "SAY-5",
+        "jrgemignani",
+        "copilot-pull-request-reviewer[bot]"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Fixes #2418.\n\n`ResultVisitor.visitStringValue()` and `visitPair()` in `drivers/python/age/builder.py` use `str.strip('\"')` to remove the surrounding delimiters from agtype STRING tokens. `str.strip()` removes *all* matching characters from both ends, so when a property value or object key starts or ends with an escaped quote the parser drops the data character along with the delimiter:\n\n| Input agtype | Expected | Before this PR |\n| --- | --- | --- |\n| `\"foo \\\"bar\\\"\"` | `foo \\\"bar\\\"` | `foo \\\"bar\\` |\n| `\"\\\"leading\"` | `\\\"leading` | `leading` |\n| `\"trailing\\\"\"` | `trailing\\\"` | `trailing\\` |\n\nThe Agtype grammar (`drivers/Agtype.g4`) guarantees `STRING : '\"' (ESC | SAFECODEPOINT)* '\"'`, so the token always has exactly one `\"` delimiter on each side. Slicing with `[1:-1]` removes them precisely without touching the body.\n\nTest added: `test_string_value_preserves_inner_quotes` covers leading/trailing/embedded escaped quotes plus the `visitPair()` path for object keys, and exercises the empty-string `\"\"` edge case."
+    },
+    "discussion_timeline": [
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@SAY-5 Please rebase :)",
+        "timestamp": "2026-05-13T15:17:47Z"
+      },
+      {
+        "author": "SAY-5",
+        "role": "CONTRIBUTOR",
+        "body": "Rebased onto master.",
+        "timestamp": "2026-05-13T18:52:16Z"
+      },
+      {
+        "author": "jrgemignani",
+        "role": "CONTRIBUTOR",
+        "body": "@SAY-5 Can you address Copilot's comments above? Please address then in each comment :) It makes it easier to verify.",
+        "timestamp": "2026-05-13T23:58:27Z"
+      },
+      {
+        "author": "SAY-5",
+        "role": "CONTRIBUTOR",
+        "body": "@jrgemignani Addressed all four Copilot comments in e2654254: centralized the trim logic into _stripStringDelimiters and reused it in both visitStringValue/visitPair, removed the stray space before the comma, and reformatted the test docstring. Replied on each inline thread.",
+        "timestamp": "2026-05-22T09:42:42Z"
+      },
+      {
+        "author": "SAY-5",
+        "role": "CONTRIBUTOR",
+        "body": "Rebased on current master.",
+        "timestamp": "2026-05-25T02:27:27Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "774908e",
+        "message": "python driver: preserve trailing quotes in agtype string values\n\nstr.strip('\"') in visitStringValue() and visitPair() removes every '\"'\non either side of the token, not just the outer delimiters, so a value\nending in an escaped quote (e.g. '\"foo \\\"bar\\\"\"') loses its trailing\nbackslash-escaped '\"' character.  The Agtype grammar guarantees STRING\ntokens always carry exactly one delimiter on each side, so slice with\n[1:-1] to strip them precisely.\n\nFixes #2418\n\nSigned-off-by: SAY-5 <saiasish.cnp@gmail.com>",
+        "author": "Sai Asish Y",
+        "timestamp": "2026-05-13T18:52:02Z"
+      },
+      {
+        "sha": "1c816a1",
+        "message": "fix(python-driver): centralize string delimiter trim and clean test docstring",
+        "author": "Sai Asish Y",
+        "timestamp": "2026-05-21T08:17:35Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,2209 @@
+[
+  {
+    "story_id": "oppia/oppia#13065",
+    "metadata": {
+      "title": "Schema-Validation-System(SVS) architecture",
+      "labels": [],
+      "qualities": [
+        "security",
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-06-29T15:43:25Z",
+      "reviewers": [
+        "rohitkatlaa",
+        "Nik-09"
+      ],
+      "changed_files": 13
+    },
+    "issue_payload": {
+      "body": "## Overview\r\n\r\n This PR does the following: \r\n\r\nThis pull request aims to design and implement an architecture by which the handler arguments are validated against its schema before reaching to the backend structure of the codebase.\r\n**Before Implementation**\r\nFrontend data ---> Backend code\r\n**After Implementation**\r\nFrontend data ---> Validation & normalization of arguments ---> Backend code.\r\n\r\n**Technologies Used**\r\n    - Python\r\n    - Unit testing\r\n    - Lint testing\r\n\r\n**Key Functionality:**\r\n    - The design is flexible and compatible with the codebase.\r\n    - New rules can be implemented based on demand.\r\n    - The design is also compatible to incrementally add schemas throughout the codebase.\r\n\r\n**Proposal Link:**\r\nhttps://docs.google.com/document/d/1OkTqfdz7kkvfiZg1YW6cJlZb4FFNe0aIbjw106PzdF4/edit#heading=h.kmalp4o81k4c\r\n**Wiki page link:** \r\nhttps://github.com/oppia/oppia/wiki/Writing-schema-for-handler-args\r\n## Essential Checklist\r\n\r\n- [x] The PR title starts with \"Fix #bugnum: \", followed by a short, clear summary of the changes. (If this PR fixes part of an issue, prefix the title with \"Fix part of #bugnum: ...\".)\r\n- [x] The linter/Karma presubmit checks have passed locally on your machine.\r\n- [x] \"Allow edits from maintainers\" is checked. (See [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/allowing-changes-to-a-pull-request-branch-created-from-a-fork) for instructions on how to enable it.)\r\n  - This lets reviewers restart your CircleCI tests for you.\r\n- [x] The PR is made from a branch that's **not** called \"develop\".\r\n\r\n## Proof that changes are correct\r\n**Invaild schema raises InvalidInputException (status code: 400)** \r\n\r\n![Screenshot from 2021-06-14 08-01-03](https://user-images.githubusercontent.com/57531197/121832677-3d6d8a00-cce8-11eb-8191-35303575f61c.png)  \r\n\r\n**NotImplemented error if schema is not present in handler (status code: 500)**  \r\n\r\n![Screenshot from 2021-06-14 08-05-53](https://user-images.githubusercontent.com/57531197/121832681-3f374d80-cce8-11eb-9caa-a6a06a319244.png)  \r\n\r\n![Screenshot from 2021-06-14 08-06-07](https://user-images.githubusercontent.com/57531197/121832682-3fcfe400-cce8-11eb-9dee-bf2840541391.png)  \r\n\r\n**Correct schema do not raises exception (status code: 200)**\r\n  \r\n![Screenshot from 2021-06-14 08-07-39](https://user-images.githubusercontent.com/57531197/121832683-3fcfe400-cce8-11eb-80d3-34d2aead253b.png)\r\n\r\n\r\n## PR Pointers\r\n\r\n- Make sure to follow the [instructions for making a code change](https://github.com/oppia/oppia/wiki/Contributing-code-to-Oppia#instructions-for-making-a-code-change).\r\n- Oppiabot will notify you when you don't add a PR_CHANGELOG label. If you are unable to do so, please @-mention a code owner (who will be in the Reviewers list), or ask on [Gitter](https://gitter.im/oppia/oppia-chat).\r\n- For what code owners will expect, see the [Code Owner's wiki page](https://github.com/oppia/oppia/wiki/Oppia%27s-code-owners-and-checks-to-be-carried-out-by-developers).\r\n- Make sure your PR follows conventions in the [style guide](https://github.com/oppia/oppia/wiki/Coding-style-guide), otherwise this will lead to review delays.\r\n- Never force push. If you do, your PR will be closed.\r\n- Oppiabot can assign anyone for review/help if you leave a comment like the following: \"{{Question/comment}} @{{reviewer_username}} PTAL\"\r\n- Some of the e2e tests are flaky, and can fail for reasons unrelated to your PR. We are working on fixing this, but in the meantime, if you need to restart the tests, please check the [\"If your build fails\" wiki page](https://github.com/oppia/oppia/wiki/If-your-build-fails).\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, can you complete the following:\n1. The body of this PR is missing the required description, please update the body with a description of what this PR does.\n2. The proof that changes are correct has not been provided, please make sure to upload a image/video showing that the changes are correct. Or include a sentence saying \"No proof of changes needed because\" and the reason why proof of changes cannot be provided.\nThanks!",
+        "timestamp": "2021-06-12T16:28:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi, @Nik-09, this pull request does not have a \"CHANGELOG: ...\" label as mentioned in the PR pointers. Assigning @Nik-09 to add the required label. PRs without this label will not be merged. If you are unsure of which label to add, please ask the reviewers for guidance. Thanks!",
+        "timestamp": "2021-06-12T16:28:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @DubeySandeep, this PR adds a new code owner, @Nik-09 to the following files /core/controllers/payload_validator.py, /core/controllers/payload_validator_test.py. Please make sure the changes are verified by the previous codeowner(s) of the file. Thanks!",
+        "timestamp": "2021-06-12T16:29:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "@rohitkatlaa PTAL.",
+        "timestamp": "2021-06-12T16:34:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @Nik-09 since a re-review was requested. @Nik-09, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-06-12T16:37:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @DubeySandeep, this PR adds a new code owner, @Nik-09 to the following files /core/controllers/payload_validator.py, /core/controllers/payload_validator_test.py. Please make sure the changes are verified by the previous codeowner(s) of the file. Thanks!",
+        "timestamp": "2021-06-12T18:30:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @DubeySandeep, this PR adds a new code owner, @Nik-09 to the following files /core/controllers/payload_validator.py, /core/controllers/payload_validator_test.py. Please make sure the changes are verified by the previous codeowner(s) of the file. Thanks!",
+        "timestamp": "2021-06-13T02:40:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @DubeySandeep, this PR adds a new code owner, @Nik-09 to the following files /core/controllers/payload_validator.py, /core/controllers/payload_validator_test.py. Please make sure the changes are verified by the previous codeowner(s) of the file. Thanks!",
+        "timestamp": "2021-06-13T06:22:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "@rohitkatlaa In the description, I have added screenshots for the cases when schema validation failed, when schema is not written, and when schema validation passed.\r\nIn the second case our SVS architecture is raising NotImplemented error due to which it is raising 500 status code. Is it expected? Or should I handle this case also with InvalidInput exception ?\r\nPlease guide me.\r\nThank you.\r\n",
+        "timestamp": "2021-06-14T12:29:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "rohitkatlaa",
+        "role": "CONTRIBUTOR",
+        "body": "@Nik-09 regarding the NotImplemented Exception, it should raise a 500 error because this is an error from the server side and the client is not causing this error. And once you have added the tests so that the backend coverage is 100%, you can assign me and then I can do another full review.",
+        "timestamp": "2021-06-15T06:48:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "@rohitkatlaa Ptal, thanks.",
+        "timestamp": "2021-06-17T14:40:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "rohitkatlaa",
+        "role": "CONTRIBUTOR",
+        "body": "Assigning @aks681 @DubeySandeep @sajalasati @seanlip @krishnarao22 for Codeowner review. Thanks!",
+        "timestamp": "2021-06-19T13:47:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @rohitkatlaa since the review is done.",
+        "timestamp": "2021-06-19T13:48:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @rohitkatlaa. PTAL. Thanks!",
+        "timestamp": "2021-06-19T13:48:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-06-20T18:32:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @sajalasati. PTAL. Thanks!",
+        "timestamp": "2021-06-20T18:32:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @krishnarao22 since they have already approved the PR.",
+        "timestamp": "2021-06-21T09:18:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "@aks681 @DubeySandeep Please take a look.",
+        "timestamp": "2021-06-21T11:29:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @seanlip since the review is done.",
+        "timestamp": "2021-06-21T18:52:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @seanlip. PTAL. Thanks!",
+        "timestamp": "2021-06-21T18:52:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @seanlip since they have already approved the PR.",
+        "timestamp": "2021-06-21T19:22:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @DubeySandeep since the review is done.",
+        "timestamp": "2021-06-21T22:20:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @DubeySandeep. PTAL. Thanks!",
+        "timestamp": "2021-06-21T22:20:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-06-22T07:17:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @sajalasati. PTAL. Thanks!",
+        "timestamp": "2021-06-22T07:17:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @rohitkatlaa since the review is done.",
+        "timestamp": "2021-06-22T10:40:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": ">I am fine with excluding point 2, but still concerned about point 1. What would happen if someone defines:\r\n>```python\r\n>URL_PATH_ARGS_SCHEMAS = []\r\n>```\r\n>Will backend tests fail for this case? I just want to know whether or not we can force the user to define only a dictionary with the >name `URL_PATH_ARGS_SCHEMAS` and not let them getaway by defining a list or something else with the same name.\r\n>(cc @DubeySandeep what do you think about point (1) and (2) - should we handle these under linters?)\r\n\r\n\r\n@sajalasati I have added linters to verify URL_PATH_ARGS_SCHEMA and HANDLER_ARGS_SCHEMAS must be of type dict, please take a look.",
+        "timestamp": "2021-06-22T16:13:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @Nik-09 since a re-review was requested. @Nik-09, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-06-22T16:16:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-06-22T17:52:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @sajalasati. PTAL. Thanks!",
+        "timestamp": "2021-06-22T17:52:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "aks681",
+        "role": "CONTRIBUTOR",
+        "body": "@Nik-09 Can you add a changelog label to the PR? That seems to be missing.",
+        "timestamp": "2021-06-23T00:17:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since they have already approved the PR.",
+        "timestamp": "2021-06-23T05:48:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "sajalasati",
+        "role": "CONTRIBUTOR",
+        "body": "@DubeySandeep PTAL!",
+        "timestamp": "2021-06-23T05:50:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "DubeySandeep",
+        "role": "CONTRIBUTOR",
+        "body": "@Nik-09 The changes in PR LGTM, I'll approve the PR once the two threads are resolved:\r\n\r\n1. https://github.com/oppia/oppia/pull/13065#discussion_r657315759\r\n2. https://github.com/oppia/oppia/pull/13065#discussion_r655730531",
+        "timestamp": "2021-06-23T17:51:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "> @Nik-09 The changes in PR LGTM, I'll approve the PR once the two threads are resolved:\r\n> \r\n> 1. [Schema-Validation-System(SVS) architecture #13065 (comment)](https://github.com/oppia/oppia/pull/13065#discussion_r657315759)\r\n> 2. [Schema-Validation-System(SVS) architecture #13065 (comment)](https://github.com/oppia/oppia/pull/13065#discussion_r655730531)\r\n\r\n@DubeySandeep I have modified the handling of default cases in payload_validator file and introduced a logic to use the normalized value in the backend structure after schema validation. Please take a look, thanking you.",
+        "timestamp": "2021-06-25T10:40:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "DubeySandeep",
+        "role": "CONTRIBUTOR",
+        "body": "As per offline discussion with @Nik-09 We found that some param's type needs to be a string (not Unicode), @Nik-09 feel free to assign me once the PR is ready for review!",
+        "timestamp": "2021-06-25T19:44:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "Nik-09",
+        "role": "MEMBER",
+        "body": "> As per offline discussion with @Nik-09 We found that some param's type needs to be a string (not Unicode), @Nik-09 feel free to assign me once the PR is ready for review!\r\n\r\n@DubeySandeep please take a look, thank you.",
+        "timestamp": "2021-06-26T03:26:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @DubeySandeep since they have already approved the PR.",
+        "timestamp": "2021-06-28T00:10:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @Nik-09, it looks like some changes were requested on this pull request by @DubeySandeep. PTAL. Thanks!",
+        "timestamp": "2021-06-28T00:11:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "mridul-netizen",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @Nik-09 Lint checks are failing on develop with merge of this PR, can you take a look ?",
+        "timestamp": "2021-06-29T18:41:16Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d5f62b6",
+        "message": "payload_validator(created) + schema_utils(modified) for SVS architecture",
+        "author": "Nik-09",
+        "timestamp": "2021-06-08T03:12:05Z"
+      },
+      {
+        "sha": "63b59db",
+        "message": "payload",
+        "author": "Nik-09",
+        "timestamp": "2021-06-08T09:50:32Z"
+      },
+      {
+        "sha": "09698da",
+        "message": "validate_args_schema in base + backend tests",
+        "author": "Nik-09",
+        "timestamp": "2021-06-09T13:36:17Z"
+      },
+      {
+        "sha": "6184962",
+        "message": "resolves merge conflicts",
+        "author": "Nik-09",
+        "timestamp": "2021-06-11T03:53:25Z"
+      },
+      {
+        "sha": "7a0c0da",
+        "message": "Adds linters to verify handlers must have schema",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T11:06:15Z"
+      },
+      {
+        "sha": "ccfc515",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into SVS_architecture",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T11:07:09Z"
+      },
+      {
+        "sha": "d6d6782",
+        "message": "Shows exception message in frontend when SVS validation fails.",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T14:37:29Z"
+      },
+      {
+        "sha": "923afbf",
+        "message": "adds schema in backend test",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T15:51:57Z"
+      },
+      {
+        "sha": "7ff6796",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T15:57:16Z"
+      },
+      {
+        "sha": "4775353",
+        "message": "adds backend test for payload_validator into shard 1.",
+        "author": "Nik-09",
+        "timestamp": "2021-06-12T18:26:53Z"
+      },
+      {
+        "sha": "87b8a8a",
+        "message": "Changes logic for handling default_value cases.",
+        "author": "Nik-09",
+        "timestamp": "2021-06-13T02:36:57Z"
+      },
+      {
+        "sha": "21c2909",
+        "message": "removes dict from properties list in schema utils",
+        "author": "Nik-09",
+        "timestamp": "2021-06-13T06:05:48Z"
+      },
+      {
+        "sha": "9396931",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-13T06:17:59Z"
+      },
+      {
+        "sha": "dc49efd",
+        "message": "changes codeowners",
+        "author": "Nik-09",
+        "timestamp": "2021-06-13T06:37:45Z"
+      },
+      {
+        "sha": "9672271",
+        "message": "Adds backend unit tests + comments + docstrings",
+        "author": "Nik-09",
+        "timestamp": "2021-06-14T11:17:23Z"
+      },
+      {
+        "sha": "1e023cd",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-14T11:30:45Z"
+      },
+      {
+        "sha": "be3b7e8",
+        "message": "Merge branch 'SVS_architecture' of https://github.com/Nik-09/oppia into SVS_architecture",
+        "author": "Nik-09",
+        "timestamp": "2021-06-15T12:21:23Z"
+      },
+      {
+        "sha": "2514c36",
+        "message": "adds backend tests for coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-15T14:34:20Z"
+      },
+      {
+        "sha": "9f521fa",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into SVS_architecture",
+        "author": "Nik-09",
+        "timestamp": "2021-06-15T14:34:46Z"
+      },
+      {
+        "sha": "822d2d7",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-15T14:46:54Z"
+      },
+      {
+        "sha": "b5c087a",
+        "message": "adds backend tests for coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-16T20:31:39Z"
+      },
+      {
+        "sha": "8ef20d4",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-16T21:04:05Z"
+      },
+      {
+        "sha": "0caee8b",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-16T21:10:22Z"
+      },
+      {
+        "sha": "6507fd4",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into SVS_architecture",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T04:16:59Z"
+      },
+      {
+        "sha": "b5041d9",
+        "message": "adds test into shard",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T08:27:15Z"
+      },
+      {
+        "sha": "2a979a8",
+        "message": "backend coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T11:09:50Z"
+      },
+      {
+        "sha": "dda9fce",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T11:22:12Z"
+      },
+      {
+        "sha": "7ead84c",
+        "message": "structured backend test.",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T13:29:35Z"
+      },
+      {
+        "sha": "5eca27e",
+        "message": "adds docstring",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T13:31:09Z"
+      },
+      {
+        "sha": "6e22684",
+        "message": "fix coverage",
+        "author": "Nik-09",
+        "timestamp": "2021-06-17T13:37:39Z"
+      }
+    ]
+  },
+  {
+    "story_id": "oppia/oppia#3650",
+    "metadata": {
+      "title": "Fix #3467: Introduce re-training and add_to_training_queue methods",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-08-05T22:40:49Z",
+      "reviewers": [
+        "seanlip",
+        "anmolshkl",
+        "prasanna08",
+        "pranavsid98"
+      ],
+      "changed_files": 15
+    },
+    "issue_payload": {
+      "body": "#3467 \r\n\r\nThis PR implements two methods.\r\n- add_to_training_queue() method takes an exploration domain object and iterates through all the states in an exploration. It checks for states that can undergo training and then checks if a classifier is present for that state already. If there is a classifier, it checks if re-training is required and creates a job model accordingly . If there is no classifier, it creates a job model. This method will be called within _save_exploration() method whenever there is an update for the exploration.\r\n\r\n- check_re_training_conditions() method takes a state domain object and compares the new training data obtained from the state with the old training data obtained from the job. If re-training conditions are satisfied, it returns True. Otherwise, its returns False.\r\n\r\nI've also tested both methods adequately covering all cases.\r\n\r\nNote: There is a small case that I'm working on - how to handle cases where one answer group is added and another is removed. So, if we get that case working, this PR will be complete.\r\n\r\n@seanlip @anmolshkl @prasanna08 PTAL."
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=h1) Report\n> Merging [#3650](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=desc) into [develop](https://codecov.io/gh/oppia/oppia/commit/c149bc0c666a0eedb2e13a318bbe4f4b04bb77e2?src=pr&el=desc) will **increase** coverage by `0.22%`.\n> The diff coverage is `100%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/oppia/oppia/pull/3650/graphs/tree.svg?width=650&token=tPeCITQzzG&height=150&src=pr)](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree)\n\n```diff\n@@             Coverage Diff             @@\n##           develop    #3650      +/-   ##\n===========================================\n+ Coverage    44.85%   45.07%   +0.22%     \n===========================================\n  Files          257      264       +7     \n  Lines        19881    20408     +527     \n  Branches      3133     3173      +40     \n===========================================\n+ Hits          8917     9199     +282     \n- Misses       10964    11209     +245\n```\n\n\n| [Impacted Files](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [core/templates/dev/head/app.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvYXBwLmpz) | `51% <100%> (ø)` | :arrow_up: |\n| [.../exploration\\_player/AnswerClassificationService.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvZXhwbG9yYXRpb25fcGxheWVyL0Fuc3dlckNsYXNzaWZpY2F0aW9uU2VydmljZS5qcw==) | `97.43% <100%> (ø)` | :arrow_up: |\n| [extensions/interactions/Continue/Continue.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-ZXh0ZW5zaW9ucy9pbnRlcmFjdGlvbnMvQ29udGludWUvQ29udGludWUuanM=) | `22.72% <0%> (-6.69%)` | :arrow_down: |\n| [.../head/domain/collection/CollectionObjectFactory.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvZG9tYWluL2NvbGxlY3Rpb24vQ29sbGVjdGlvbk9iamVjdEZhY3RvcnkuanM=) | `97.18% <0%> (-2.82%)` | :arrow_down: |\n| [...v/head/pages/learner\\_dashboard/LearnerDashboard.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvbGVhcm5lcl9kYXNoYm9hcmQvTGVhcm5lckRhc2hib2FyZC5qcw==) | `2.79% <0%> (-2.08%)` | :arrow_down: |\n| [...pages/exploration\\_editor/editor\\_tab/StateEditor.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvZXhwbG9yYXRpb25fZWRpdG9yL2VkaXRvcl90YWIvU3RhdGVFZGl0b3IuanM=) | `64.76% <0%> (-1.44%)` | :arrow_down: |\n| [...n\\_editor/editor\\_tab/CollectionLinearizerService.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvY29sbGVjdGlvbl9lZGl0b3IvZWRpdG9yX3RhYi9Db2xsZWN0aW9uTGluZWFyaXplclNlcnZpY2UuanM=) | `99.06% <0%> (-0.94%)` | :arrow_down: |\n| [.../collection\\_editor/CollectionEditorStateService.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvY29sbGVjdGlvbl9lZGl0b3IvQ29sbGVjdGlvbkVkaXRvclN0YXRlU2VydmljZS5qcw==) | `91.66% <0%> (-0.93%)` | :arrow_down: |\n| [...xploration\\_player/ExplorationPlayerStateService.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvZXhwbG9yYXRpb25fcGxheWVyL0V4cGxvcmF0aW9uUGxheWVyU3RhdGVTZXJ2aWNlLmpz) | `5.26% <0%> (-0.62%)` | :arrow_down: |\n| [.../exploration\\_editor/editor\\_tab/StateInteraction.js](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree#diff-Y29yZS90ZW1wbGF0ZXMvZGV2L2hlYWQvcGFnZXMvZXhwbG9yYXRpb25fZWRpdG9yL2VkaXRvcl90YWIvU3RhdGVJbnRlcmFjdGlvbi5qcw==) | `33.15% <0%> (-0.37%)` | :arrow_down: |\n| ... and [39 more](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=tree-more) | |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=footer). Last update [c149bc0...b1531ce](https://codecov.io/gh/oppia/oppia/pull/3650?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2017-07-17T07:23:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@anmolshkl @seanlip \r\nI've addressed all the changes. \r\nAnother major change to this PR - After a discussion with Sean and Anmol, we decided that we would start off the retraining check on the basis of any change at all in the answer group. When we test the framework end to end, we can observe the number of times significant edits occur and the actual performance time of the VM to store jb results. If it ends up being high, we can optimise it at that time. I've also left a note in the function.\r\n\r\nIf that part is alright, I think this PR is complete for the most part. Could you do a final pass?\r\n\r\nThanks!",
+        "timestamp": "2017-07-19T19:49:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@anmolshkl @seanlip @prasanna08 . I have completely restructured this PR. I think its much more efficient now and I've tested all the cases. PTAL!\r\n\r\nThanks!",
+        "timestamp": "2017-07-22T08:38:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "We have with us two lists - \r\n\r\n- state_names_with_changed_answer_groups\r\n- state_names_with_unchanged_answer_groups\r\n\r\nPseudo-code for the whole framework:\r\n\r\n1.  create_classifier_training_jobs(state_names_with_changed_answer_groups):\r\n    \"\"\"Here, we don't really care if there is a previous classifier or not. What we do know is that we need the latest classifier to be trained again. So, if there are previous jobs for previous versions PENDING, they are still trained (used when we revert to old versions of explorations).\"\"\"\r\n   \r\nI think the way we have structured the above function right now is fine.\r\n\r\nThere are a few things we have to think about before implementing the function below that handles unchanged answer groups. First is - if a classifier does not exist for the previous version, there can be only one meaning, which is that the job is not picked up by the VM yet. This conclusion is because, in an unchanged answer group state which passes training conditions here should have passed it in the previous version too, which means there should have been a job created back then. So, going with Sean's concern where we might revert to old versions, I think we can just let the older job store its classifier. So, we need a way to do this: let the older job store its classifier and then map this classifier to the latest version of the exploration.\r\nFor this, its slightly weird because we have no way of accessing any ClassifierTrainingJob unless its passed back by the VM or we have the classifier_id. So, we have no way to retrieve the previous version's job, which is an issue here. @seanlip Can we retrieve a ClassifierTrainingJob by its non-key attributes (exp_id, exp_version, state_name)? My suggestion is: have another status called 'OBSOLETE' and mark these jobs obsolete when we handle the case above. If this status is encountered by the StoreJob controller, it also creates a mapping for the <exp_id, exp_version+1, state_name> to the same classifier. This should work (all depending on whether we can retrieve the job by non key attributes.) \r\n\r\n@anmolshkl @prasanna08 I'd need suggestions here.\r\n\r\nThanks",
+        "timestamp": "2017-07-24T05:09:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "> @seanlip Can we retrieve a ClassifierTrainingJob by its non-key attributes (exp_id, exp_version, state_name)? \r\n\r\n@pranavsid98 I don't understand the question. Could you please rephrase/elaborate?\r\n\r\nOne common approach, if keys are deterministically constructed, is to reconstruct the key and then do a get_by_id().",
+        "timestamp": "2017-07-25T01:43:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip That works if its deterministically constructed, as in the case of the mapping model. But the job model is not constructed that way. Even so, there is only one job for every <Exp_id, exp_version, state_name>. All these are fields of the job model and they are indexed fields. So, it should be possible to do look ups using these fields right? Is it allowed?",
+        "timestamp": "2017-07-25T04:22:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "So, you could do queries, but they're more expensive and it's best to do get_by_id where possible. But there's one thing that confuses me here, and I think we've had a discussion touching on this before. If it is the case that there's only one job for <exp_id, exp_version, state_name>, then why aren't we constructing the ID of the job deterministically using those fields? I mean, from what you said, the tuple <exp_id, exp_version, state_name> basically acts as an ID...",
+        "timestamp": "2017-07-25T05:13:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "@pranavsid98 we can do this check during fetch next job as well. We can add a check to make sure that current version of exploration (that is version that goes to frontend when someone opens exploration) is same as `exp_version` in job. If it is not then job is obsolete because exploration has moved on. How does that sound? @seanlip @anmolshkl @giritheja.\r\n\r\n@seanlip: yep we discussed on that option and decided to not to use it because of tight coupling in classifier data model and exploration's attribute. I don't remember exactly why we did it but I think it was to introduced loose coupling between both of them. Also to forward propagate classifier we will have to store multiple models (of same classifier data) if we do direct coupling, I think that was the main issue.",
+        "timestamp": "2017-07-25T05:25:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Not totally sure I understand the first paragraph -- what check are you referring to?\r\n\r\nRe second paragraph, there's tight coupling anyway since you're storing the attrs in the instance. If the alternative is to do a query, then you might as well just construct the keys directly?",
+        "timestamp": "2017-07-25T05:28:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, so the \"check\" I am referring to is this,\r\nSuppose creator stores new exploration but does not change any answer group. In that case we link this new state to classifier of previous state. Now what if the training job put for previous state is still pending. We don't have anything to map.\r\nSo at that time we can obsolete the previous job so that only new one is trained. To find this previous job we have to make query on non key attributes. That's why @pranavsid98 was asking that question. I suggest we do this check, whether a job is obsolete or not, when we perform fetch next job. So no need to query on jobs using non key attribute.\r\n\r\nYou might ask: how will we link a classifier to previous version? What will happen if creator reverts it back to previous version of exploration? In that case we decided ( @anmolshkl 's idea) that map the classifier of new state to this old state (check that the answer groups are same, ideally this should only happen when old state's job was rendered obsolete. Otherwise all states should have a classifier mapped to them). We need to make sure we are not missing something. \r\n\r\nOne thing for sure is that this rare occurrence of not having classifier for previous state when we need to link it to new state is very **tricky**. And I think that is the biggest blocker for this PR as of now. We actually never thought about this case until it came up during implementation.\r\n\r\n> Re second paragraph, there's tight coupling anyway since you're storing the attrs in the instance. If the alternative is to do a query, then you might as well just construct the keys directly?\r\n\r\nI don't know why are we storing those attributes anyway. They are not needed and we can delete them. They will have wrong value when we forward propagate our classifier so it'd be better to remove those attributes now (so that we don't have any confusion about their value in future). They represent for which state the classifier was trained first and not for which state this classifier is valid.",
+        "timestamp": "2017-07-25T05:40:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@prasanna08 I like the way this check happens. You're suggesting that we just create a new job when we encounter this obsolete case and invalidate the older job at the time of fetching? That sounds neat. So, in every job that we fetch, we check if the exploration's last version corresponds to the job's version. Thats brilliant actually, I wonder why we didn't think of this before.\r\n\r\n@seanlip Btw, I've added the create_multi for a single PUT operation. So, as Prasanna said, other than a few minor infrastructural changes, the above case is the only blocker left.\r\n\r\nEDIT: My bad, there is one more case left which I'll add soon. There is the case when the only change is the statee_name and there is no change in answer group. This case is left as well.",
+        "timestamp": "2017-07-25T05:48:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "In the case where version N and version N + 1 are the same, and we link the classifiers, and the training job for version N is still pending ... can't we link version N + 1 to what that job would output somehow, let the job for version N finish running, and not put the new job in the queue? Otherwise, if you obsolete the old job and stick the new one in, you're basically just starting exactly the same computation from scratch.\r\n\r\nPerhaps a way to handle this is to have a mapping model that maps each classifiable (exp_id, exp_version, state_name) to a classifier training job, not a classifier. In addition, store the classifier ID in the classifier training job on-success.\r\n\r\nWhen a new version is saved, if there are no answer group changes, then you can map the new (exp_id, exp_version, state_name) to the old classifier training job. If there are answer group changes, then you can create a new classifier training job for it and map it to that. That way all your classifier training jobs work on distinct data so there's no duplication, and everything is always up to date with the latest status.",
+        "timestamp": "2017-07-25T06:00:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@pranavsid98 I can't look at the create_multi() stuff in detail now, sorry, but I did glance briefly at it -- and the overall structure looks fine! I'll take a closer look when this PR reaches \"final review\" stage.",
+        "timestamp": "2017-07-25T06:06:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip This was just a simple way to do this without rooting out the architecture for one case we don't encounter too often. \r\n\r\nIf we did want to let the old job finish its training and want to map the new classifier to the old job's result, we could very easily do that with one additional boolean field in the job model. We can have an extra field - say: is_version_obsolete.\r\nIf this field is marked True (which we can do from the Fetch job controller), then inside the StoreJob controller, we can create an additional mapping for<exp_id, exp_version+1, state_name> to this classifier as well. This is an alternative to the mapping solution you suggested.\r\n\r\nBut, again, is this all necessary? The case we are discussing above is probably a rare case (you can suggest better about the probability of occurrence, I believe). ",
+        "timestamp": "2017-07-25T06:11:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "> But, again, is this all necessary?\r\n\r\nYou do want to build a failproof system. So, yes. I know it feels like more work now but better that then finding serious hard-to-debug issues in production later and having to rework the whole thing. Better to get it right now while it's not launched yet and there are no fires.\r\n\r\nIn addition, thinking again about the long run, you do want to build a simple maintainable system, not add on bits-and-pieces to what happens to have already been built. So, looking at it from that perspective -- wouldn't an extra is_version_obsolete field be more complicated than what I suggested?\r\n\r\nThis system needs to work for a long time. We need to build it well, and we need to construct it in such a way that the concepts are clearly represented and it is not \"tricky\" (as Prasanna pointed out).",
+        "timestamp": "2017-07-25T06:18:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip .\r\nOh yes, that is true. Adding a field will be like adding bits and pieces.\r\nIf the mapping was to a job instead of a classifier, we could always retrieve the classifier. The job doesn't even need an additional classifier_id field. The classifier is instantiated with the job_id. So, we can use the job's id to retrieve its corresponding classifier. This is actually a great solution. Sorry, it took me some time to figure that out.\r\n\r\n@anmolshkl @prasanna08 What do you think?",
+        "timestamp": "2017-07-25T06:23:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "~~Note that one advantage of keeping the classifier_id field in the job is that you don't have to do a second GET.~~\r\n\r\nWait, sorry, ignore that -- that's just wrong, my bad. If job id === classifier id then that's exactly the same benefit as what I had in mind, yep.",
+        "timestamp": "2017-07-25T06:31:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@prasanna08 . I was just adding support for the case where we encounter renamed states and it works perfectly. I've got a small concern though. The function get_trainable_states_dict() is called from within _save_exploration(). Now, with the recent addition, this function also accesses commit logs to check for states that are renamed. So, to access commit logs, commit logs need to be present. This makes it such that we can't test this function exclusively. Let's say I call update_exploration() or save_Explortion() from within this test to make a commit log, this update_exploration() will in turn trigger get_trainable_states_dict anyway. This way of testing is the exact same way we tested in classifier_services.py. So, the tests sort of become redundant since both tests do the same thing. The tests from classifier_services are executing (I added one more test to check if renaming a state without changing answer group triggers job creation - it doesnt). \r\n@seanlip Can we skip tests for the above function? That function is tested anyway in classifier_services indirectly.\r\n\r\nOh, and Sean, I actually think we need a separate classifier_id if we need to avoid a second GET operation. job_id will always be present, but the classifier corresponding to that job_id need not be stored yet. So, if we have just the job_id, we can't really say if a classifier is present without doing a GET.",
+        "timestamp": "2017-07-26T01:39:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Hi @pranavsid98 -- re your last paragraph, yes, I retracted my earlier comment. I can't think of a way to avoid a second GET.\r\n\r\nWhat function do you want to skip tests for -- get_trainable_states_dict()? No, I don't think you should skip tests for it -- in fact, I think that function is quite important to test comprehensively in isolation. We need to try and avoid failure cases that might sneak through.",
+        "timestamp": "2017-07-26T07:25:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "Okay @seanlip. I have aded tests for the get_Trainable_states_Dict function as well. So, except that one case for which we are considering a new mapping model, we are good. There is only one blocker left for which we might need the inputs of @prasanna08 and @anmolshkl\r\n",
+        "timestamp": "2017-07-26T16:10:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip I have made a lot of major changes to introduce the shift of the mapping model schema and the new way of creating jobs and mappings. PTAL and provide suggestions.",
+        "timestamp": "2017-07-27T19:19:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "> Oh, and Sean, I actually think we need a separate classifier_id if we need to avoid a second GET operation. job_id will always be present, but the classifier corresponding to that job_id need not be stored yet. So, if we have just the job_id, we can't really say if a classifier is present without doing a GET.\r\n\r\n<del>@pranavsid98, @seanlip we can check whether classifier is present or not by checking status of job. So presence can be done in one GET. But to actually get the classifier you need to do 2 GET. First get the mapping model schema, check status and if it is COMPLETED then do second GET to get classifier model (even in our old mapping scheme, we required 2 GETs to get a classifier, right?).</del>\r\n\r\nSorry for my previous comment, we still need to do 2 GETs, one mapping model and one training job / classifier model to check presence and / or to retrieve classifier data.",
+        "timestamp": "2017-07-28T01:43:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip @anmolshkl @prasanna08 . I believe that, with this commit, this PR is complete and has handled all the cases I could think of.\r\n\r\n- When an exploration is created, we check for all trainable states inside _create_exploration() and then pass it to the handle_classifier_training_jobs_creation() method.\r\n- Since this system enables us to have a classifier mapping for every version of the exploration, reverting an exploration is not an issue anymore.\r\n- State renames have been handled as well (Not re-training on just a change in state names). Within a commit, single renames, multiple renames and circular renames are handled.",
+        "timestamp": "2017-07-29T04:40:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip All comments have been addressed (save one about splitting up classifier logic into two chunks inside exp_services). PTAL.",
+        "timestamp": "2017-08-01T04:48:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip I've added unit tests and tested most of the error-prone cases. PTAL and tell me if anything else is required.",
+        "timestamp": "2017-08-01T12:04:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip Changes addressed! Thanks!",
+        "timestamp": "2017-08-02T09:34:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip Thanks for the extensive reviewing. \r\n@anmolshkl @prasanna08 Would you like to take a final pass?",
+        "timestamp": "2017-08-02T10:02:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "pranavsid98",
+        "role": "CONTRIBUTOR",
+        "body": "@anmolshkl @seanlip Thats all changes addressed. I think this can be merged when Travis tests pass.",
+        "timestamp": "2017-08-05T11:12:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Thanks @pranavsid98! Merging. ",
+        "timestamp": "2017-08-05T22:40:45Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f82b5aa",
+        "message": "introduce add_to_queue and check_re_training methods",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-17T05:53:29Z"
+      },
+      {
+        "sha": "bad2f8c",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-17T05:53:43Z"
+      },
+      {
+        "sha": "539db58",
+        "message": "changes to retraining function",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-19T19:42:35Z"
+      },
+      {
+        "sha": "2bd8b29",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-19T19:42:49Z"
+      },
+      {
+        "sha": "2e41304",
+        "message": "restructured job creation",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-22T08:25:24Z"
+      },
+      {
+        "sha": "fcfd3dc",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-22T08:26:06Z"
+      },
+      {
+        "sha": "5c58145",
+        "message": "addressed missed review comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-22T08:34:15Z"
+      },
+      {
+        "sha": "466678e",
+        "message": "addressed first round of review comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-23T07:06:59Z"
+      },
+      {
+        "sha": "283a754",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-23T07:07:16Z"
+      },
+      {
+        "sha": "61dcb55",
+        "message": "added create_multi_jobs method",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-25T05:39:52Z"
+      },
+      {
+        "sha": "271d81a",
+        "message": "addressed a set of review comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-25T06:41:25Z"
+      },
+      {
+        "sha": "90b465f",
+        "message": "added support for renamed states",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-26T01:32:48Z"
+      },
+      {
+        "sha": "0adb103",
+        "message": "fixed tests breaking",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-26T11:36:58Z"
+      },
+      {
+        "sha": "ba40929",
+        "message": "added tests for get_Tranable_States_dict",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-26T16:04:00Z"
+      },
+      {
+        "sha": "58c6b46",
+        "message": "preliminary changes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-27T18:31:06Z"
+      },
+      {
+        "sha": "d6e1c9d",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-27T18:31:30Z"
+      },
+      {
+        "sha": "7a5efcc",
+        "message": "fix breaking of backend tests",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-27T18:42:45Z"
+      },
+      {
+        "sha": "cf365d5",
+        "message": "use change_list instead of commit logs",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-27T19:15:20Z"
+      },
+      {
+        "sha": "f577a15",
+        "message": "handle multiple renames",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-28T04:32:46Z"
+      },
+      {
+        "sha": "7aac25a",
+        "message": "final changes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-29T04:37:01Z"
+      },
+      {
+        "sha": "b97e61c",
+        "message": "final change",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-31T03:58:04Z"
+      },
+      {
+        "sha": "599e650",
+        "message": "addressed first set of comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-31T10:40:11Z"
+      },
+      {
+        "sha": "f5641c4",
+        "message": "minor fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-31T10:40:36Z"
+      },
+      {
+        "sha": "0a6c07f",
+        "message": "address some more comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-07-31T13:18:13Z"
+      },
+      {
+        "sha": "630d185",
+        "message": "addressed all changes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-01T04:45:59Z"
+      },
+      {
+        "sha": "a5e1a57",
+        "message": "addressed one set of review comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-01T09:31:20Z"
+      },
+      {
+        "sha": "df10d9c",
+        "message": "added unit tests",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-01T12:02:40Z"
+      },
+      {
+        "sha": "2a8a67a",
+        "message": "fixes",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-01T12:03:05Z"
+      },
+      {
+        "sha": "3d506a1",
+        "message": "fix backend tests",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-02T03:57:54Z"
+      },
+      {
+        "sha": "6037f92",
+        "message": "addressed final round of review comments",
+        "author": "Pranav Siddharth",
+        "timestamp": "2017-08-02T05:05:50Z"
+      }
+    ]
+  },
+  {
+    "story_id": "oppia/oppia#10060",
+    "metadata": {
+      "title": "Milestone 2 of ML pipeline migration",
+      "labels": [
+        "PR: LGTM"
+      ],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-09-07T06:25:07Z",
+      "reviewers": [
+        "seanlip",
+        "prasanna08"
+      ],
+      "changed_files": 47
+    },
+    "issue_payload": {
+      "body": "This PR introduces [milestone 2](https://docs.google.com/document/d/1fIlDem4NC6eqEHwjkn2FNdHuo6eEsg3LMLd2QAfxCPo/edit#heading=h.ftzctx55cmhv) of the ML pipeline migration on Oppia.\r\n\r\nThis milestone consists of PRs on both Oppia as well as [OppiaML](https://github.com/oppia/oppia-ml/pull/37) since it affects the communication paradigm between the two. Hence, they should be merged simultaneously, so that those changes requested in one PR affecting the other can be resolved together at the same time. Simultaneous merging isn't absolute necessity but it avoids opening another PR to address any further changes which may be required if one is merged before the other (for e.g. Suppose that OppiaML PR is merged earlier but later on some significant change on Oppia PR may require to fix things in OppiaML as well).\r\n- [ ] The PR title starts with \"Fix #bugnum: \", followed by a short, clear summary of the changes. (If this PR fixes part of an issue, prefix the title with \"Fix part of #bugnum: ...\".)\r\n- [x] The linter/Karma presubmit checks have passed locally on your machine.\r\n- [x] \"Allow edits from maintainers\" is checked. (See [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/allowing-changes-to-a-pull-request-branch-created-from-a-fork) for instructions on how to enable it.)\r\n  - This lets reviewers restart your CircleCI tests for you.\r\n- [x] The PR is made from a branch that's **not** called \"develop\".\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi, @prasanna08, this pull request does not have a \"CHANGELOG: ...\" label as mentioned in the PR checkbox list. Please add this label. PRs without this label will not be merged. If you are unsure of which label to add, please ask the reviewers for guidance. Thanks!",
+        "timestamp": "2020-07-27T07:37:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-07-27T23:50:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @seanlip (/cc @Hudda), there seems to be some error going on with lint tests. On the GitHub actions, I get the following error:\r\n```\r\nERROR: /home/runner/work/oppia/oppia/core/controllers/base.py Imports are incorrectly sorted.\r\n--- /home/runner/work/oppia/oppia/core/controllers/base.py:before\t2020-07-28 16:01:29.113708\r\n+++ /home/runner/work/oppia/oppia/core/controllers/base.py:after\t2020-07-28 16:32:36.676592\r\n@@ -28,6 +28,7 @@\r\n import time\r\n import traceback\r\n \r\n+import backports.functools_lru_cache\r\n from core.domain import config_domain\r\n from core.domain import config_services\r\n from core.domain import user_services\r\n@@ -36,7 +37,6 @@\r\n import python_utils\r\n import utils\r\n \r\n-import backports.functools_lru_cache\r\n import webapp2\r\n```\r\n\r\nHowever, when I change the aforementioned lines, I get lint issues in my local run suggesting to do the exact opposite of it.",
+        "timestamp": "2020-07-28T17:11:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "Hudda",
+        "role": "CONTRIBUTOR",
+        "body": "@prasanna08 Please try to merge from the develop and see if that solves the problem.",
+        "timestamp": "2020-07-28T17:28:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "@Hudda I merged it this morning once (16 hours ago, you can see in commit history). I merged it again, there is a single new commit, I think. Let's see if it fixes the issue.",
+        "timestamp": "2020-07-28T17:33:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "Hudda",
+        "role": "CONTRIBUTOR",
+        "body": "@prasanna08 could you please also revert `import backports.functools_lru_cache` to its original position.",
+        "timestamp": "2020-07-28T19:04:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @Hudda, changing it to its original position gives following lint issue:\r\n```\r\nPlease fix the errors below:\r\n----------------------------------------\r\nERROR: /home/prasanna/opensource/oppia/core/controllers/base.py Imports are incorrectly sorted.\r\n--- /home/prasanna/opensource/oppia/core/controllers/base.py:before\t2020-07-29 09:00:45.341452\r\n+++ /home/prasanna/opensource/oppia/core/controllers/base.py:after\t2020-07-29 09:02:09.637636\r\n@@ -28,7 +28,6 @@\r\n import time\r\n import traceback\r\n \r\n-import backports.functools_lru_cache\r\n from core.domain import config_domain\r\n from core.domain import config_services\r\n from core.domain import user_services\r\n@@ -37,6 +36,7 @@\r\n import python_utils\r\n import utils\r\n \r\n+import backports.functools_lru_cache\r\n import webapp2\r\n \r\n current_user_services = models.Registry.import_current_user_services()\r\n```",
+        "timestamp": "2020-07-29T03:33:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @seanlip, can we go through a review pass while lint issue is being figured out? I am asking this because PR is kind of big and the line that is causing the lint issue isn't part of this PR. It was introduced in some earlier commit but is causing issue in this PR for reasons I am not yet sure. Thanks.",
+        "timestamp": "2020-07-29T03:41:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Sorry -- I'm out of bandwidth today for reviews, but I will aim to take a look at this tomorrow!",
+        "timestamp": "2020-07-29T09:56:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-07-30T07:39:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "BenHenning",
+        "role": "MEMBER",
+        "body": "Thanks @seanlip I am interested in doing a pass on this PR, but I'm a bit past my PR threshold for the day so this may need to wait. I'll give another attempt tomorrow, and if I can schedule time to review I'll leave a note & de-assign.",
+        "timestamp": "2020-07-31T02:54:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@BenHenning No problem! SGTM.",
+        "timestamp": "2020-07-31T03:25:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "BenHenning",
+        "role": "MEMBER",
+        "body": "Sorry, going to need to remove myself from this PR as a primary reviewer. I'll try to a review later, but I can't keep to the 24 hour expectation for this PR. Please re-add me if my specific perspective is needed for anything.",
+        "timestamp": "2020-08-01T01:40:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-02T07:00:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-06T06:54:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "(Btw, don't forget to reassign to reviewers when you want a review -- thanks!)",
+        "timestamp": "2020-08-09T05:03:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "> (Btw, don't forget to reassign to reviewers when you want a review -- thanks!)\r\n\r\nI was waiting for tests to pass before assigning.",
+        "timestamp": "2020-08-09T05:35:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "> I was waiting for tests to pass before assigning.\r\n\r\nAh -- if you're mostly confident in the PR, and most of the key tests have passed locally (or on CI), you don't need to do so. This can speed up reviews!",
+        "timestamp": "2020-08-09T06:43:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-10T14:27:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@prasanna08 Feel free to assign the remaining codeowners once you've addressed the last two comments. Thanks!",
+        "timestamp": "2020-08-11T04:06:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Also @prasanna08 just a heads-up that I've already re-reviewed your PR, so reassigning it back to you :)",
+        "timestamp": "2020-08-11T04:14:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-15T05:52:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-18T16:46:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-22T17:06:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@Hudda could you please review as codeowner?",
+        "timestamp": "2020-08-22T21:26:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "@ankita240796, you might want to take a look at this again since I merged the recent changes in prod validators. PTAL, if I did it right.",
+        "timestamp": "2020-08-23T03:42:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-08-24T11:54:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "Showtim3",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @prasanna08 Please fix the merge conflicts.\r\nThanks!",
+        "timestamp": "2020-08-25T00:46:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08. Due to recent changes in the \"develop\" branch, this PR now has a merge conflict. Please follow this <a href=\"https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/\">link</a> if you need help resolving the conflict, so that the PR can be merged. Thanks!",
+        "timestamp": "2020-09-03T22:42:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "prasanna08",
+        "role": "CONTRIBUTOR",
+        "body": "@BenHenning @U8NWXD please do a CODEOWNER review.",
+        "timestamp": "2020-09-06T11:53:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @prasanna08, this PR is ready to be merged. Please address any remaining comments prior to merging, and feel free to merge this PR once the CI checks pass and you're happy with it. Thanks!",
+        "timestamp": "2020-09-07T02:34:58Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "7c5d33a",
+        "message": "Milestone 2 of ML pipeline migration",
+        "author": "prasanna08",
+        "timestamp": "2020-07-27T06:11:58Z"
+      },
+      {
+        "sha": "9372e99",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-07-27T06:20:01Z"
+      },
+      {
+        "sha": "d77a98b",
+        "message": "Fix lint issues",
+        "author": "prasanna08",
+        "timestamp": "2020-07-27T06:39:50Z"
+      },
+      {
+        "sha": "764a77a",
+        "message": "Fix backend tests and remove protobuf generated files",
+        "author": "prasanna08",
+        "timestamp": "2020-07-28T01:47:32Z"
+      },
+      {
+        "sha": "f3616e2",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-07-28T04:08:36Z"
+      },
+      {
+        "sha": "858940d",
+        "message": "Fix liniting issues",
+        "author": "prasanna08",
+        "timestamp": "2020-07-28T11:22:30Z"
+      },
+      {
+        "sha": "6cad22e",
+        "message": "Increase backend tests coverage",
+        "author": "prasanna08",
+        "timestamp": "2020-07-28T12:57:01Z"
+      },
+      {
+        "sha": "2c4663f",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-07-28T17:30:57Z"
+      },
+      {
+        "sha": "b02429f",
+        "message": "Address Review Comments",
+        "author": "prasanna08",
+        "timestamp": "2020-07-30T12:33:27Z"
+      },
+      {
+        "sha": "8d01846",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-07-30T12:36:26Z"
+      },
+      {
+        "sha": "2fe83e4",
+        "message": "Fix lint and backend tests",
+        "author": "prasanna08",
+        "timestamp": "2020-08-01T05:08:52Z"
+      },
+      {
+        "sha": "f970f1a",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-03T09:43:49Z"
+      },
+      {
+        "sha": "b9d1f5f",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-08-04T05:25:37Z"
+      },
+      {
+        "sha": "002a671",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-08T10:04:20Z"
+      },
+      {
+        "sha": "2365f0e",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-08-08T10:08:41Z"
+      },
+      {
+        "sha": "3db63c8",
+        "message": "Address review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-08T14:08:40Z"
+      },
+      {
+        "sha": "c54adcb",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-10T04:24:54Z"
+      },
+      {
+        "sha": "0d5f5ec",
+        "message": "Add more explanation for algorithm_version",
+        "author": "prasanna08",
+        "timestamp": "2020-08-10T04:27:51Z"
+      },
+      {
+        "sha": "a13230a",
+        "message": "Address review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-11T03:44:54Z"
+      },
+      {
+        "sha": "ea20884",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-08-11T03:49:09Z"
+      },
+      {
+        "sha": "2ebb9c1",
+        "message": "Address review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-11T04:20:42Z"
+      },
+      {
+        "sha": "6108e16",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-12T12:54:43Z"
+      },
+      {
+        "sha": "6e83abc",
+        "message": "Remove StateClassifierMappingServices dependency",
+        "author": "prasanna08",
+        "timestamp": "2020-08-12T12:56:23Z"
+      },
+      {
+        "sha": "c562ec1",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-15T05:52:06Z"
+      },
+      {
+        "sha": "70b6aeb",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-08-15T05:54:40Z"
+      },
+      {
+        "sha": "3582417",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-22T06:27:23Z"
+      },
+      {
+        "sha": "305e2cb",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into ml-pipeline",
+        "author": "prasanna08",
+        "timestamp": "2020-08-22T06:28:34Z"
+      },
+      {
+        "sha": "f4acef8",
+        "message": "Fix backend test errors",
+        "author": "prasanna08",
+        "timestamp": "2020-08-22T08:27:30Z"
+      },
+      {
+        "sha": "d27fa6b",
+        "message": "Addressed review comments",
+        "author": "prasanna08",
+        "timestamp": "2020-08-22T13:27:37Z"
+      },
+      {
+        "sha": "aedad20",
+        "message": "Fix lint issues",
+        "author": "prasanna08",
+        "timestamp": "2020-08-22T13:36:51Z"
+      }
+    ]
+  },
+  {
+    "story_id": "oppia/oppia#13413",
+    "metadata": {
+      "title": "M2.1: Add type annotations",
+      "labels": [
+        "PR: Affects datastore layer"
+      ],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-08-05T22:51:14Z",
+      "reviewers": [
+        "hardikkat24",
+        "seanlip",
+        "sajalasati",
+        "DubeySandeep"
+      ],
+      "changed_files": 45
+    },
+    "issue_payload": {
+      "body": "## Overview\r\n<!--\r\nREAD ME FIRST:\r\nPlease answer *both* questions below and check off every point from the Essential Checklist!\r\nIf there is no corresponding issue number, fill in N/A where it says [fill_in_number_here] below in 1.\r\n-->\r\n\r\n1. This PR fixes or fixes part of NA.\r\n2. This PR does the following: \r\n- Adds type annotations to files of:\r\n  - core/platform/datastore\r\n  - core/platform/transaction\r\n  - core/platform/models\r\n  - core/storage/activity\r\n  - core/storage/app_feedback_report\r\n  - core/storage/audit\r\n  - core/storage/auth\r\n  - core/storage/base_model\r\n  - core/storage/classifier\r\n  - core/storage/collection\r\n  - core/storage/config\r\n\r\n- Adds mypy_imports file:\r\n  -  MyPy doesn't work well with passing of modules as variables. This is what we do when we import modules from `core/storage` and `core/platform`. Example: `datastore_services`, `base_models`, `auth_models`. \r\n  - That's why we have added the following code snippet so that MyPy can detect the modules we are importing in a file.\r\n    ```\r\n    MYPY = False\r\n    if MYPY:\r\n        from mypy_imports import * # pragma: no cover # pylint: disable=import-only-modules,wildcard-import,unused-wildcard-import\r\n     ```\r\n  - The part inside the if block only runs when we run type checks. While running type checks, mypy will override the value of variable `MYPY` to `True`. This is substitute of [typing.TYPE_CHECKING ](https://docs.python.org/3/library/typing.html#typing.TYPE_CHECKING)in py2.\r\n- Some type ignores in other files(Ex: main.py)  were removed as they were fixed after I added type annotations to some files.\r\n- We create enums in a very dynamic way using the function `create_enum`. Therefore mypy is unable to understand the type of our enums. Therefore we have changed our enums to be created statically.\r\n- I have used self typing in core/storage/base_models. Self typing is giving the type of `cls` or `self` variables so that their type information can be used in type annotations. This is because we subclass the classes of base_models and we need to work them properly. For example: get_version of VersionedModel returns the instance which is either VersionedModel or its subclass. So explicitly mentioning VersionModel there will instruct MyPy that the return type is VersionedModel(not its subclass).\r\n\r\n## Essential Checklist\r\n\r\n- [ ] The PR title starts with \"Fix #bugnum: \", followed by a short, clear summary of the changes. (If this PR fixes part of an issue, prefix the title with \"Fix part of #bugnum: ...\".)\r\n- [ ] The linter/Karma presubmit checks have passed locally on your machine.\r\n- [x] \"Allow edits from maintainers\" is checked. (See [here](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/allowing-changes-to-a-pull-request-branch-created-from-a-fork) for instructions on how to enable it.)\r\n  - This lets reviewers restart your CircleCI tests for you.\r\n- [x] The PR is made from a branch that's **not** called \"develop\".\r\n\r\n## Proof that changes are correct\r\n\r\n<!--\r\nAdd videos/screenshots of the user-facing interface to demonstrate that the changes made in this PR work correctly.\r\nIf the changes in your PRs are autogenerated via a script and you cannot provide proof for the changes then please leave a comment \"No proof of changes needed because {{Reason}}\".\r\n-->\r\n\r\n## PR Pointers\r\n\r\n- Make sure to follow the [instructions for making a code change](https://github.com/oppia/oppia/wiki/Contributing-code-to-Oppia#instructions-for-making-a-code-change).\r\n- Oppiabot will notify you when you don't add a PR_CHANGELOG label. If you are unable to do so, please @-mention a code owner (who will be in the Reviewers list), or ask on [Gitter](https://gitter.im/oppia/oppia-chat).\r\n- For what code owners will expect, see the [Code Owner's wiki page](https://github.com/oppia/oppia/wiki/Oppia%27s-code-owners-and-checks-to-be-carried-out-by-developers).\r\n- Make sure your PR follows conventions in the [style guide](https://github.com/oppia/oppia/wiki/Coding-style-guide), otherwise this will lead to review delays.\r\n- Never force push. If you do, your PR will be closed.\r\n- Oppiabot can assign anyone for review/help if you leave a comment like the following: \"{{Question/comment}} @{{reviewer_username}} PTAL\"\r\n- Some of the e2e tests are flaky, and can fail for reasons unrelated to your PR. We are working on fixing this, but in the meantime, if you need to restart the tests, please check the [\"If your build fails\" wiki page](https://github.com/oppia/oppia/wiki/If-your-build-fails).\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, can you complete the following:\n1. The karma and linter checklist has not been checked, please make sure to run the frontend tests and lint tests before pushing. \n2. The proof that changes are correct has not been provided, please make sure to upload a image/video showing that the changes are correct. Or include a sentence saying \"No proof of changes needed because\" and the reason why proof of changes cannot be provided.\nThanks!",
+        "timestamp": "2021-07-17T13:08:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi, @hardikkat24, this pull request does not have a \"CHANGELOG: ...\" label as mentioned in the PR pointers. Assigning @hardikkat24 to add the required label. PRs without this label will not be merged. If you are unsure of which label to add, please ask the reviewers for guidance. Thanks!",
+        "timestamp": "2021-07-17T13:09:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @vojtechjelinek, PTAL at this PR, it adds a new cron job.<br>Also @hardikkat24 It seems you have added or edited a CRON job, if so please request a testing of this CRON job with this <a href=\"https://goo.gl/forms/XIj00RJ2h5L55XzU2\">server jobs form</a> Please refer to <a href=\"https://github.com/oppia/oppia/wiki/Testing-jobs-and-other-features-on-production\">this guide</a> for details.<br>Thanks!",
+        "timestamp": "2021-07-17T13:09:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @vojtechjelinek, PTAL at this PR, it adds a model that needs to be validated. The name of the model is <a href=\"https://github.com/oppia/oppia/blob/fa5c8f12119a1fdda5f6ec32120eca7b5748e03d/core/storage/base_model/gae_models.py\">BaseModel</a>.<br>Thanks!",
+        "timestamp": "2021-07-17T13:09:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, when creating WIP/Draft PRs, ensure that your commit messages are prefixed with **[ci skip]** or **[skip ci]** to prevent CI checks from running. You can learn more about it <a href=\"https://github.com/oppia/oppia/wiki/Contributing-code-to-Oppia#wip--draft-pull-requests\">here</a>.",
+        "timestamp": "2021-07-17T14:12:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, when creating WIP/Draft PRs, ensure that your commit messages are prefixed with **[ci skip]** or **[skip ci]** to prevent CI checks from running. You can learn more about it <a href=\"https://github.com/oppia/oppia/wiki/Contributing-code-to-Oppia#wip--draft-pull-requests\">here</a>.",
+        "timestamp": "2021-07-17T14:14:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@sajalasati PTAL.\r\nAlso, lint checks are failing due to our model imports and throwing errors\r\nFaulty lines:\r\n``` \r\nbase_models, user_models = models.Registry.import_models(\r\n    [models.NAMES.base_model, models.NAMES.user])\r\n```\r\nError: `Possible unbalanced tuple unpacking with sequence defined at line 176 of core.platform.models: left side has 2 label(s), right side has 0 value(s)`\r\nI am not able to resolve these.\r\n\r\n**Update** : Solved after modifying models.py ",
+        "timestamp": "2021-07-17T14:16:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @hardikkat24 since a re-review was requested. @hardikkat24, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-07-17T14:19:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@sajalasati \r\nAnother lint error is being thrown:\r\n```\r\nERROR: /home/runner/work/oppia/oppia/mypy_imports.py Imports are incorrectly sorted.\r\n--- /home/runner/work/oppia/oppia/mypy_imports.py:before\t2021-07-17 15:45:39.562099\r\n+++ /home/runner/work/oppia/oppia/mypy_imports.py:after\t2021-07-17 16:07:52.734545\r\n@@ -20,8 +20,8 @@\r\n from __future__ import unicode_literals  # pylint: disable=import-only-modules\r\n \r\n from core.platform.datastore import gae_datastore_services as datastore_services\r\n-from core.platform.transactions import gae_transaction_services as transaction_services # pylint: disable=line-too-long\r\n-\r\n+from core.platform.transactions import \\\r\n+    gae_transaction_services as transaction_services  # pylint: disable=line-too-long\r\n from core.storage.base_model import gae_models as base_models\r\n from core.storage.blog import gae_models as blog_models\r\n from core.storage.user import gae_models as user_models\r\n```\r\nPTAL.\r\n\r\n**Update** : If I try to break the import in two lines using brackets, the following error is thrown:\r\n```\r\n from core.storage.activity import gae_models as activity_models\r\n-from core.storage.app_feedback_report import (\r\n-    gae_models as app_feedback_report_models)\r\n+from core.storage.app_feedback_report import \\\r\n+    gae_models as app_feedback_report_models\r\n from core.storage.audit import gae_models as audit_models\r\n\r\n\r\n---------------------------\r\nChecks Not Passed.\r\n---------------------------\r\n\r\n```",
+        "timestamp": "2021-07-17T18:28:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@sajalasati Another lint error is being thrown after I add the constructor for the models. This constructor is required for mypy to work properly.\r\nThe constructor:\r\n```\r\ndef __init__(self, *args, **kwargs):\r\n        # type: (*Any, **Any) -> None\r\n        super(<ModelName>, self).__init__(*args, **kwargs)\r\n```\r\n\r\nThe error:\r\n```\r\nW:536, 4: Useless super delegation in method '__init__'\r\n```",
+        "timestamp": "2021-07-19T12:32:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-07-19T17:55:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "sajalasati",
+        "role": "CONTRIBUTOR",
+        "body": "> @sajalasati\r\n> Another lint error is being thrown:\r\n> \r\n> ```\r\n> ERROR: /home/runner/work/oppia/oppia/mypy_imports.py Imports are incorrectly sorted.\r\n> --- /home/runner/work/oppia/oppia/mypy_imports.py:before\t2021-07-17 15:45:39.562099\r\n> +++ /home/runner/work/oppia/oppia/mypy_imports.py:after\t2021-07-17 16:07:52.734545\r\n> @@ -20,8 +20,8 @@\r\n>  from __future__ import unicode_literals  # pylint: disable=import-only-modules\r\n>  \r\n>  from core.platform.datastore import gae_datastore_services as datastore_services\r\n> -from core.platform.transactions import gae_transaction_services as transaction_services # pylint: disable=line-too-long\r\n> -\r\n> +from core.platform.transactions import \\\r\n> +    gae_transaction_services as transaction_services  # pylint: disable=line-too-long\r\n>  from core.storage.base_model import gae_models as base_models\r\n>  from core.storage.blog import gae_models as blog_models\r\n>  from core.storage.user import gae_models as user_models\r\n> ```\r\n\r\n@DubeySandeep Can you take a look at [this](https://github.com/oppia/oppia/pull/13413#issuecomment-881940113) one? I cannot think of any other solution.\r\n\r\n\r\n> @sajalasati Another lint error is being thrown after I add the constructor for the models. This constructor is required for mypy to work properly.\r\n> The constructor:\r\n> \r\n> ```\r\n> def __init__(self, *args, **kwargs):\r\n>         # type: (*Any, **Any) -> None\r\n>         super(<ModelName>, self).__init__(*args, **kwargs)\r\n> ```\r\n> \r\n> The error:\r\n> \r\n> ```\r\n> W:536, 4: Useless super delegation in method '__init__'\r\n> ```\r\n\r\n@hardikkat24 Quoting the full helper message for this error from [pylint's repo](https://github.com/PyCQA/pylint/blob/f6c813824183d5d3738e0c426001a7b39948bc99/pylint/checkers/classes.py#L623):\r\n```\r\nUsed whenever we can detect that an overridden method is useless, relying on super() delegation to do the same thing as another method from the MRO.\r\n```\r\nI think you would need to use pylint ignore only, since you mentioned before mypy requires this particular style of implementation.",
+        "timestamp": "2021-07-19T18:10:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@sajalasati I have addressed your comment. PTAL",
+        "timestamp": "2021-07-20T16:32:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@brianrodri @vojtechjelinek @seanlip @nithusha21 @BenHenning @DubeySandeep @rohitkatlaa PTAL. I have tried to add correct type annotations. Please let me know if you find some mistakes or improvements. Thanks!",
+        "timestamp": "2021-07-20T16:34:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @hardikkat24 since a re-review was requested. @hardikkat24, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-07-20T16:35:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-07-20T18:36:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, it looks like some changes were requested on this pull request by @sajalasati. PTAL. Thanks!",
+        "timestamp": "2021-07-20T18:36:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip PTAL. I have tried to avoid usage of Any whenever possible. Thanks!",
+        "timestamp": "2021-07-21T08:29:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @hardikkat24 since a re-review was requested. @hardikkat24, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-07-21T08:32:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip PTAL.",
+        "timestamp": "2021-07-21T08:48:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Hi @hardikkat24, you don't need to reassign me to this PR until approaches for all the various points of contention has been determined in your doc and you have implemented the changes here. In the meantime, let's have the discussions there.",
+        "timestamp": "2021-07-21T10:40:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @brianrodri since the review is done.",
+        "timestamp": "2021-07-21T17:24:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "BenHenning",
+        "role": "MEMBER",
+        "body": "Deferring to @seanlip for review since we have the same codeowner coverage in this PR.",
+        "timestamp": "2021-07-22T05:31:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, the build of this PR is stale and this could result in tests failing in develop. Please update this pull request with the latest changes from develop. Thanks!",
+        "timestamp": "2021-07-23T00:05:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @rohitkatlaa since they have already approved the PR.",
+        "timestamp": "2021-07-23T03:50:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Assigning @nithusha21, @BenHenning for code owner reviews. Thanks!",
+        "timestamp": "2021-07-23T03:50:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @nithusha21 since they have already approved the PR.",
+        "timestamp": "2021-07-26T11:52:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Assigning @BenHenning, @aks681 for code owner reviews. Thanks!",
+        "timestamp": "2021-07-26T11:52:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip @sajalasati @vojtechjelinek @brianrodri @DubeySandeep @aks681 PTAL.\r\n\r\nNot assigning Ben as he deffered @seanlip to take a look at this.",
+        "timestamp": "2021-07-26T12:22:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @seanlip since the review is done.",
+        "timestamp": "2021-07-26T21:44:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @DubeySandeep since the review is done.",
+        "timestamp": "2021-07-28T16:00:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @sajalasati since the review is done.",
+        "timestamp": "2021-07-28T17:28:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip @vojtechjelinek I have addressed all your comments. PTAL",
+        "timestamp": "2021-07-28T18:28:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @hardikkat24 since a re-review was requested. @hardikkat24, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-07-28T18:31:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@DubeySandeep I have addressed your comments. PTAL.",
+        "timestamp": "2021-07-28T19:01:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@sajalasati PTAL. I have addressed your comments.",
+        "timestamp": "2021-07-28T19:05:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip PTAL,\r\nI have addressed all your comments. \r\nMajor things I have done:\r\n1. Added explanations for all Any and ignores\r\n2. Changed wildcard import",
+        "timestamp": "2021-07-30T06:15:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Unassigning @hardikkat24 since a re-review was requested. @hardikkat24, please make sure you have addressed all review comments. Thanks!",
+        "timestamp": "2021-07-30T06:18:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi @hardikkat24, it looks like some changes were requested on this pull request by @seanlip. PTAL. Thanks!",
+        "timestamp": "2021-07-30T07:40:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "hardikkat24",
+        "role": "CONTRIBUTOR",
+        "body": "@seanlip PTAL. I have addressed all your comments. I have also done a 3 pass over all the Any and type: ignores. PTAL.",
+        "timestamp": "2021-07-30T16:30:16Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a78400b",
+        "message": "add annotations to core/platform/transactions",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:11:30Z"
+      },
+      {
+        "sha": "524165a",
+        "message": "datastore",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:15:25Z"
+      },
+      {
+        "sha": "590c3a3",
+        "message": "datastore test",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:17:29Z"
+      },
+      {
+        "sha": "3e5f44e",
+        "message": "models and tests",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:31:27Z"
+      },
+      {
+        "sha": "03d4372",
+        "message": "base_model",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:37:37Z"
+      },
+      {
+        "sha": "8c14e10",
+        "message": "activity model",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T08:41:50Z"
+      },
+      {
+        "sha": "0935681",
+        "message": "app_feedback_report model",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T09:00:53Z"
+      },
+      {
+        "sha": "5070833",
+        "message": "audit model",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-15T09:06:35Z"
+      },
+      {
+        "sha": "3f8db93",
+        "message": "auth model",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-16T18:45:53Z"
+      },
+      {
+        "sha": "aaac573",
+        "message": "lint issues fixed",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T10:25:36Z"
+      },
+      {
+        "sha": "a95335d",
+        "message": "Merge branch 'develop' of https://github.com/oppia/oppia into m2.1",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T11:41:04Z"
+      },
+      {
+        "sha": "a986adb",
+        "message": "lint",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T11:42:25Z"
+      },
+      {
+        "sha": "1eb28d1",
+        "message": "lint",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T11:49:59Z"
+      },
+      {
+        "sha": "9c02014",
+        "message": "mypy fixed",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T12:44:26Z"
+      },
+      {
+        "sha": "fa5c8f1",
+        "message": "lint",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T12:59:16Z"
+      },
+      {
+        "sha": "ef00b4b",
+        "message": "fixes",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T13:59:45Z"
+      },
+      {
+        "sha": "b66dbe4",
+        "message": "[] to get",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T15:19:46Z"
+      },
+      {
+        "sha": "7c37d17",
+        "message": "fixes type annotations",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-17T15:45:09Z"
+      },
+      {
+        "sha": "8dbf377",
+        "message": "datastore test",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T13:19:42Z"
+      },
+      {
+        "sha": "4c9e5f2",
+        "message": "models test",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T13:22:09Z"
+      },
+      {
+        "sha": "63136ad",
+        "message": "activity model test",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T13:27:21Z"
+      },
+      {
+        "sha": "c378212",
+        "message": "base_models test",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T15:05:55Z"
+      },
+      {
+        "sha": "a90b222",
+        "message": "added init to storage",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T15:14:57Z"
+      },
+      {
+        "sha": "2818305",
+        "message": "app_feedback_report tests",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T19:38:19Z"
+      },
+      {
+        "sha": "73f4f63",
+        "message": "audit tests",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T19:43:58Z"
+      },
+      {
+        "sha": "a5fdaa1",
+        "message": "auth tests",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T19:49:17Z"
+      },
+      {
+        "sha": "c76073a",
+        "message": "lint fixed and files removed from denylist",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T19:59:09Z"
+      },
+      {
+        "sha": "b784b72",
+        "message": "lint fixed",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-18T20:13:35Z"
+      },
+      {
+        "sha": "381f0d2",
+        "message": "merge",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-20T14:12:16Z"
+      },
+      {
+        "sha": "861386e",
+        "message": "no-implicit-reexport removed from config file",
+        "author": "Hardik Katehara",
+        "timestamp": "2021-07-20T14:19:51Z"
+      }
+    ]
+  },
+  {
+    "story_id": "oppia/oppia#8130",
+    "metadata": {
+      "title": "Add new CircleCI job in order to check if any fully covered frontend file has decreased after PR changes",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-01-17T18:02:46Z",
+      "reviewers": [
+        "nithusha21",
+        "kevinlee12",
+        "marianadasilvadev"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "<!--\r\n  - Thanks for submitting code to Oppia! Please fill out the following as part of\r\n  - your pull request so we can review your code more easily.\r\n  -->\r\n\r\n## Explanation\r\n<!--\r\n  - Explain what your PR does. If this PR fixes an existing bug, please include\r\n  - \"Fixes #bugnum:\" in the explanation so that GitHub can auto-close the issue\r\n  - when this PR is merged.\r\n  -->\r\nThis PR aims to include a new stricter check in CircleCI in order to maintain the frontend test coverage stable. The detailed approach behind this new check can be found [here](https://docs.google.com/document/d/17x82nghDnmixP30TLQZDVxq_AbGbJuwckp7y0YJ841Q/edit?usp=sharing). The doc separates the logic into two files: .sh and .py. I had to changed it, putting all the logic in only one .py file. CircleCI doesn't check a script error if it's running through a bash file. It works only when executing on .py file.\r\n\r\nThe stricter check will fail any pull request that decreases a fully covered frontend file. It will be crucial for not letting the coverage drop, after working hard to increase some files coverage.\r\n\r\n## Checklist\r\n- [ ] The PR title starts with \"Fix #bugnum: \", followed by a short, clear summary of the changes. (If this PR fixes part of an issue, prefix the title with \"Fix part of #bugnum: ...\".)\r\n- [ ] The PR explanation includes the words \"Fixes #bugnum: ...\" (or \"Fixes part of #bugnum\" if the PR only partially fixes an issue).\r\n- [x] The linter/Karma presubmit checks have passed.\r\n  - These should run automatically, but if not, you can manually trigger them locally using `python -m scripts.pre_commit_linter` and `python -m scripts.run_frontend_tests`.\r\n- [x] The PR is made from a branch that's **not** called \"develop\".\r\n- [x] The PR has an appropriate \"PROJECT: ...\" label (Please add this label for the first-pass review of the PR).\r\n- [x] The PR has an appropriate \"CHANGELOG: ...\" label (If you are unsure of which label to add, ask the reviewers for guidance).\r\n- [x] The PR follows the [style guide](https://github.com/oppia/oppia/wiki/Coding-style-guide).\r\n- [x] The PR addresses the points mentioned in the codeowner checks for the files/folders changed. (See the [codeowner's wiki page](https://github.com/oppia/oppia/wiki/Oppia%27s-code-owners-and-checks-to-be-carried-out-by-developers).)\r\n- [x] The PR is **assigned** to an appropriate reviewer.\r\n  - If you're a new contributor, please ask on [Gitter](https://gitter.im/oppia/oppia-chat) for someone to assign a reviewer and don't tick this checkbox.\r\n  - If you're not sure who the appropriate reviewer is, please assign to the issue's \"owner\" -- see the \"talk-to\" label on the issue. Do not only request the review but also add the reviewer as an assignee.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "oppiabot",
+        "role": "NONE",
+        "body": "Hi, @marianazangrossi. This pull request does not have a \"CHANGELOG: ...\" label as mentioned in the PR checkbox list. Please add this label. PRs without this label will not be merged. If you are unsure of which label to add, please ask the reviewers for guidance. Thanks!",
+        "timestamp": "2019-12-05T02:52:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "Just a note: I've putted my name in the CODEOWNERS file referring to the new script file I've created just to pass through the `git push` process.  I don't know if I should name another collaborator in it. Should I fix it?",
+        "timestamp": "2019-12-05T02:58:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@kevinlee12 @nithusha21 PTAL.\r\n\r\n@marianazangrossi Just a reminder -- please remember to also _assign_ the thread to the person who's supposed to take action on it. Thanks!",
+        "timestamp": "2019-12-06T10:14:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@marianazangrossi @nithusha21 Added a comment, PTAL: https://github.com/oppia/oppia/pull/8130#discussion_r357045064",
+        "timestamp": "2019-12-12T09:43:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "@kevinlee12 @seanlip @nithusha21 I've refactored the script, PTAL\r\n\r\nThe only thing to be done is to include this script in the pre push process, although I have a question: this script runs frontend tests, so the script for frontend test should be removed from pre push process, right?",
+        "timestamp": "2019-12-19T20:09:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "nithusha21",
+        "role": "CONTRIBUTOR",
+        "body": "> The only thing to be done is to include this script in the pre push process, although I have a question: this script runs frontend tests, so the script for frontend test should be removed from pre push process, right?\r\n\r\nI think that sounds correct. Just this script would need to be run. Also, @kevinlee12, on circleCI, would we need both the frontend tests and this coverage check? It would be a redundant run of the frontend tests right? Also, one question here @marianazangrossi what would happen if the frontend tests fail? Would your script exit at that point?\r\n\r\n",
+        "timestamp": "2019-12-20T07:55:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "> The only thing left to do is to add tests :)\r\n\r\n@kevinlee12 Should I implement a test for this script? I don't have any experience with test in Python actually.\r\n\r\n> I think that sounds correct. Just this script would need to be run. Also, @kevinlee12, on circleCI, would we need both the frontend tests and this coverage check? It would be a redundant run of the frontend tests right? Also, one question here @marianazangrossi what would happen if the frontend tests fail? Would your script exit at that point?\r\n\r\n@nithusha21 I've changed the script so if frontend tests fails, the check will not happen.\r\n\r\n\r\n\r\n",
+        "timestamp": "2019-12-20T14:23:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "kevinlee12",
+        "role": "CONTRIBUTOR",
+        "body": "Yup, tests for the python script. See the backend test of the test runner for an example :)",
+        "timestamp": "2019-12-20T15:44:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @seanlip @kevinlee12 @nithusha21 I've refactored the script again, including classes and removing unnecessary code, PTAL. For the test file, I'll need some help because I'm getting a bit confused by how Python testing works.",
+        "timestamp": "2019-12-23T15:13:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "kevinlee12",
+        "role": "CONTRIBUTOR",
+        "body": "@marianazangrossi where's the test file (asking so I can provide advice based on what you did)? For tests, see https://github.com/oppia/oppia/blob/develop/scripts/build_test.py for how to structure it. ",
+        "timestamp": "2019-12-24T04:52:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Hi @marianazangrossi, I replied to your comments above, PTAL. Thanks!",
+        "timestamp": "2019-12-27T17:34:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "(I think it's just the filtering issue left.)",
+        "timestamp": "2019-12-27T17:35:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "@nithusha21 PTAL",
+        "timestamp": "2020-01-02T19:08:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @seanlip, @kevinlee12 and @nithusha21, I've finished the test for the script. Should I push it to this PR or should I create a new PR after the merge?",
+        "timestamp": "2020-01-03T02:37:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Feel free to push it to this PR. Thanks!\n",
+        "timestamp": "2020-01-03T03:06:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "kevinlee12",
+        "role": "CONTRIBUTOR",
+        "body": "^ and I concur.",
+        "timestamp": "2020-01-03T03:07:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "I think the only thing is still missing is to include the script running in the pre push flow.",
+        "timestamp": "2020-01-03T19:21:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Also, @marianazangrossi, please merge develop into your branch so that the e2e tests can run properly in the next round. Thanks!",
+        "timestamp": "2020-01-05T00:12:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "The frontend_test_coverage circleci job will probably fail. After the develop merge, the sourceMap problem affected the script for checking the test coverage. The problem needs to be fixed so the job pass.",
+        "timestamp": "2020-01-07T17:46:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "kevinlee12",
+        "role": "CONTRIBUTOR",
+        "body": "@marianazangrossi looks like there are more files to add, ptal!",
+        "timestamp": "2020-01-09T03:19:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "@kevinlee12 @seanlip @nithusha21 I've added a new flag in `run_frontend_tests` script to run the test coverage.",
+        "timestamp": "2020-01-13T19:33:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "I've merged with develop so the `frontend_tests` job should pass now.",
+        "timestamp": "2020-01-15T21:54:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "The frontend_tests job still fails, FYI.\r\n\r\nBtw, one thought: after you merge this, you might want to add a note to the frontend test issue to remind contributors to add their filename to the whitelist (and consider that sort of the \"success criterion\" for finishing a test)?",
+        "timestamp": "2020-01-15T22:40:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "I've runned again, it passed now. Sure! Should I edit the main comment? @seanlip ",
+        "timestamp": "2020-01-16T02:00:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Yes, go ahead. Thanks!",
+        "timestamp": "2020-01-16T02:02:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "marianadasilvadev",
+        "role": "CONTRIBUTOR",
+        "body": "I've updated the comment @seanlip PTAL. Thanks!",
+        "timestamp": "2020-01-16T04:05:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "seanlip",
+        "role": "MEMBER",
+        "body": "Looks great, thanks @marianazangrossi !\r\n\r\nI think we just need @nithusha21's review, and the last CI check to pass, and then this can go in :)",
+        "timestamp": "2020-01-16T04:12:04Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "56ac549",
+        "message": "Add new circleci job in order to check if any fully covered frontend\nfile, like services, controllers, directives and factories has decrease\nbecause the PR changes.",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-03T20:14:07Z"
+      },
+      {
+        "sha": "5e55236",
+        "message": "Fixing review comments",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-05T13:44:01Z"
+      },
+      {
+        "sha": "333f649",
+        "message": "Fixing review comments",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-06T18:41:15Z"
+      },
+      {
+        "sha": "60cabe8",
+        "message": "Fixing if/else for os.path.join",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-08T22:46:21Z"
+      },
+      {
+        "sha": "d0d6abd",
+        "message": "Refactoring check_frontend_test_coverage script",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-10T20:56:01Z"
+      },
+      {
+        "sha": "8ca12c4",
+        "message": "Fix path to be OS independent",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-11T00:58:25Z"
+      },
+      {
+        "sha": "4f40c3d",
+        "message": "Fix indentation of docstring",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-11T15:17:15Z"
+      },
+      {
+        "sha": "5cf9255",
+        "message": "Refactoring python script for checking the frontend test coverage",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-19T19:41:11Z"
+      },
+      {
+        "sha": "d17aa08",
+        "message": "Fix code based on review comments",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-20T13:49:25Z"
+      },
+      {
+        "sha": "656afc4",
+        "message": "Refactoring the frontend test coverage script using class",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-23T14:10:03Z"
+      },
+      {
+        "sha": "6020181",
+        "message": "Fix the whitelist to follow the alphabetic order",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-23T15:14:29Z"
+      },
+      {
+        "sha": "7821498",
+        "message": "Fixing review comments",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-26T16:39:08Z"
+      },
+      {
+        "sha": "aadc359",
+        "message": "Change file name in config.yml for CircleCI",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-26T16:51:56Z"
+      },
+      {
+        "sha": "fc0d963",
+        "message": "Fixing review comments",
+        "author": "marianazangrossi",
+        "timestamp": "2019-12-27T14:46:20Z"
+      },
+      {
+        "sha": "dae512b",
+        "message": "Fix review comments",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-02T15:11:57Z"
+      },
+      {
+        "sha": "1c658f2",
+        "message": "Add test for frontend test coverage check script and change config.yml",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-03T03:37:51Z"
+      },
+      {
+        "sha": "9eb7a59",
+        "message": "Fixing review comments",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-03T14:53:13Z"
+      },
+      {
+        "sha": "a93b6d2",
+        "message": "Remove unnecessary comments from test script",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-03T17:36:18Z"
+      },
+      {
+        "sha": "1cc300c",
+        "message": "Fix review comments related to the test script",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T14:05:08Z"
+      },
+      {
+        "sha": "0003708",
+        "message": "Merge remote-tracking branch 'upstream/develop' into creates-circleci-coverage-check",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T14:26:26Z"
+      },
+      {
+        "sha": "5a024dd",
+        "message": "Fix lint errors",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T14:30:49Z"
+      },
+      {
+        "sha": "f020654",
+        "message": "Fix lint errors",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T14:30:49Z"
+      },
+      {
+        "sha": "d102de4",
+        "message": "Merge branch 'creates-circleci-coverage-check' of https://github.com/marianazangrossi/oppia into creates-circleci-coverage-check",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T15:28:55Z"
+      },
+      {
+        "sha": "c7d10a2",
+        "message": "Add pylint disable line-too-long",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T15:30:55Z"
+      },
+      {
+        "sha": "0e3a372",
+        "message": "Update whitelist after develop merging",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-07T17:30:51Z"
+      },
+      {
+        "sha": "e998620",
+        "message": "Remove additional conditional to check if a file is fully covered but it's not in the whitelist.",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-08T14:13:12Z"
+      },
+      {
+        "sha": "66f4f75",
+        "message": "Insert check coverage script logic into run frontend tests script",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-13T19:14:32Z"
+      },
+      {
+        "sha": "08a3d82",
+        "message": "Merge remote-tracking branch 'upstream/develop' into creates-circleci-coverage-check",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-13T19:33:28Z"
+      },
+      {
+        "sha": "3a5a7b5",
+        "message": "Fix check_frontend_coverage_test to be fully covered",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-15T13:16:10Z"
+      },
+      {
+        "sha": "2d118de",
+        "message": "Remove frontend_test_coverage job and include check_coverage flag into frontend_tests job",
+        "author": "Mariana Zangrossi",
+        "timestamp": "2020-01-15T16:23:51Z"
+      }
+    ]
+  }
+]

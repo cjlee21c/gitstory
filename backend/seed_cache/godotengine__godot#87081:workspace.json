@@ -1,0 +1,96 @@
+{
+  "story_id": "godotengine/godot#87081",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: Animating UI Controls Without Breaking Layouts",
+      "body": "Godot's Control node system uses a layout engine where parent Container nodes dictate the position and size of their children. This works well for static UIs, but creates a painful problem for animation: any attempt to animate a Control's position, rotation, or scale using an AnimationPlayer risks being overwritten the moment the parent Container recalculates its layout. In Godot 3.x, developers could directly manipulate transform properties on Controls, but this was removed in Godot 4.0 because users were accidentally losing their edits when parent containers updated. The result was that adding 'juice' — hover effects, slide-in transitions, pop animations — to UI elements became extremely cumbersome, requiring workarounds like wrapper nodes, manual boilerplate code, or accepting that animations would break when the layout changed. This PR proposes adding a dedicated set of 'render transform' (later renamed 'offset transform') properties to all Control nodes: a positional offset, scale, rotation, and pivot that are applied purely on top of the layout-computed transform and are never touched by the layout engine.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[18]",
+        "discussion_timeline[38]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "The Core Tension: Universal Properties vs. Opt-In Architecture",
+      "body": "The proposal surfaces a genuine architectural dilemma. On one side, adding these transform offset properties directly to every Control node is the simplest workflow: any Control can be animated without restructuring the scene tree, and the feature mirrors how CSS transforms work in web development. On the other side, adding several new properties to every single Control node in the engine — the vast majority of which will never use them — introduces permanent memory and complexity overhead for all users, not just those who need animation. A competing PR proposed a dedicated TransformContainer node instead, which would be purely opt-in and carry overhead only where explicitly used, following what some maintainers described as 'the Godot way' of solving problems through the node hierarchy. A third option — simply restoring the Godot 3.x behavior of allowing direct transform property editing — was also raised, though it reintroduces the original problem of layout changes silently destroying animation state. The team had to weigh developer ergonomics and iteration speed against engine-wide memory cost, API surface cleanliness, and philosophical consistency with Godot's node-based design.",
+      "source_refs": [
+        "discussion_timeline[11]",
+        "discussion_timeline[18]",
+        "discussion_timeline[22]",
+        "discussion_timeline[24]",
+        "discussion_timeline[37]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — Mickeon",
+      "body": "Mickeon, a Godot member, consistently raised concerns about the cost-benefit tradeoff of adding these properties universally to all Control nodes. The core worry was that Control nodes are already not lightweight objects, and adding several new properties to every instance — even those that will never animate — introduces overhead that is hard to justify when the feature is only needed occasionally. Mickeon acknowledged the feature is clearly desired by the community but argued that the question of whether every Control should carry this capability is separate from whether the capability should exist at all. Mickeon also suggested that a separate proposal process might have been warranted to properly evaluate alternative architectures before committing to this approach, and pointed to the competing TransformContainer PR as a potentially more architecturally sound solution that avoids universal overhead by being explicitly opt-in.",
+      "author": "Mickeon",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[11]",
+        "discussion_timeline[18]",
+        "discussion_timeline[19]",
+        "discussion_timeline[20]",
+        "discussion_timeline[36]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — timoschwarzer",
+      "body": "timoschwarzer, the PR author and a contributor, argued from direct production experience that the feature is not a niche convenience but a fundamental necessity for any UI-heavy project. Having used a fork of Godot with this change applied for years, the author reported that the offset transform properties were used extensively across many different Control types — not just a few special cases. The author pushed back strongly on the TransformContainer alternative, arguing that deep scene nesting in real projects makes adding wrapper nodes for every potentially-animated element genuinely painful, especially when scenes are modularized and node references in scripts become fragile. On the memory concern, the author conducted benchmarks showing the overhead was approximately 0.18% more heap memory in the Godot editor itself — the most UI-heavy Godot project in existence — and argued this was negligible. The author also later addressed the overhead concern architecturally by restructuring the implementation so the transform data is stored in a dynamically-allocated struct, meaning Controls that never use the feature pay only the cost of a null pointer.",
+      "author": "timoschwarzer",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[12]",
+        "discussion_timeline[21]",
+        "discussion_timeline[23]",
+        "discussion_timeline[25]",
+        "discussion_timeline[47]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing the outcome: Given the tension between universal API convenience and opt-in architectural purity, and given that the memory overhead was measured at under 0.2% but can be further reduced with a pointer-based struct, which approach would you recommend and why? Consider: how does the 'visual-only by default, with an opt-in to also affect input' toggle change the calculus? Does the existence of a competing TransformContainer PR change your answer, or do the production use cases shown by contributors tip the balance?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: Offset Transform Properties Added Directly to Control Nodes",
+      "body": "The PR was merged on March 6, 2026, under the name 'Add offset transform to Control nodes.' The final implementation added a dedicated set of offset transform properties directly to all Control nodes, stored in a dynamically-allocated struct so that Controls which never use the feature pay only the cost of a null pointer rather than the full data footprint. The properties include absolute and relative positional offsets, scale, rotation, and both absolute and relative pivot points. A toggle enables or disables the entire offset transform for a given node. A separate 'visual only' flag — enabled by default — means the offset affects only rendering and not the input hit-testing rectangle, preventing the common UI animation bug where a visually-moved button flickers as the cursor enters and exits its actual input area. The TransformContainer alternative was not chosen as the primary solution, though it was not ruled out as a complementary future addition. The Godot 3.x approach of restoring direct transform property editing was also rejected because it would reintroduce the problem of layout changes silently overwriting animation state.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[47]",
+        "discussion_timeline[38]",
+        "discussion_timeline[44]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Measuring actual overhead before making architectural decisions matters: the initial concern about memory cost was legitimate, but benchmarking revealed it was under 0.2% in the worst-case scenario, and a pointer-based struct pattern reduced it further — turning a blocker into a non-issue through evidence rather than assumption.",
+        "When a feature removal causes years of downstream pain, the cost of the original 'cleanup' decision should be weighed against the complexity of the workarounds it forces on users; sometimes restoring a capability is the right call even if the original removal seemed principled.",
+        "Separating visual rendering from input hit-testing as an explicit, toggleable design choice — rather than coupling them — resolves a whole class of UI animation bugs (the hover-flicker problem) and gives developers precise control over the tradeoff, making the feature more broadly useful than a simpler implementation would have been."
+      ]
+    }
+  ]
+}

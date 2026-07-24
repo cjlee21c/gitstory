@@ -1,0 +1,62 @@
+{
+  "story_id": "berty/berty#2312",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Decryption Race Condition",
+      "body": "In a contact group, if a sender transmits a message before the recipient has registered the sender's chain key, the recipient cannot decrypt that message and it is lost. The proposed fix introduces a cache that holds undecryptable messages until the necessary key material arrives. A companion change enforces that chain keys are shared before any first message is sent.",
+      "source_refs": [
+        "issue_payload.body"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Robust Should the Cache Signaling Mechanism Be?",
+      "body": "The cache relies on an internal channel to signal when a new key is registered or a new message is queued. Two design tensions emerged: whether that channel should be buffered or unbuffered (trading blocking safety against fragility), and whether the waiting API should impose its own timeout or delegate timeout control entirely to the caller.",
+      "source_refs": [
+        "discussion_timeline[5]",
+        "discussion_timeline[10]",
+        "discussion_timeline[13]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — D4ryl00",
+      "body": "D4ryl00 argued that a small buffer on the signaling channel is justified because the events triggering it are rare in practice, and a buffer prevents the key-registration handler from blocking when no consumer is actively reading. The caller can always supply a context timeout to bound the wait, making a built-in timeout redundant.",
+      "author": "D4ryl00",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[9]",
+        "discussion_timeline[11]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — moul",
+      "body": "moul pushed back that combining \"I know only one message will ever be sent\" with \"the channel might not be read\" in the same design is inherently fragile. He preferred an unbuffered channel where possible, and favored each API call owning its own timeout limit rather than relying on callers to set one correctly.",
+      "author": "moul",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[10]",
+        "discussion_timeline[13]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given the tradeoffs between blocking safety and design fragility, would you use a buffered or unbuffered channel here, and who should own the timeout — the API or the caller?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

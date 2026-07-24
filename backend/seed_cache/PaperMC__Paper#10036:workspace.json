@@ -1,0 +1,91 @@
+{
+  "story_id": "PaperMC/Paper#10036",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "A New Minecraft Feature Needs an API",
+      "body": "Minecraft 1.20.3 introduced the ability to customize how score numbers are displayed on scoreboards — players could now replace the raw integer with blank space, a styled number, or an entirely custom text component. Paper, as a server platform, had no API exposing this capability to plugin developers. A contributor named davidmayr opened a pull request to fill that gap, proposing a clean Adventure-based API that would let plugins set a number format on an entire scoreboard objective or on individual score entries. The initial design used serialization through the Gson component serializer to convert between Adventure's style model and Mojang's internal representation.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history",
+        "discussion_timeline[0]",
+        "discussion_timeline[1]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Should the API Be Shaped and Implemented Internally?",
+      "body": "Several intertwined design questions emerged as reviewers examined the proposal. First, the conversion layer: the initial approach serialized Adventure objects to JSON and back through Gson, which was considered messy and inconsistent with how Paper handles similar conversions elsewhere. Second, the public API shape: the contributor initially exposed concrete record types directly as the public API surface, which raised concerns about long-term binary compatibility — if the internal representation ever needed to change, public record constructors would be impossible to evolve without breaking plugins. Third, there was a question about how to handle resetting a format to its default: should the setter accept null, should there be a dedicated reset method, or should a special 'blank' sentinel type serve double duty? Finally, reviewers noticed that the initial implementation only covered objective-level formatting and missed the per-score-entry formatting that vanilla also supports.",
+      "source_refs": [
+        "discussion_timeline[3]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — Machine-Maker",
+      "body": "Machine-Maker argued strongly for hiding implementation details behind interfaces rather than exposing record types directly in the public API. The reasoning was twofold: documentation quality and future flexibility. Interfaces allow javadoc to be written separately for factory methods and for the type's own accessors, making the API easier to understand. More importantly, if a record's constructor is public, any future change to its parameters forces the project to maintain old constructors indefinitely or break binary compatibility — a maintenance burden illustrated by painful precedents elsewhere in the codebase. The preferred pattern was to make the concrete record implementations package-private, expose only interfaces to plugin authors, and provide static factory methods on the base interface for construction. On the reset question, Machine-Maker preferred a dedicated clear method over accepting null in the setter, and opposed adding a special reset type to the sealed hierarchy.",
+      "author": "Machine-Maker",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[6]",
+        "discussion_timeline[8]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — jpenilla",
+      "body": "jpenilla focused on the conversion layer between Adventure's type system and Mojang's internal representation. Rather than round-tripping through a JSON serializer, Paper already maintained its own codecs specifically designed for lossless conversion between Adventure objects and Minecraft's native formats. Using those codecs would be more correct, more consistent with the rest of the codebase, and would avoid any edge cases introduced by an extra serialization step. jpenilla also pointed out that the conversion utilities should live in the centralized Paper Adventure utility class alongside similar conversion methods, rather than being scattered across the new feature's implementation.",
+      "author": "jpenilla",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what was actually merged, consider: given the tension between exposing a simple, concrete API versus a more abstract interface-based API, and the concern about upstream Bukkit potentially adding its own version of this feature, what approach would you recommend — and would you wait for upstream or ship independently? What are the risks of each path?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged After Extensive Revision and Upstream Coordination",
+      "body": "The pull request was merged on February 17, 2024, after roughly two months of iterative revision. The final design adopted all of the major reviewer recommendations: the conversion layer was switched to Paper's own Adventure codecs and the conversion utilities were placed in the centralized Paper Adventure class; the public API was restructured so that concrete implementations are hidden behind interfaces with package-private records, and static factory methods on the base interface serve as the only construction points for plugin authors. The per-score-entry formatting that vanilla supports was added after a reviewer pointed out the omission. The PR was held for a period while an upstream Bukkit proposal for similar functionality was evaluated, but ultimately Paper proceeded with its own Adventure-native design. Final cleanup commits — rebasing, fixing javadoc, and removing server-implementation defaults from the API layer — were applied by a maintainer just before merging.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[14]",
+        "discussion_timeline[3]",
+        "discussion_timeline[6]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Exposing concrete types with public constructors in a public API creates a long-term maintenance trap: any future change to the type's structure forces you to either break binary compatibility or accumulate legacy constructors indefinitely. Hiding implementations behind interfaces with factory methods gives the project freedom to evolve internals without affecting plugin authors.",
+        "When a platform has established conventions for cross-system conversions — such as a centralized utility class and purpose-built codecs — new features should follow those conventions rather than introducing ad-hoc alternatives. Consistency reduces cognitive overhead for future contributors and avoids subtle correctness differences between serialization paths.",
+        "Watching upstream projects for overlapping proposals is a legitimate reason to pause a PR, but it should not block indefinitely: if the upstream design diverges significantly from the platform's own idioms (here, Adventure-native types versus a more generic approach), shipping the platform-specific version independently may serve users better than waiting for a lowest-common-denominator upstream solution."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "story_id": "4ian/GDevelop#2006",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged: Caching, Preloading, and TypeScript Conversion Accepted",
+      "body": "After roughly four months of iterative fixes, the PR was merged on 2021-02-22. The team settled on caching audio instances per file and replacing overloaded fluent methods with explicit getters and setters, accepting the minor breaking change for JavaScript users. The codebase was also fully converted to TypeScript during the process, resolving ambiguous null/undefined state bugs that had blocked the final merge.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[2]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Caching shared resources at the manager level eliminates per-use instantiation overhead and enables explicit preloading as a first-class feature.",
+        "Fluent method chaining trades static-analysis safety and JIT predictability for stylistic convenience, making explicit accessors the safer long-term API choice.",
+        "Migrating to a typed language mid-PR surfaces latent state ambiguities early, turning previously silent runtime bugs into compile-time errors."
+      ]
+    }
+  ]
+}

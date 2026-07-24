@@ -1,0 +1,97 @@
+{
+  "story_id": "google/pprof#313",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "A Silent Bug: macOS Library Addresses Were Never Accounted For",
+      "body": "The pprof profiling tool had a latent correctness bug on macOS: when resolving symbols from shared libraries and executables, the code never factored in the mapped base address of libraries or the load address of individual segments. This meant that symbolization — the process of turning raw memory addresses into human-readable function names and source locations — would silently produce wrong results on macOS. A contributor opened this pull request to fix the root cause, referencing a previously filed issue. The fix touched the logic responsible for computing the correct text-segment address used during symbol lookup.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Correctness Fix vs. Test Coverage vs. CI Reliability",
+      "body": "The core tension in this discussion was multi-layered. First, should a correctness fix be merged without accompanying tests, given that the fix is clearly an improvement? Second, once tests were added, they exposed additional bugs and also failed on the project's continuous integration environment — not because the logic was wrong, but because the CI machine used a different symbolizer tool than the contributor's local Mac. This raised a harder question: should platform-specific tests that cannot reliably pass on CI be kept, skipped permanently, or removed entirely? Accepting broken or skipped tests has long-term maintainability costs, but removing them loses the regression-detection value that motivated writing them in the first place.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[5]",
+        "discussion_timeline[7]",
+        "discussion_timeline[10]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — aalexand",
+      "body": "The project collaborator acknowledged the fix was a necessary improvement and was willing to accept it as-is, but pushed for a test to accompany it — specifically a test modeled on existing patterns in the codebase, using a small pre-compiled binary checked into the test data directory, and skipped on non-Mac platforms. When the tests failed on CI, the collaborator diagnosed the likely cause as a difference in available symbolizer tools between the CI environment and the contributor's machine, and ultimately proposed a pragmatic resolution: keep the test code in place but mark the Mac-specific test as permanently skipped for now, with the collaborator committing to investigate enabling it properly later. Throughout the review, the collaborator also left minor style and error-message nit comments, which they acknowledged were getting detailed.",
+      "author": "aalexand",
+      "author_role": "COLLABORATOR",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[3]",
+        "discussion_timeline[9]",
+        "discussion_timeline[11]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — Timmmm",
+      "body": "The external contributor agreed to add tests and did so, but the process uncovered several additional bugs in the surrounding code — including a crash on a nil input and a systematic off-by-one error in parsing tool output — which were fixed as part of the same pull request. When CI failures appeared, the contributor investigated and traced the root cause to the CI environment relying on a differently-named symbolizer binary rather than the one the contributor's Mac used, and noted this pointed to yet another pre-existing bug in tool discovery. The contributor was transparent about uncertainty regarding some of the existing test logic they had adapted, and raised a separate question about whether an existing symbol-matching function had correct semantics. On style nits, the contributor pushed back slightly on exact wording suggestions while still honoring the spirit of the feedback.",
+      "author": "Timmmm",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[4]",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]",
+        "discussion_timeline[10]",
+        "discussion_timeline[12]",
+        "commit_history[1]",
+        "commit_history[2]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the core bug fix is correct and needed, but the new tests cannot reliably pass on CI due to environmental differences outside the contributor's control, what would you do? Would you merge without tests, merge with permanently-skipped tests, block the PR until CI is fixed, or something else — and what does your choice say about how you weigh correctness, test coverage, and CI green-ness against each other?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged with Tests Present but Mac CI Left for Follow-Up",
+      "body": "The pull request was merged on February 9, 2018, after four rounds of commits. The final state included the base-address fix, the additional bug fixes uncovered during testing, and the Mac-specific test code — but with the understanding that the Mac tests would be marked as skipped on CI for the time being, with the collaborator taking responsibility for enabling them properly in a follow-up. The collaborator explicitly thanked the contributor for tolerating the nit-level review comments and for the overall fix. The merge represented a pragmatic balance: ship the correctness improvement and preserve the test infrastructure even if it cannot yet run reliably in CI, rather than either blocking indefinitely or discarding the tests.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[12]",
+        "commit_history[3]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Platform-specific bugs are easy to overlook when most development happens on a different platform. Investing in platform-aware test infrastructure — even if it requires skipping tests on CI temporarily — preserves institutional knowledge about what correct behavior looks like and creates a foundation for future reliability.",
+        "Writing tests for a bug fix often uncovers additional latent bugs in surrounding code. This is a strong argument for requiring tests even when a fix seems self-contained: the act of exercising the code path in a controlled way reveals assumptions that were never validated.",
+        "When CI failures stem from environmental differences rather than logic errors, the right response is to diagnose the environment gap and make a deliberate, documented decision about how to handle it — not to silently remove the tests or pretend the gap does not exist. Skipping with a clear explanation and an owner for the follow-up is more honest than either extreme."
+      ]
+    }
+  ]
+}

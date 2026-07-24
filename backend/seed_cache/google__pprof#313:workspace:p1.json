@@ -1,0 +1,66 @@
+{
+  "story_id": "google/pprof#313",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "macOS Symbol Resolution Was Silently Broken",
+      "body": "On macOS, pprof failed to correctly resolve symbol addresses because it never accounted for the mapped address of shared libraries or the load address of their segments. This meant profiling data for native macOS binaries produced wrong or empty symbolization results. The contributor submitted a fix targeting this platform-specific address calculation gap.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Ship the Fix Now or Require Tests First?",
+      "body": "The fix was a clear improvement over broken behavior, and the maintainer acknowledged it was needed. However, the fix arrived without tests, and adding tests for macOS-specific binary parsing proved unexpectedly complex — uncovering additional bugs and exposing CI environment inconsistencies between local Mac machines and the Linux-based Travis CI. The team had to decide how much test coverage to require before merging a platform-specific correctness fix.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]",
+        "discussion_timeline[10]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — aalexand",
+      "body": "The maintainer wanted tests added before merging, pointing to existing patterns in the codebase as a model. When CI failures emerged, they suggested permanently skipping the new Mac tests in CI and committing to fix the infrastructure separately, prioritizing getting the core fix merged without being blocked by environment inconsistencies.",
+      "author": "aalexand",
+      "author_role": "COLLABORATOR",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[3]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — Timmmm",
+      "body": "The contributor argued that the tests were genuinely valuable — they had already caught real bugs — but that CI failures stemmed from deeper toolchain issues in pprof itself, such as incorrect symbolizer fallback behavior. They documented these as separate problems rather than blocking the PR, and pushed back mildly on some review nits while accepting the overall direction.",
+      "author": "Timmmm",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the tests expose real bugs but also cause CI failures due to environment issues, would you merge the fix with the tests included, without them, or require the CI environment to be fixed first?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

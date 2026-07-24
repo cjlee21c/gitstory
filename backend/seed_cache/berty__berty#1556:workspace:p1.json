@@ -1,0 +1,69 @@
+{
+  "story_id": "berty/berty#1556",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Redesigning the Berty Protocol Around Event Sourcing",
+      "body": "This PR introduces an event-sourcing compliant redesign of the Berty protocol, affecting how devices, groups, and contact requests are modeled. The core idea is that all state changes are represented as ordered, immutable events stored in distributed logs, synchronized across devices. This architectural shift has downstream consequences for how the application layer consumes and interprets protocol data.",
+      "source_refs": [
+        "commit_history[0]",
+        "discussion_timeline[0]",
+        "discussion_timeline[5]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Who Owns Conflict Resolution, and How Much Should the Protocol Expose?",
+      "body": "Two tensions emerge: first, whether the protocol layer or the application layer should handle CRDT conflict resolution and event ordering; second, whether the protocol should expose conflict metadata (e.g., when and where concurrent events were merged) so the app can make informed decisions. Giving the app more control increases flexibility but places a heavier burden on application developers to implement correct ordering logic.",
+      "source_refs": [
+        "discussion_timeline[3]",
+        "discussion_timeline[9]",
+        "discussion_timeline[10]",
+        "discussion_timeline[11]",
+        "discussion_timeline[12]",
+        "discussion_timeline[13]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — glouvigny",
+      "body": "The protocol guarantees event ordering and delivers raw events to the application; merging or consolidating state is explicitly the application's responsibility. Exposing conflict-resolution metadata would blur the boundary between protocol and application concerns, and the protocol should not attempt to abstract away CRDT semantics that the app must ultimately handle itself.",
+      "author": "glouvigny",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[13]",
+        "discussion_timeline[0]",
+        "discussion_timeline[7]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — 90dy",
+      "body": "The application needs to know when and where concurrent events were reconciled in order to correctly replay its own logic on top of the distributed log. Without explicit conflict-resolution signals from the protocol, the application must independently implement a CRDT ordering algorithm, duplicating complex logic that the protocol layer already possesses.",
+      "author": "90dy",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[3]",
+        "discussion_timeline[9]",
+        "discussion_timeline[11]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Should the protocol expose conflict-resolution metadata to the application layer, or should it deliver only ordered raw events and leave all reconciliation logic to the application?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

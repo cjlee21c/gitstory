@@ -1,0 +1,30 @@
+{
+  "story_id": "akaunting/akaunting#1743",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged Despite Unresolved Nullable Concern",
+      "body": "The change removing the nullable property was merged on January 11, before the discussion fully surfaced the legitimate use case for null values in credit and debit notes. Post-merge, the team acknowledged the migration script would need a follow-up fix, and a workaround using a hidden sentinel date value was accepted as a stopgap for modules lacking a due date field.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[1]",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Schema constraints should be validated against all consuming modules, not just the primary use case, before being enforced at the database level.",
+        "Reverting a nullable constraint is a breaking migration that can silently corrupt data for edge-case document types already in production.",
+        "Workarounds that inject placeholder sentinel values to satisfy validation signal a schema design mismatch that warrants a proper architectural fix."
+      ]
+    }
+  ]
+}

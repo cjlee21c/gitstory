@@ -1,0 +1,99 @@
+{
+  "story_id": "PaperMC/Paper#11810",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Filling a Gap in the Player Item-Drop API",
+      "body": "The Bukkit and Paper APIs exposed only a very limited way for plugins to make a player drop items: a single method that dropped the currently held item, with a boolean controlling whether the whole stack or just one unit was dropped. Developers who needed anything beyond that — dropping from a specific inventory slot, dropping from equipment slots like the offhand or armor, or dropping a precise quantity — had to reach into internal server code or copy-paste its implementation. This pull request, authored by Strokkur424, aimed to close that gap by exposing the underlying server logic through a proper, stable API surface on the HumanEntity interface.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Wide Should the API Surface Be?",
+      "body": "The core tension in this PR was not whether to add the API, but how to shape it. The author's initial proposal was broad: many methods covering every combination of slot selector (integer index vs. equipment slot), quantity (partial vs. full stack), throw trajectory (straight vs. randomised arc), and an optional post-spawn callback. Critics worried this created an explosion of methods that was hard to navigate and maintain. On the other side, a minimalist counter-proposal suggested collapsing everything into a single method that accepted an arbitrary ItemStack and left inventory management entirely to the caller. Between those poles lay questions about naming clarity, whether a Consumer callback should run before or after the item entity enters the world, whether the old boolean-based method should be deprecated, and how to distinguish methods that remove items from the inventory from methods that simply spawn a copy.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "discussion_timeline[12]",
+        "discussion_timeline[36]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — SoSeDiK",
+      "body": "SoSeDiK argued for a minimal, composable design: one method that accepts an arbitrary ItemStack (plus a boolean for trajectory and an optional pre-spawn callback), with no coupling to the player's inventory at all. The caller would be responsible for fetching the item from whatever slot they cared about and for reducing its quantity afterward — a trivial one-liner. This approach, SoSeDiK contended, mirrors patterns already established elsewhere in the API, avoids the combinatorial explosion of slot-selector overloads, and gives callers more control (including the ability to drop items that do not originate from the inventory). SoSeDiK also raised a practical concern: if the callback runs after the item entity is already in the world, it cannot truly intercept the spawn, which is a meaningful limitation compared to how similar world-level drop methods work.",
+      "author": "SoSeDiK",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[6]",
+        "discussion_timeline[10]",
+        "discussion_timeline[12]",
+        "discussion_timeline[17]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — Strokkur424 (with Machine-Maker)",
+      "body": "Strokkur424 maintained that the primary use-case is simulating vanilla player behaviour — dropping a specific quantity from a specific inventory slot — and that coupling the method to the inventory is a feature, not a limitation, because it handles the quantity reduction automatically and prevents accidental duplication. Accepting a raw ItemStack and leaving inventory management to the caller adds cognitive overhead and error surface for the common case. Machine-Maker reinforced this by noting that an ItemStack-based approach would require multiple defensive copies of the stack, whereas slot-based methods need only one. Both acknowledged that an arbitrary-stack variant had merit as an additional method, but insisted the slot-based methods should remain as the primary surface. The group converged on a middle ground: keep slot-based methods as the core, add an ItemStack-based method that explicitly makes a defensive copy (so it never implicitly removes inventory items), replace the separate 'Randomly' method family with a boolean parameter to halve the method count, and keep null-defaulting overloads so callers are not forced to pass null for the callback.",
+      "author": "Strokkur424",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[4]",
+        "discussion_timeline[13]",
+        "discussion_timeline[36]",
+        "discussion_timeline[37]",
+        "discussion_timeline[38]",
+        "discussion_timeline[40]",
+        "discussion_timeline[41]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what was actually merged, consider: given the tension between API breadth and usability, which design principle should win here — minimising the number of methods at the cost of making callers manage inventory state themselves, or providing slot-aware convenience methods that handle inventory mutation automatically even if it means a larger API surface? What criteria would you use to decide, and does the existence of an ItemStack-based escape hatch change your answer?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: Slot-Based Core with an ItemStack Escape Hatch and Halved Method Count",
+      "body": "The PR was merged on 28 December 2024. The final shape reflected the convergence reached in the last days of discussion. The method family was built around slot selectors (both integer indices and equipment-slot enumerations) with an explicit quantity parameter, a boolean controlling throw trajectory (replacing the separate 'Randomly' method family and cutting the count roughly in half), and a nullable post-spawn callback. A separate method accepting an arbitrary ItemStack was included but documented to make a defensive copy, making it explicit that it does not remove anything from the inventory. Null-defaulting convenience overloads were retained so callers who do not need the callback are not forced to pass null. The existing boolean-based drop method was deprecated in favour of the new slot-based equivalents. A Paper team member (lynxplay, credited in the final commits as Bjarne Koll) performed a final cleanup pass on documentation and internal structure before the merge.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[40]",
+        "discussion_timeline[41]",
+        "discussion_timeline[42]",
+        "discussion_timeline[43]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "API design for 'simulate user action' scenarios benefits from coupling the method to the data source (the inventory slot) rather than forcing callers to manage state transitions themselves — the convenience of automatic quantity reduction outweighs the extra method signatures when the use-case is well-defined and common.",
+        "When a combinatorial explosion of overloads threatens readability, replacing a parallel method family (e.g. a 'Randomly' suffix group) with a single boolean parameter can halve the surface area without losing expressiveness, provided the boolean's semantics are clearly documented.",
+        "Providing an escape-hatch overload that accepts an arbitrary value type (here, a raw ItemStack) alongside the primary slot-based methods satisfies power users without compromising the ergonomics of the common path — but the escape hatch must be clearly documented to prevent misuse, especially around defensive copying and inventory side-effects.",
+        "Iterative negotiation between a contributor and reviewers — cycling through several intermediate designs over a few days — can produce a better outcome than either the original proposal or any single reviewer's counter-proposal, as long as the team is willing to revisit earlier decisions when new concerns (such as copy overhead or event-cancellation edge cases) surface."
+      ]
+    }
+  ]
+}

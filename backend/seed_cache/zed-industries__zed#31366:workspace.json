@@ -1,0 +1,93 @@
+{
+  "story_id": "zed-industries/zed#31366",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Feature Request: Keyboard-Driven Dock Resizing",
+      "body": "Zed's UI has docks — panels that sit on the sides of the workspace (think sidebars, bottom panels, etc.). A contributor opened a pull request to let users resize these docks entirely via keyboard commands and shortcuts, without touching the mouse. The inspiration came from a similar feature request in VSCode. The proposed design introduced several new workspace-level actions: increase or decrease the size of the currently active dock, reset it to its default size, and bulk variants of each that operate on all open docks simultaneously. Default keybindings were proposed for both macOS and Linux. The PR closed a pre-existing Zed issue requesting this capability.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "New Actions vs. Reusing Existing Vim-Mode Infrastructure",
+      "body": "Early in review, a core team member pointed out that Zed's Vim mode already contained actions for resizing panes in four directions, maximizing, and restoring size. This raised a genuine architectural question: should the new dock-resizing capability be built as a fresh, independent set of workspace-level actions, or should the existing Vim-mode resize actions be extracted, generalized, and reused so that both Vim and non-Vim users share the same underlying mechanism? The risk of the first path is duplication and long-term maintenance burden from two parallel systems doing similar things. The risk of the second path is scope creep — refactoring Vim internals is a much larger and riskier change than simply adding new actions. There was also a naming ambiguity to resolve: the UI element being resized was called a 'pane' in some parts of the codebase, a 'sidebar' in VSCode parlance, and a 'dock' in the code this PR actually touched.",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — acgxv",
+      "body": "The contributor (acgxv) acknowledged the overlap with Vim-mode resize actions but argued from a practical standpoint: they do not use Vim mode and needed a general-purpose solution. They were open to unifying the two systems if the team could specify exactly how, but their primary goal was delivering the feature for non-Vim users. On the question of action design, they advocated for keeping the 'active dock' actions with a single configurable size parameter, while the 'all open docks' bulk actions should inherit or default to the same parameter rather than requiring users to specify it separately. They also accepted the 'dock' terminology as the correct naming anchor once the team clarified it.",
+      "author": "acgxv",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[4]",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — SomeoneToIgnore",
+      "body": "The reviewing team member (SomeoneToIgnore) pushed back on the idea of a large refactor. Their position was that removing or restructuring the Vim-mode resize actions would be excessive and confusing to existing users; the right move was a namespace transition (from vim:: to workspace::) with a deprecation notice, not a wholesale removal. They also clarified a key conceptual point: Vim mode's resize actions operate on panes (editor splits), which are fundamentally different from docks (the sidebar/panel containers), so the two systems are not actually duplicates — they address different UI elements. On action design, they were firm that actions cannot 'inherit' parameters from other actions; each action must be self-contained. They wanted the bulk actions to have no parameters at all, using a fixed default, rather than trying to mirror the active-dock action's parameter.",
+      "author": "SomeoneToIgnore",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "discussion_timeline[6]",
+        "discussion_timeline[10]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the Vim-mode resize actions and the new dock-resize actions target different UI elements (panes vs. docks), does the duplication concern still hold? And when designing the action parameter scheme, what principle should guide whether bulk actions accept parameters or simply use a fixed default — and why does that choice matter for long-term usability and discoverability?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged After Final Reviewer Pass and Keybinding Fixes",
+      "body": "The PR was ultimately merged on July 2, 2025, after a final round of fixes applied directly by the reviewing team member (Kirill Bulatov / SomeoneToIgnore). The resolution kept the new dock-resize actions as a distinct, workspace-level feature rather than merging them into the Vim infrastructure — consistent with the clarification that docks and panes are different things. The keybindings were revised to use non-conflicting shortcuts on macOS (the original bindings had later been found to break the ability to type certain characters on some keyboard layouts, a critical regression). Parameters were added explicitly to all bindings with documentation clarifying what the default value means, rather than relying on implicit inheritance. Small documentation and code-style adjustments were also applied. The final shape of the feature was a clean, self-contained set of workspace actions with explicit, documented parameters and carefully chosen default keybindings.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[12]",
+        "discussion_timeline[13]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Before concluding that two features are duplicates, verify they operate on the same abstraction. In this case, what looked like overlap between Vim resize actions and dock resize actions dissolved once the team confirmed they target fundamentally different UI elements — panes (editor splits) versus docks (sidebar containers). Premature unification would have created a confusing, overloaded abstraction.",
+        "Default keybindings for new features carry real risk: a shortcut that seems unused may silently conflict with character input on non-English keyboard layouts. Keyboard shortcut choices should be validated across multiple layouts before merging, and the cost of a bad default binding (breaking the ability to type common characters) can far outweigh the convenience of having any default at all.",
+        "When designing parameterized actions, the principle that each action must be self-contained — rather than implicitly inheriting configuration from a sibling action — keeps the system predictable and discoverable. Users and tooling can reason about each action in isolation, and documentation can be attached directly to the parameter rather than requiring knowledge of another action's defaults."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1170 @@
+[
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#200",
+    "metadata": {
+      "title": "Upgraded ffish.js to 0.4.4 and added validate_fen()",
+      "labels": [],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-10-21T22:51:48Z",
+      "reviewers": [
+        "QueensGambit",
+        "ianfab"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "Hello @ianfab ,\r\nI implemented an FEN validation method for **apiutil.h** as requested in #87.\r\n+ FEN_VALIDATION validate_fen(const std::string& fen, const Variant* v)\r\n\r\nThe validation method returns either `FEN_OK` or one of **13** unique error codes.\r\n\r\n```C++\r\nenum FEN_VALIDATION : int {\r\n  FEN_MISSING_SPACE_DELIM = -12,\r\n  FEN_INVALID_NB_PARTS = -11,\r\n  FEN_INVALID_CHAR = -10,\r\n  FEN_FILE_SIZE_MISMATCH = -9,\r\n  FEN_INVALID_NUMBER_OF_RANKS = -8,\r\n  FEN_INVALID_POCKET_INFO = -7,\r\n  FEN_INVALID_SIDE_TO_MOVE = -6,\r\n  FEN_INVALID_CASTLING_INFO = -5,\r\n  FEN_INVALID_EN_PASSANT_SQ = -4,\r\n  FEN_INVALID_CHECK_COUNTER = -3,\r\n  FEN_INVALID_HALF_MOVE_COUNTER = -2,\r\n  FEN_INVALID_MOVE_COUTNER = -1,\r\n  FEN_EMPTY = 0,\r\n  FEN_OK = 1\r\n};\r\n```\r\n\r\nEach starting fen is now validated in **test.js** including custom variants from **variants.ini**.\r\nIn the process of this, I found that `[]` was missing in the starting fen of _makrukhouse_, _xiangqihouse_, _janggihouse_ and _shogun_.\r\nThere is a test for each error code in **test.js**.\r\n\r\nThe following features were added to **ffish.js**:\r\n+ **ffish.validate_fen(fen)** it validates a given chess fen and returns +1 if fen is valid. Otherwise an error code will be returned.\r\n+ **ffish.validate_fen(fen, uciVariant)** it validates a given fen and returns +1 if fen is valid. Otherwise an error code will be returned.\r\n+ **ffish.startingFen(uciVariant)** it returns the starting fen for the given uci-variant.\r\n+ **board.pocket(turn)** it returns the pocket for the given player as a string with no delimeter. All pieces are returned in lower case.\r\n+ uddated **ffish.js** and **ffish-es6** to **0.4.3**.\r\n\r\n**Refactoring**\r\n+ replaced logic of `bool first = true` by `save_pop_back(string& s)` to reduce code size.\r\n+ replaced `s += \" \" + s2;` by `s += \" \"; s += s2;` to improve speed.\r\n\r\nupdated **README.md**\r\n+ simplified memory specification\r\n+ added `-std=c++17` to allow building with recent _NNUE_ code\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "@QueensGambit from one year experience on pychess site the most common cases of user defined invalid FENs are where rook or king positions contradict to castling rights or kings are touching or missing. See https://github.com/gbtami/pychess-variants/blob/master/client/chess.ts#L644\r\nCan you add these additional checks to ffish.js please?",
+        "timestamp": "2020-10-19T07:37:06Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks a lot! It will take me some time to think through all of the possible cases of FENs, so I will perhaps add CR comments step by step and not at once, so maybe you wait a bit with addressing them to save you time. A few initial remarks:\r\n* Some of the startFENs were \"intentionally\" wrong, since I knew the parser supports those cases, but it makes sense to consolidate those now that we have a validation. The question is if the validator should only accept **the** correct FEN or also others that are accepted by the parser, but perhaps the former makes more sense in order to encourage sticking to standards while still being robust in cases where the validation is not used prior to inputting an FEN, e.g., for FEN differences between cutechess and XBoard, since XBoard e.g. skips en passant and castling fields for variants where they are not applicable. The latter example might also be relevant for checking the startFens, because I think I remember using XBoard style FENs sometimes.\r\n* I could swear I added `-std=c++17` yesterday, but thanks for fixing that. I did not encounter any issues with ffish.js after the merge and seems you didn't either, so that is reaffirming that the NNUE code did not break anything.\r\n* I will perhaps also add the FEN validation to pyffish and to the variant config validator after merging this, unless you want to add this yourself still in this PR.",
+        "timestamp": "2020-10-19T08:55:34Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "> @QueensGambit from one year experience on pychess site the most common cases of user defined invalid FENs are where rook or king positions contradict to castling rights or kings are touching or missing. See https://github.com/gbtami/pychess-variants/blob/master/client/chess.ts#L644\r\n> Can you add these additional checks to ffish.js please?\r\n\r\nRegarding the additional checks.\r\nThere are a few variants where these checks need to be skipped:\r\n* **giveaway_variant**, **antichess_variant**, **codrus_variant**: It is allowed to have multiple kings or no king.\r\n* **clobber_variant**, **tictactoe_variant**, **connect4_variant**, **reversi_variant**: There is no king to begin with. Hence if there is no king in the starting fen, we can skip checking the number of kings.\r\n* **atomic_variant**, **giveaway_variant**, **antichess_variant**, **codrus_variant**: It is allowed that kings touch.\r\n* **chess960 (castling)**: Checking if the kings and rooks are still on starting squares is not possible because the starting fen is not directly available. However, you could check if the kings are between their rooks and on their starting rank.\r\n\r\nThe implementation of the **atomic_variant** is still missing (https://github.com/ianfab/Fairy-Stockfish/issues/81) but we need to keep this in mind for later.",
+        "timestamp": "2020-10-19T09:21:27Z"
+      },
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "@QueensGambit correct :)",
+        "timestamp": "2020-10-19T09:36:00Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "In Fairy-SF it is impossible to have more than one (royal) king per side, the code does not support that scenario. Variants with non-royal kings use the commoner piece type, which is strictly separated in the code. So as long as validation code for the king is skipped if none is present (for the respective side), variants like giveaway do not affect such conditions, since the presence of a king is considered as optional in **all** variants, even chess or the like. Regarding the touching kings it is a bit more tricky, because one needs to consider that in Fairy-SF the `KING` piece type is just a placeholder for a royal piece type. The actual movement is determined by the `kingType`, which therefore needs to be considered when checking for \"touching\" (e.g., consider knightmate) kings.\r\n\r\nEdit: Regarding atomic, you should not worry about that for now. It is more likely (if ever) to be implemented as an extinction variant with a non-royal king, since breaking the assumptions that an attack on the king is always a check would massively complicate maintenance, which I am mostly likely not going to do.",
+        "timestamp": "2020-10-19T09:52:05Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Apart from the comments I already wrote, it mostly looks good to me. Ensuring that an FEN is strictly valid is very challenging, so from my perspective it is fine to leave it at the checks you included so far, and then extend it later, therefore my comments mostly focus on avoiding false negatives. In order to have a good understanding of the limitations, I would however like to summarize what is not validated yet:\r\n* Promoted pieces (i.e., does a `+...` piece really have a promoted form?)\r\n* S-Chess gates\r\n* Cambodian \"gates\"\r\n* Consistency of castling rights and king/rook positions\r\n* Legality of position (king of side to move in check, etc.)",
+        "timestamp": "2020-10-19T18:21:33Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "> [...] Ensuring that an FEN is strictly valid is very challenging, so from my perspective it is fine to leave it at the checks you included so far, and then extend it later, therefore my comments mostly focus on avoiding false negatives.\r\n\r\nI concur. Aiming for low false negative rate is more important than reducing false positives here.\r\nThis method will most likely mainly be used for validating user inputs.\r\nThe variants also differ in popularity making some checks more important than others.\r\nSome additional checks could be added later.\r\n\r\nI'll revise the code based on your review. ",
+        "timestamp": "2020-10-20T15:18:34Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "I revised the code and added additional checks for _contradicting castling setups_, _touching kings_ and a check for _number of royal kings_ as requested by @gbtami .\r\n\r\nThe additional castling checks required a lot of more code. Therefore, I moved a lot of checks into separate functions to improve maintainability and readability.\r\n\r\nAll starting fens of all variants returned `FEN_OK`.\r\nDespite, adding new test cases for possible failure cases, I ensured that all game positions of the example games returned `FEN_OK`.",
+        "timestamp": "2020-10-21T20:03:58Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks! To be honest I am not entirely happy about how some conditions are defined, because they seem to filter down the list of existing variants to the ones where it should apply rather than constructively defining the conditions from the bottom up based on the rules that are prerequisites. However, I can imagine that this perhaps is incredibly hard to do without having too much experience with the \"rule space\" of this engine (I should perhaps also improve documentation in that regard), and I do not want to unnecessarily hinder the merge of this feature, especially considering that it seems to work well for all existing variants. So if there are no objections I would then at a later point try to modify the conditions to a more bottom up approach, but merge this first version as is.",
+        "timestamp": "2020-10-21T22:25:35Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "Sounds good to me.\r\nFeel free to change the conditions, as you are much more familiar with the code base and all the different chess variants.",
+        "timestamp": "2020-10-21T22:44:30Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "196304d",
+        "message": "Upgraded ffish.js to 0.4.3\n+ validate_fen(const std::string& fen, const Variant* v) (Closes #87)\n+ ffish.validate_fen(fen)\n+ ffish.validate_fen(fen, uciVariant)\n+ ffish.startingFen(uciVariant)\n+ board.pocket(turn)\n\nRefactoring\n+ replaced bool first = true by save_pop_back(string& s)\n+ replaced string = \" \" + s; by string += \" \"; string += s;\n\nupdated README.md\n+ simplified memory specification",
+        "author": "QueensGambit",
+        "timestamp": "2020-10-18T23:25:00Z"
+      },
+      {
+        "sha": "622144c",
+        "message": "Added C++17 specification for building ffish.js\n+ updated ffish.js to 0.4.3",
+        "author": "QueensGambit",
+        "timestamp": "2020-10-18T23:46:16Z"
+      },
+      {
+        "sha": "cf558b8",
+        "message": "Added more checks to validate_fen()\n+ FEN_TOUCHING_KINGS\n+ replaced FEN_INVALID_CHECK_COUNTER by FEN_INVALID_NUMBER_OF_KINGS\n+ combined FEN_FILE_SIZE_MISMATCH and FEN_INVALID_NUMBER_OF_RANKS into\nFEN_INVALID_BOARD_GEOMETRY\n+ added more checks for FEN_INVALID_CASTLING_INFO\n\nadded struct CharSquare\nadded class CharBoard (for geometry checks)\nrefactored different checks into separate functions",
+        "author": "QueensGambit",
+        "timestamp": "2020-10-21T19:56:38Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#187",
+    "metadata": {
+      "title": "Updated ffish.js to 0.4.2",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-09-30T15:22:16Z",
+      "reviewers": [
+        "QueensGambit",
+        "ianfab"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "Hi @ianfab  and @gbtami ,\r\n\r\nI implemented the remaining feature request from #177.\r\n\r\n> another missing feature would be important to add, make moveStack of the Board available.\r\n* [x] board.moveStack() returns the move stack in UCI notation.\r\n\r\n+ uddated **ffish.js** and **ffish-es6** to **0.3.0**."
+    },
+    "discussion_timeline": [
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "@QueensGambit one minor notice. Instead of `/home/queensgambit/Desktop/Programming/forks/Fairy-Stockfish/tests/variants.ini` you can use `src/variants.ini` to test `ffish.loadVariantConfig()`\r\nGreat work, thx a lot!",
+        "timestamp": "2020-09-24T20:29:09Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "* [x] Load variant configurations as string (instead of a file path) as @ianfab suggested in #182 (comment)\r\nI added the functionality for loading a configuration file.\r\n* **ffish.loadVariantConfig(variantsConfig)** it loads a custom variant configuration from a string\r\n* **ffish.variants()** it returns all currently available variants\r\n\r\nThe parsing seems to work because I receive the following stdout-message.\r\n`Parsing variant: 3check-crazyhouse\r\nParsing variant: coffeehouse\r\nParsing variant: makrukhouse\r\nParsing variant: xiangqihouse\r\nParsing variant: janggihouse\r\nParsing variant: anti-losalamos\r\nParsing variant: indiangreat\r\nParsing variant: peasant\r\nParsing variant: tictactoe\r\nParsing variant: connect4\r\nParsing variant: reversi\r\nParsing variant: othello\r\nParsing variant: grandhouse\r\nParsing variant: shogun\r\nParsing variant: orda`\r\n\r\nHowever, I'm not sure if the variants were activated because **ffish.variants()** didn't change after calling **ffish.loadVariantConfig(variantsConfig)**.\r\n\r\n* [x] Add a new function to iterate over SAN move list using pushSan() (Give move list as space delimited string as parameter)\r\n* **board.pushSanMoves(sanMoves, notation)** it pushes multiple san moves on the board, passed as a string with ' ' as delimiter.\r\n* **board.pushMoves(uciMoves)**  it pushes multiple uci-moves on the board, passed as a string with ' ' as delimiter.\r\n\r\nMoreover, I added a basic method for loading pgn files.\r\n* **ffish.readGamePGN(pgn)** it reads a pgn string and returns a game object.\r\nI added three pgn-files (**'deep_blue_kasparov_1997.pgn', 'lichess_pgn_2018.12.21_JannLee_vs_CrazyAra.j9eQS4TF.pgn', 'c60_ruy_lopez.pgn'**) to test if the pgn files a being parsed properly.\r\nThe code for handling various pgn is getting complex very quickly. Maybe, I'll refactor it and make it more robust later.\r\nFor other variants (e.g. Xiangqi, Shogi), additional methods would be needed.\r\n\r\nThe header can be retrieved and the moves are available via **game.mainlineMoves()**.\r\nI was unable to add **game.board()** because the _Position_ class of _Fairy-Stockfish_ doesn't allow a copy-constructor.\r\n\r\n* **game.headerKeys()** it returns all available header keys of the loaded game.\r\n* **game.headers(key)** it returns the value for a given header key of a loaded game.\r\n* **game.mainlineMoves()** it returns the mainline of the loaded game in UCI notation.\r\n\r\n* uddated **ffish.js** and **ffish-es6** to **0.4.0**.",
+        "timestamp": "2020-09-24T20:32:15Z"
+      },
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "@QueensGambit ffish.variants() didn't change after calling ffish.loadVariantConfig(variantsConfig) because of\r\n`variants.parse_istream<true>(ss);`\r\nthis should be \r\n`variants.parse_istream<false>(ss);`\r\nbecause of if `DoCheck` is `true` checked variants will be deleted at the end.\r\n\r\nAnother issue is I have to create (and delete) a dummy `Board()` now before I can call `loadVariantConfig()` unless sfInitialized will never be true. Shouldn't `initialize_stockfish()` be independent from Board creation?",
+        "timestamp": "2020-09-25T09:40:16Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks. As gbtami pointed out, `DoCheck` should be false when loading variants, as this parameter was introduced in order to be able to check the parsing result without any side effect, which is why the variants are removed again in the end. Maybe the name is slightly misleading, since it enables both validation as well as dry run.",
+        "timestamp": "2020-09-26T08:17:58Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "`DoCheck` is now set to `false` and `load_variant_config()` now initializes SF if not done already.",
+        "timestamp": "2020-09-26T15:14:17Z"
+      },
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "@QueensGambit there is something problematic using `Board::sfInitialized` in `load_variant_config()`\r\nAt least if I change the order of test (move the latest loadVariantConfig test to the first place, before Board creation test) tests will fail:\r\n```\r\ntamas@tami:~/Fairy-Stockfish-QueensGambit/tests/js$ npm test\r\n\r\n> ffish@0.4.1 test /home/tamas/Fairy-Stockfish-QueensGambit/tests/js\r\n> mocha\r\n\r\n\r\n\r\n  ffish.loadVariantConfig()\r\n    ✓ it loads a custom variant configuration from a string\r\n\r\n  Board()\r\n    ✓ it creates a chess board from the default position\r\n\r\n  Board(uciVariant) \r\n    ✓ it creates a board object from a given UCI-variant\r\n\r\n  Board(uciVariant) with large board\r\n    ✓ it creates a large-board object from a given UCI-variant\r\n\r\n  Board(uciVariant, fen) \r\n    ✓ it creates a board object for a given UCI-variant with a given FEN\r\n\r\n  Board(uciVariant, fen, is960)\r\n    ✓ it creates a board object for a given UCI-variant with a given FEN and is960 identifier\r\n\r\n  board.legalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.legalMovesSan()\r\n    1) it returns all legal moves in SAN notation as a concatenated string\r\n\r\n  board.numberLegalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.push(uciMove)\r\n    ✓ it pushes a move in uci notation to the board\r\n\r\n  board.pushSan(sanMove)\r\n    ✓ it pushes a move in san notation to the board\r\n\r\n  board.pushSan(sanMove, notation)\r\n    ✓ it pushes a move in san notation to the board\r\n\r\n  board.pop()\r\n    ✓ it undos the last move\r\n\r\n  board.reset()\r\n    ✓ it resets the board to its starting position\r\n\r\n  board.is960()\r\n    ✓ it checks if the board originates from a 960 position\r\n\r\n  board.fen()\r\n    ✓ it returns the current position in fen format\r\n\r\n  board.setFen(fen)\r\n    ✓ it sets a custom position via fen\r\n\r\n  board.sanMove()\r\n    ✓ it converts an uci move into san\r\n\r\n  board.sanMove(ffish.Notation)\r\n    ✓ it converts an uci move into san using a given notation\r\n\r\n  board.variationSan(uciMoves)\r\n    ✓ it converts a list of uci moves into san notation. The board will not changed by this method.\r\n\r\n  board.variationSan(uciMoves, notation)\r\n    ✓ it converts a list of uci moves into san notation given a notation format\r\n\r\n  board.variationSan(uciMoves, notation, moveNumbers)\r\n    ✓ it converts a list of uci moves into san notation given a notation format and optionally disabling move numbers\r\n\r\n  board.turn()\r\n    ✓ it returns the side to move\r\n\r\n  board.fullmoveNumber()\r\n    ✓ it returns the move number starting with 1 and is increment after each move of the 2nd player\r\n\r\n  board.halfmoveClock()\r\n    ✓ it returns the halfmoveClock / 50-move-rule-counter\r\n\r\n  board.gamePly()\r\n    ✓ it returns the current game ply\r\n\r\n  board.isGameOver()\r\n    ✓ it checks if the game is over based on the number of legal moves\r\n\r\n  board.isCheck()\r\n    ✓ it checks if a player is in check\r\n\r\n  board.isBikjang()\r\n    ✓ it checks if a player is in bikjang (only relevant for janggi)\r\n\r\n  board.moveStack()\r\n    ✓ it returns the move stack in UCI notation\r\n\r\n  board.pushMoves(uciMoves)\r\n    ✓ it pushes multiple uci moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  board.pushSanMoves(sanMoves)\r\n    ✓ it pushes multiple san moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  board.pushSanMoves(sanMoves, notation)\r\n    ✓ it pushes multiple san moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  ffish.info()\r\n    ✓ it returns the version of the Fairy-Stockfish binary\r\n\r\n  ffish.setOption(name, value)\r\nUnable to open file variants.ini\r\n    ✓ it sets a string uci option value pair\r\n\r\n  ffish.setOptionInt(name, value)\r\n    ✓ it sets a int uci option value pair\r\n\r\n  ffish.setOptionBool(name, value)\r\n    ✓ it sets a boolean uci option value pair\r\n\r\n  ffish.readGamePGN(pgn)\r\n    ✓ it reads a pgn string and returns a game object\r\n\r\n  game.headerKeys()\r\n    ✓ it returns all available header keys of the loaded game\r\n\r\n  game.headers(key)\r\n    ✓ it returns the value for a given header key of a loaded game\r\n\r\n  game.mainlineMoves()\r\n    ✓ it returns the mainline of the loaded game in UCI notation\r\n\r\n  ffish.variants()\r\n    ✓ it returns all currently available variants\r\n\r\n\r\n  41 passing (1s)\r\n  1 failing\r\n\r\n  1) board.legalMovesSan()\r\n       it returns all legal moves in SAN notation as a concatenated string:\r\n     RuntimeError: memory access out of bounds\r\n      at wasm-function[147]:160\r\n      at wasm-function[203]:2453\r\n      at wasm-function[968]:134\r\n      at wasm-function[342]:58\r\n      at wasm-function[1129]:7\r\n      at Module.dynCall_iii (ffish.js:1:122433)\r\n      at dynCall_iii_12 (eval at makeDynCaller (ffish.js:1:87489), <anonymous>:4:12)\r\n      at Board$legalMovesSan [as legalMovesSan] (eval at new_ (ffish.js:1:92824), <anonymous>:8:10)\r\n      at Context.it (test.js:95:23)\r\n\r\n\r\n\r\nnpm ERR! Test failed.  See above for more details.\r\ntamas@tami:~/Fairy-Stockfish-QueensGambit/tests/js$\r\n```",
+        "timestamp": "2020-09-26T18:03:43Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "Hi, I think `ffish.loadVariantConfig()` or the ordering of `ffish.loadVariantConfig()` isn't the root cause of this issue.\r\nI compiled **ffish.js** with `ASSERTIONS=1 -s SAFE_HEAP=1` as suggested by @kripken (https://github.com/emscripten-core/emscripten/issues/5161#issuecomment-297196266).\r\n\r\nNow a number of segmentation faults are reported for multiple tests.\r\n\r\n```python\r\n> ffish-es6@0.4.1 Fairy-Stockfish/tests/js\r\n> mocha\r\n\r\n\r\n\r\n  Board()\r\n    ✓ it creates a chess board from the default position (364ms)\r\n\r\n  Board(uciVariant) \r\n    ✓ it creates a board object from a given UCI-variant\r\n\r\n  Board(uciVariant) with large board\r\n    ✓ it creates a large-board object from a given UCI-variant\r\n\r\n  Board(uciVariant, fen) \r\n    ✓ it creates a board object for a given UCI-variant with a given FEN\r\n\r\n  Board(uciVariant, fen, is960)\r\n    ✓ it creates a board object for a given UCI-variant with a given FEN and is960 identifier\r\n\r\n  board.legalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.legalMovesSan()\r\nsegmentation fault\r\nsegmentation fault\r\n    1) it returns all legal moves in SAN notation as a concatenated string\r\n\r\n  board.numberLegalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.push(uciMove)\r\nsegmentation fault\r\nsegmentation fault\r\n    2) it pushes a move in uci notation to the board\r\n\r\n  board.pushSan(sanMove)\r\nsegmentation fault\r\nsegmentation fault\r\n    3) it pushes a move in san notation to the board\r\n\r\n  board.pushSan(sanMove, notation)\r\nsegmentation fault\r\nsegmentation fault\r\n    4) it pushes a move in san notation to the board\r\n\r\n  board.pop()\r\nsegmentation fault\r\nsegmentation fault\r\n    5) it undos the last move\r\n\r\n  board.reset()\r\nsegmentation fault\r\nsegmentation fault\r\n    6) it resets the board to its starting position\r\n\r\n  board.is960()\r\n    ✓ it checks if the board originates from a 960 position\r\n\r\n  board.fen()\r\n    ✓ it returns the current position in fen format\r\n\r\n  board.setFen(fen)\r\n    ✓ it sets a custom position via fen\r\n\r\n  board.sanMove()\r\n    ✓ it converts an uci move into san\r\n\r\n  board.sanMove(ffish.Notation)\r\n    ✓ it converts an uci move into san using a given notation\r\n\r\n  board.variationSan(uciMoves)\r\nsegmentation fault\r\nsegmentation fault\r\n    7) it converts a list of uci moves into san notation. The board will not changed by this method.\r\n\r\n  board.variationSan(uciMoves, notation)\r\nsegmentation fault\r\nsegmentation fault\r\n    8) it converts a list of uci moves into san notation given a notation format\r\n\r\n  board.variationSan(uciMoves, notation, moveNumbers)\r\nsegmentation fault\r\nsegmentation fault\r\n    9) it converts a list of uci moves into san notation given a notation format and optionally disabling move numbers\r\n\r\n  board.turn()\r\nsegmentation fault\r\nsegmentation fault\r\n    10) it returns the side to move\r\n\r\n  board.fullmoveNumber()\r\nsegmentation fault\r\nsegmentation fault\r\n    11) it returns the move number starting with 1 and is increment after each move of the 2nd player\r\n\r\n  board.halfmoveClock()\r\nsegmentation fault\r\nsegmentation fault\r\n    12) it returns the halfmoveClock / 50-move-rule-counter\r\n\r\n  board.gamePly()\r\nsegmentation fault\r\nsegmentation fault\r\n    13) it returns the current game ply\r\n\r\n  board.isGameOver()\r\nsegmentation fault\r\nsegmentation fault\r\n    14) it checks if the game is over based on the number of legal moves\r\n\r\n  board.isCheck()\r\nsegmentation fault\r\nsegmentation fault\r\n    15) it checks if a player is in check\r\n\r\n  board.isBikjang()\r\n    ✓ it checks if a player is in bikjang (only relevant for janggi)\r\n\r\n  board.moveStack()\r\nsegmentation fault\r\nsegmentation fault\r\n    16) it returns the move stack in UCI notation\r\n\r\n  board.pushMoves(uciMoves)\r\nsegmentation fault\r\nsegmentation fault\r\n    17) it pushes multiple uci moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  board.pushSanMoves(sanMoves)\r\nsegmentation fault\r\nsegmentation fault\r\n    18) it pushes multiple san moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  board.pushSanMoves(sanMoves, notation)\r\nsegmentation fault\r\nsegmentation fault\r\n    19) it pushes multiple san moves on the board, passed as a string with ' ' as delimiter\r\n\r\n  ffish.info()\r\n    ✓ it returns the version of the Fairy-Stockfish binary\r\n\r\n  ffish.setOption(name, value)\r\nUnable to open file variants.ini\r\n    ✓ it sets a string uci option value pair\r\n\r\n  ffish.setOptionInt(name, value)\r\n    ✓ it sets a int uci option value pair\r\n\r\n  ffish.setOptionBool(name, value)\r\n    ✓ it sets a boolean uci option value pair\r\n\r\n  ffish.readGamePGN(pgn)\r\n    ✓ it reads a pgn string and returns a game object\r\n\r\n  game.headerKeys()\r\n    ✓ it returns all available header keys of the loaded game\r\n\r\n  game.headers(key)\r\n    ✓ it returns the value for a given header key of a loaded game\r\nsegmentation fault\r\nsegmentation fault\r\n    20) it returns the value for a given header key of a loaded game\r\n```\r\n\r\nThere are also some open issues regarding out of bounds memory access for emscripten (https://github.com/emscripten-core/emscripten/issues/11208) but I think it's more likely that our errors are due to the seg. faults.\r\n\r\n",
+        "timestamp": "2020-09-28T21:09:40Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "I was able to track down the first seg. fault in **move_to_san()** where **pos.do_move()** is called:\r\nhttps://github.com/ianfab/Fairy-Stockfish/blob/master/src/apiutil.h#L269\r\n\r\nThe seg. fault occurs by calling **thisThread->nodes.fetch_add(1, std::memory_order_relaxed);** for an uninitialized thread object.\r\nhttps://github.com/ianfab/Fairy-Stockfish/blob/master/src/position.cpp#L1192",
+        "timestamp": "2020-09-28T21:14:09Z"
+      },
+      {
+        "author": "gbtami",
+        "role": "MEMBER",
+        "body": "Huh, seems using more init() from main.cpp in pyffish prevents such issues in the Python binding.\r\n https://github.com/ianfab/Fairy-Stockfish/blob/master/src/pyffish.cpp#L343\r\n\r\npyffish doesn't utilize Fairy's search. Credit goes to jromang work https://github.com/jromang/Stockfish/blob/pyfish/src/pyfish.cpp",
+        "timestamp": "2020-09-28T21:37:01Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "Adding the threading initialization code requires `-s USE_PTHREADS=1 -s PTHREAD_POOL_SIZE=1` as additional compilation parameters.\r\n\r\nAfter compilation I receive another memory error.\r\n```python\r\n> mocha\r\n\r\nrequested a shared WebAssembly.Memory but the returned buffer is not a SharedArrayBuffer, indicating that while the browser has SharedArrayBuffer it does not have WebAssembly threads support - you may need to set a flag\r\n(on node you may need: --experimental-wasm-threads --experimental-wasm-bulk-memory and also use a recent version)\r\n  1) \"before all\" hook in \"{root}\"\r\n```\r\n\r\nI'd like to avoid using threads for **ffish.js** because they are not required, but adding **#ifdef**s is not nice either.\r\n\r\n---\r\n\r\nIt looks like adding **#ifdef**s for \r\n*  **thisThread->nodes.fetch_add(1, std::memory_order_relaxed);** (https://github.com/ianfab/Fairy-Stockfish/blob/master/src/position.cpp#L1192)\r\n\r\n* **prefetch(thisThread->materialTable[st->materialKey]);** (https://github.com/ianfab/Fairy-Stockfish/blob/master/src/position.cpp#L1287)\r\n\r\nfixes all seg. faults and allows calling `ffish.loadVariantConfig(config)` first.\r\n\r\nIf you agree, I will add them.\r\n",
+        "timestamp": "2020-09-28T23:11:51Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Yes, adding the ifdefs should be fine. It would be good though if they can be written in a way that they do not interfere with the WASM port that uses threading (https://github.com/ianfab/stockfish.wasm) when the code gets merged there.",
+        "timestamp": "2020-09-29T07:14:55Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "I added `NO_THREADS` as a custom **#ifdef** which shouldn't affect any other builds.\r\n\r\nShould I squash all commits to a single commit before merging?",
+        "timestamp": "2020-09-29T16:59:05Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Yes, squashing would be nice, thanks. Otherwise looks good to me.",
+        "timestamp": "2020-09-30T06:54:18Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "55f2aca",
+        "message": "Updated ffish.js to 0.4.2 (Closes #185)\n+ board.moveStack()\n+ board.pushSan(sanMove, notation)\n+ board.pushMoves(uciMoves)\n+ board.pushSanMoves(sanMoves)\n+ board.pushSanMoves(sanMoves, notation)\n+ ffish.readGamePGN(pgn)\n+ game.headerKeys()\n+ game.headers(key)\n+ game.mainlineMoves()\n+ ffish.variants()\n+ ffish.loadVariantConfig()\n\nAdded parse_istream()\n+ to allow reading a variant configuration file via a stringstream\n\nAdded NO_THREADS #define\n+ to disable threads usage for build\n\nAdded custom variants info to README.md\n\nChanged ordering for ffish.loadVariantsConfig() in test.js",
+        "author": "QueensGambit",
+        "timestamp": "2020-09-30T08:40:06Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#780",
+    "metadata": {
+      "title": "Fix stack overflow when depth is too deep",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-04-29T12:02:18Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "#583 .\r\n\r\nAfter this change, added a macro definition that can switch the preference whether to put the move list in stack or in heap. Now given the following commands:\r\n```\r\nuci\r\nsetoption name UCI_Variant value gustav3\r\nposition fen arnbqkbnra/*ppp1pppp*/*3p4*/*8*/*8*/*N1P5*/*PP1PPPPP*/AR1BQKBNRA b KQkq - 0 2 moves f7f5 f2f3 d8e7 e2e4 i7i5 i2i4 j8g5 c2c3 c8d6 a1c2 h8g6 c2d2 f5f4 h1f2 e6e5 j1g4 b7b6 g4g5 e7g5 f2g4 a8b7 d2f2 d6f7 d3d4 d7d6 b3d2 b7d8 d1b3 c7c5 e1e2 g5h4 g2g3 h4e7 f2h3 f7g5 h3h5 g8b3 d2b3 d8f7 b3d2 b6b5 b1d1 g6h8 h5f7 h8f7 f1g2 c5d4 c3d4 b8c8 g1f2 f7h6 d4e5 h6g4 f3g4 d6e5 d2f3 f8h8 f3g5 e7g5 g3f4 g5f4 d1d6 h7h6 d6d5 c8c4 b2b3 c4c3 d5d3 c3d3 e2d3 e8c8 g2h3 g8d8 d3b5 c8c2 f2g3 d8d3 i1g1 d3b3 b5f1 c2e4 f1d1 b3d3 d1b1 h8i7 g1d1 f4d2 b1b2 e4e2 b2b7 i7h7 d1g1 e5e4 g1g2 e2f3 b7b5 d2g5 b5f5 f3f5 g4f5 e4e3 g2b2 d3d4 b2b6 d4e4 b6e6 e4e6 f5e6 h7g6 h3g4 g6f6 g4f3 f6e6 g3c7 g7g6 h2h3 h6h5 c7g3 h5i4 h3i4 g5h6 f3e4 e6f6 g3e5 f6f7 e5g3 f7f6 g3e5 f6f7 e5g3 f7e6 g3e1 e6d6 e1b4 d6e6 b4e1 e6f6 e1g3 e3e2 e4f3 f6g5 g3f2 h6g7 f2g3 g7h6 g3f2 g5f5 f2g3 h6f8 g3f2 f8g7 f2e1 g6g5 e1g3 g7f8 g3e1 g5g4 f3e2 f5f4 e2f2 f8e7 e1d2 f4f5 d2h6 e7h4 f2g2 f5g6 h6e3 g4g3 e3d2 g6f5 g2f3 g3g2 f3g2 f5g4 d2h6 h4e1 h6i5 e1i5 g2f1 i5h4 i4i5 h4i5 f1g2 i5e1 g2f1 e1d2 f1g2 d2c1 g2f1 c1b2 f1e1 b2a1 e1d1 a1b2 d1e2 b2a1 e2d1 a1b2 d1e2 g4g5 e2f1 b2a1 f1e1 a1b2 e1e2 b2a1 e2d1 a1b2 d1e2 b2a1 e2d1 g5h5 d1c1 a1b2 c1b1 b2a1 b1a1 h5g4 a1b1 g4f3 b1a1 f3e2 a1b1 e2d1 b1a1\r\ngo\r\n```\r\n\r\nIt will work correctly to depth 245.\r\n\r\nThe build is successful without warnings on my PC, running MSYS2 MinGW64.\r\n\r\nI've also did some bench test on the 2 methods on the same computer with the same environment. Interestingly, the heap method is slightly faster than the stack method. The test command is:\r\n```\r\nuci\r\nbench\r\nbench\r\nbench\r\nbench\r\nbench\r\n```\r\n\r\nResult:\r\n![image](https://github.com/fairy-stockfish/Fairy-Stockfish/assets/47345902/1aa0c06a-cbcc-4ef9-b552-b284dc323b6d)\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "It seems that some platforms uses unsigned long instead of unsigned long long for size_t. I need to fix the printf issue.",
+        "timestamp": "2024-04-23T14:23:09Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "My results does not ensure the performance advantage on all platforms\r\n\r\nBy the way, I've tested the position when `MAX_PLY = 999;`, and the result is good:\r\n![image](https://github.com/fairy-stockfish/Fairy-Stockfish/assets/47345902/849a9ac2-4a41-4750-b12a-0cd1ca1b4efc)\r\n",
+        "timestamp": "2024-04-23T14:56:15Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks a lot, this would be great to have fixed. As far as I can see you applied the switch from stack to heap for both ALLVARS and normal version in the same way. In principle I thought we might only do it where required (i.e., when all=yes), although if it does not perform any worse as you indicated we might as well keep it simple and safe and always use heap. Does your performance comparison apply for both (all=yes/no)? I will later also try to test myself.",
+        "timestamp": "2024-04-24T13:57:21Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "I've only tried on all=yes currently. I'll test on all=no.",
+        "timestamp": "2024-04-24T14:15:10Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "all=no　　largeboard=yes\r\nUsing default bench for 47 positions with all benches searching 6257668 nodes:\r\nHEAP:\r\nTime: 11919 + 11835 + 12082 + 12235 + 11858 　　Average: 11985.8\r\nSTACK:\r\nTime: 12072 + 11930 + 11930 + 11960 + 12124 　　Average: 12003.2\r\n\r\nBasically on par with each other in this case.",
+        "timestamp": "2024-04-24T14:33:13Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "all=no　　largeboard=no\r\nUsing default bench for 47 positions with all benches searching 6257668 nodes:\r\nHEAP:\r\nTime: 8863 + 8682 + 8630 + 8653 + 8687 　　Average: 8703\r\nSTACK:\r\nTime: 8710 + 8805 + 8784 + 9187 + 8744 　　Average: 8846\r\n\r\nBasically on par with each other in this case.",
+        "timestamp": "2024-04-24T14:47:03Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "My results show that heap beats stack by 10%~15% in NPS when all=yes largeboards=yes.\r\nOther versions they basically have no difference.",
+        "timestamp": "2024-04-24T14:59:06Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks, got similar results that performance is comparable with all=no and better with all=yes, so looks good.\r\n\r\nI am just not sure about the 1024 ply limit, since it likely does not have any advantage. If a position gets solved quickly where it actually reached max depth, then higher nominal depth won't provide any new information. And for other positions you likely won't ever reach depth 246. So I would suggest to revert that back to the original value.",
+        "timestamp": "2024-04-28T16:21:34Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "1024 is just set for some enthusiasts who use a very high end CPU (e.g. Threadripper 7995WX) to go much deeper in solving one position. Since using heap solves the depth problem, and it doesn't seem to do any bad to performance and stability when setting max depth to 1024 in common cases, I think 1024 can meet the needs of enthusiasts without compromising the experience of common users.",
+        "timestamp": "2024-04-29T01:35:01Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "One example is someone said in fairy-stockfish discord that a position is a mate-in-500. Setting MAX_PLY to 1024 while removing the 50 moves rule can enable FSF to solve this position. If nothing in common cases is compromised, adding support to rare cases would make it better.",
+        "timestamp": "2024-04-29T01:43:31Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Setting a very high max ply does have a downside in the fairly common case of a short forced mate. There the engine will quickly solve the position at low ply and then rush through all iterations until max ply without needing to do much more search. Since the new iterations do not really require new search (as TT has everything already), it won't consume that much CPU by the engine, but it will produce a lot more (fairly useless) output that needs to be communicated and parsed, which can e.g. put significant load on a GUI. Since this is the much more common scenario, in the rare case that someone is willing to put enourmous efforts into solving a long win, recompiling with a higher max ply shouldn't be a big deal.",
+        "timestamp": "2024-04-29T08:57:31Z"
+      },
+      {
+        "author": "yjf2002ghty",
+        "role": "CONTRIBUTOR",
+        "body": "I've done some tests on different GUIs, and the result shows that on C++ based GUIs like Cute Chess and Chessbase and JavaScript based GUIs like LiGround and Fairyground, the difference on time between 246 and 1024 is less than 100 milliseconds on average. However on Python based GUIs like PyChess GUI and FairyFishGUI, the difference can be at most 3 seconds, probably due to the low performance issue of Python.\r\nSo it does compromise the experience of Python based GUIs , and limiting depth is necessary.",
+        "timestamp": "2024-04-29T11:25:29Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "14e8098",
+        "message": "Update types.h",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-23T13:57:33Z"
+      },
+      {
+        "sha": "57da98f",
+        "message": "Update movegen.h",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-23T13:58:17Z"
+      },
+      {
+        "sha": "65cfdc5",
+        "message": "Update movegen.h: Remove problematic %llu",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-23T14:28:21Z"
+      },
+      {
+        "sha": "0e3cd28",
+        "message": "Update types.h: Increase max depth when using heap",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-24T14:12:55Z"
+      },
+      {
+        "sha": "87dcd10",
+        "message": "Update types.h: Retract some changes",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-24T14:18:26Z"
+      },
+      {
+        "sha": "140a222",
+        "message": "Update types.h: Revert max depth to 246",
+        "author": "yjf2002ghty",
+        "timestamp": "2024-04-29T11:28:26Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#497",
+    "metadata": {
+      "title": "Issue 416",
+      "labels": [],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-06-15T17:45:17Z",
+      "reviewers": [
+        "ianfab"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "This pull request partly solves issue #416. The code now only allows certain special characters, depending on the variant being played. E.g., the \"+\" char won't be allowed in the seirawan variant. I've also called the FEN::validate_fen function from position.cpp - not sure if this would make sense or if it should be left as is. One thing I was a bit unsure of is whether '~' chars can appear in shogi FENs (and also whether they can appear in makpong FENs). Right now I'm assuming they're only allowed in shogi ones.\r\n\r\nSome of the examples in issue 416 still aren't resolved. E.g., Kyotoshogi: p+nks+l/5/5/5/+LS+K+NP[-] w 0 1 is still treated as valid, since it contains no special chars which aren't allowed. It's just that some chars are in the wrong spots in the string."
+    },
+    "discussion_timeline": [
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab Thanks for the feedback, it's very helpful. I'll work on implementing these changes.",
+        "timestamp": "2022-06-15T02:42:17Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "There is one remaining test failure https://github.com/ianfab/Fairy-Stockfish/runs/6897885928?check_suite_focus=true I didn't expect. I think that is because the `conclude()` is only called on insert of variants, but the start FEN validation for custom variants already happens on parsing. So I think we need to call it also before https://github.com/ianfab/Fairy-Stockfish/blob/8ec72eff3bcf82648396756d03085d2c9363257d/src/parser.cpp#L399 or more generally at the beginning of the consistency checks there, as these might use derived properties in general. That is more of a bug in the current master, but didn't show before since we did not use derived properties there yet.",
+        "timestamp": "2022-06-15T10:50:58Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab Makes sense, I've pushed a commit to call conclude() before some of the checks. I'm not sure if it should be instead called at the beginning of parse() though.\r\n\r\nFor the custom variants, is it a problem if add() isn't called on them? Since other than calling conclude(), add() also inserts into a map.",
+        "timestamp": "2022-06-15T11:06:54Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "https://github.com/ianfab/Fairy-Stockfish/blob/8ec72eff3bcf82648396756d03085d2c9363257d/src/variant.cpp#L1560-L1569 is the related code. Custom variants are added, but the validation currently already happens directly after (as part of) parsing. It could be considered in the future to change the this, but for now the duplicate call of conclude to me is the simplest solution.",
+        "timestamp": "2022-06-15T11:25:12Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab Ah ok, I see.",
+        "timestamp": "2022-06-15T11:40:51Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6700cfd",
+        "message": "Only include some special characters, depending on the variant being played.",
+        "author": "johndoknjas",
+        "timestamp": "2022-06-14T13:15:45Z"
+      },
+      {
+        "sha": "37e125f",
+        "message": "Fix scope error and call validate_fen when receiving an FEN from the user.",
+        "author": "johndoknjas",
+        "timestamp": "2022-06-14T14:32:50Z"
+      },
+      {
+        "sha": "a379263",
+        "message": "Apply PR feedback.",
+        "author": "johndoknjas",
+        "timestamp": "2022-06-15T06:42:31Z"
+      },
+      {
+        "sha": "dacc96e",
+        "message": "Ensure shogiStylePromotions is set to false in conclude() before looping.",
+        "author": "johndoknjas",
+        "timestamp": "2022-06-15T10:27:52Z"
+      },
+      {
+        "sha": "f0ee6cf",
+        "message": "Call conclude() before consistency checks, in case it hasn't been called yet.",
+        "author": "johndoknjas",
+        "timestamp": "2022-06-15T11:01:27Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#705",
+    "metadata": {
+      "title": "add Duck region mask. add ducktest. add forward/checkers",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-09-06T07:34:28Z",
+      "reviewers": [
+        "ianfab"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "not expecting ducktest to actually be added, just for testing."
+    },
+    "discussion_timeline": [
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "Let me know what you would like me to do with this: Whether you think duckRegion is usable, and also whether you like it as part of staticGatingRegion or whether it should be its own parameter. Also, I can leave ducktest in(possibly under a different name) if it makes sense to have it as a demo.\r\n\r\nYou're the boss, so let me know which of the changes you want.",
+        "timestamp": "2023-09-03T03:00:20Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Making it a general mask for the gating region is something I like. One could then maybe consider renaming it just to `gatingRegion` if it generically applies to other forms of gating as well, but not sure. Regarding the parsing I would suggest to do it as it is done for other color specific values, that the color inspecific value just sets it for both colors, e.g., as for castlingKingPiece. Regarding ducktest I don't have a strong opinion, but if it is left in I would agree it should be renamed.",
+        "timestamp": "2023-09-03T13:12:52Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "To address the comment, made these changes:\r\n- \"staticGatingRegion*\" to \"gatingRegion*\" (still affects both duck and isolation types)\r\n- \"gatingRegion\" sets bitboards for both black and white\r\n\r\nAlso removed ducktest because I don't feel strongly about it.\r\n\r\nMy concern is that the \"gatingRegion\" term feels less descriptive since \"gating\" is used for two different things, Seirawan \"Gating\", and dropping walls.\r\n\r\nMaybe dropping walls could move away from the \"gating\" term and use a more specific term. \"wallingRegion\" or \"wallDropRegion\".",
+        "timestamp": "2023-09-04T06:26:02Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks. Yes, the \"gating\" terminology is mainly coming from the implementation rather than the concept in general, so renaming it to be better understandable from a user perspective makes sense. So feel free to rename the usages of \"gating\" to \"walling\" in all contexts where it is specific to wall squares.",
+        "timestamp": "2023-09-04T20:32:12Z"
+      },
+      {
+        "author": "Belzedar94",
+        "role": "CONTRIBUTOR",
+        "body": "Instead of adding ducktest, I propose to directly use Chennisball as a demo, since it was the main trigger for this change.\r\n\r\nDefinition:\r\n\r\n[chennisball]\r\nmaxRank = 7\r\nmaxFile = 7\r\nmobilityRegionWhiteCommoner = b1 c1 d1 e1 f1 b2 c2 d2 e2 f2 b3 c3 d3 e3 f3 b4 c4 d4 e4 f4\r\nmobilityRegionBlackCommoner = b4 c4 d4 e4 f4 b5 c5 d5 e5 f5 b6 c6 d6 e6 f6 b7 c7 d7 e7 f7\r\ncustomPiece1 = p:fmWfceF\r\ncustomPiece2 = m:K\r\ncannon = c\r\ncommoner = k\r\nfers = f\r\nsoldier = s\r\nbishop = b\r\nknight = n\r\nrook = r\r\npromotionPieceTypes = -\r\npromotedPieceType = p:r f:c s:b m:n\r\npromotionRegionWhite = *1 *2 *3 *4 *5 *6 *7\r\npromotionRegionBlack = *7 *6 *5 *4 *3 *2 *1\r\nstartFen = 1fkm3/1p1s3/7/7/7/3S1P1/3MKF1[] w - 0 1\r\npieceDrops = true\r\ncapturesToHand = true\r\npieceDemotion = true\r\nmandatoryPiecePromotion = true\r\ndropPromoted = true\r\ncastling = false\r\nstalemateValue = loss\r\nduckGating = true\r\nduckRegionWhite = *5 *6 *7\r\nduckRegionBlack = *1 *2 *3\r\nextinctionValue = loss\r\nextinctionPieceTypes = k\r\nextinctionPseudoRoyal = true",
+        "timestamp": "2023-09-05T10:40:00Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I have strong doubts about chennisball being supported, I don't think you can combine the duck with drops.",
+        "timestamp": "2023-09-05T11:26:18Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "Drops seem to work. Note that I had to change your INI to refer to \"duckWalling\" and \"wallingRegion\" to work with this branch. I will add your INI to this proposal.\r\n```\r\n\r\nposition startpos moves f1e2+,e2a1 b6b5+,b5a1 e2e3-,e3a1 d6d5+,d5a1 d2e2+,e2a1 b5b3-,b3a1 e3d2+,d2a1 b3b2+,b2a1 d2d7-,d7a1 c7d7,d7f3\r\nd\r\n\r\n +---+---+---+---+---+---+---+\r\n |   | f |   | k |   |   |   |7   [f]\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |6\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |+s |   |   |   |5\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |4\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |   |   | * |   |3\r\n +---+---+---+---+---+---+---+\r\n |   |+p |   |   |+S | P |   |2\r\n +---+---+---+---+---+---+---+\r\n |   |   |   | M | K |   |   |1 * [M]\r\n +---+---+---+---+---+---+---+\r\n   a   b   c   d   e   f   g\r\n\r\nFen: 1f1k3/7/3+s3/7/5*1/1+p2+SP1/3MK2[Mf] w - - 0 6\r\nSfen: 1f1k3/7/3+s3/7/5*1/1+p2+SP1/3MK2 b Mf 11\r\nKey: FA84B42BEC15CA34\r\nCheckers:\r\nChased:\r\nposition startpos moves f1e2+,e2a1 b6b5+,b5a1 e2e3-,e3a1 d6d5+,d5a1 d2e2+,e2a1 b5b3-,b3a1 e3d2+,d2a1 b3b2+,b2a1 d2d7-,d7a1 c7d7,d7f3 +M@c3,c3c4\r\nd\r\n\r\n +---+---+---+---+---+---+---+\r\n |   | f |   | k |   |   |   |7 * [f]\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |6\r\n +---+---+---+---+---+---+---+\r\n |   |   |   |+s |   |   |   |5\r\n +---+---+---+---+---+---+---+\r\n |   |   | * |   |   |   |   |4\r\n +---+---+---+---+---+---+---+\r\n |   |   |+M |   |   |   |   |3\r\n +---+---+---+---+---+---+---+\r\n |   |+p |   |   |+S | P |   |2\r\n +---+---+---+---+---+---+---+\r\n |   |   |   | M | K |   |   |1   []\r\n +---+---+---+---+---+---+---+\r\n   a   b   c   d   e   f   g\r\n\r\nFen: 1f1k3/7/3+s3/2*4/2+M4/1+p2+SP1/3MK2[f] b - - 0 6\r\nSfen: 1f1k3/7/3+s3/2*4/2+M4/1+p2+SP1/3MK2 w f 12\r\nKey: FFA3A52B90A168A2\r\nCheckers:\r\nChased:\r\n\r\n```",
+        "timestamp": "2023-09-06T04:24:41Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "taking chennisball out. just focusing on what does work.",
+        "timestamp": "2023-09-06T05:45:43Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks. Gating and drops occupy the same parts of the move encoding, that is why I believe they can't work together. Perhaps we should better document such limitations in the INI validation, it is just hard for me to write all of them down proactively since they usually only cross my mind when I think of the respective combination of rules, which mostly happens only during implementation and when someone proposes a specific variant.\r\n\r\nEdit: Ah, this one is even documented already, that's good.",
+        "timestamp": "2023-09-06T07:42:41Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "25716c9",
+        "message": "add Duck region mask. add ducktest, not expecting it to actually be added, just for testing. add forward/checkers variant",
+        "author": "rainrat",
+        "timestamp": "2023-08-29T02:53:14Z"
+      },
+      {
+        "sha": "cdadf55",
+        "message": "combine duckRegion and staticGatingRegion. fix a mistake in Isolation startFen.",
+        "author": "rainrat",
+        "timestamp": "2023-08-30T21:51:51Z"
+      },
+      {
+        "sha": "c6f64c9",
+        "message": "address code review",
+        "author": "rainrat",
+        "timestamp": "2023-09-01T20:20:45Z"
+      },
+      {
+        "sha": "9435fea",
+        "message": "rename staticGatingRegion to just gatingRegion. remove ducktest as no longer needed for testing.",
+        "author": "rainrat",
+        "timestamp": "2023-09-04T06:12:24Z"
+      },
+      {
+        "sha": "b0bfe98",
+        "message": "rename all instances of 'gating' that are specific to wall squares, to 'walling'",
+        "author": "rainrat",
+        "timestamp": "2023-09-04T22:24:39Z"
+      },
+      {
+        "sha": "a7b0a39",
+        "message": "add Chennisball as a test. credit to Belzedar94 for the definition.",
+        "author": "rainrat",
+        "timestamp": "2023-09-06T04:27:23Z"
+      },
+      {
+        "sha": "de27b5a",
+        "message": "that didn't work. no chennisball yet.",
+        "author": "rainrat",
+        "timestamp": "2023-09-06T05:44:38Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#158",
+    "metadata": {
+      "title": "JavaScript Chess Variant Library: ffish.js",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-06-29T16:38:08Z",
+      "reviewers": [
+        "ianfab"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "Hello @ianfab ,\r\n\r\nI created the initial version of **ffish.js** today, as discussed in https://github.com/ianfab/Fairy-Stockfish/issues/157.\r\n\r\nThe main functionality such as creating a new board from fen, loading a new fen, generating all legal moves (UCI or SAN) is covered. The syntax of **ffish.js** is similar to [python-chess](https://github.com/niklasf/python-chess).\r\n\r\nMoreover, I moved some utility functions which are both used in **pyffish** and **ffish.js** to a new file called `apiutil.h`.\r\n\r\n## Build instuctions\r\n\r\n```bash\r\ncd Fairy-Stockfish/src\r\n```\r\n```bash\r\nemcc -O3 --bind ffishjs.cpp \\\r\nbenchmark.cpp \\\r\nbitbase.cpp \\\r\nbitboard.cpp \\\r\nendgame.cpp \\\r\nevaluate.cpp \\\r\nmaterial.cpp \\\r\nmisc.cpp \\\r\nmovegen.cpp \\\r\nmovepick.cpp \\\r\nparser.cpp \\\r\npartner.cpp \\\r\npawns.cpp \\\r\npiece.cpp \\\r\nposition.cpp \\\r\npsqt.cpp \\\r\nsearch.cpp \\\r\nthread.cpp \\\r\ntimeman.cpp \\\r\ntt.cpp \\\r\nuci.cpp \\\r\nsyzygy/tbprobe.cpp \\\r\nucioption.cpp \\\r\nvariant.cpp \\\r\nxboard.cpp \\\r\n-o ../tests/js/ffish.js\r\n```\r\n\r\n## Exemplary usage in JavaScript\r\n\r\nLoad the API in JavaScript:\r\n\r\n```javascript\r\nconst ffish = require('./ffish.js');\r\n```\r\n\r\nCreate a new variant board from its default starting position:\r\n\r\n```javascript\r\nlet board = new ffish.Board(\"chess\");\r\n```\r\n\r\nSet a custom fen position:\r\n```javascript\r\nboard.setFen(\"rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3\");\r\n```\r\n\r\nInitialize a board with a custom FEN:\r\n```javascript\r\nboard = new ffish.Board(\"crazyhouse\", \"rnb1kb1r/ppp2ppp/4pn2/8/3P4/2N2Q2/PPP2PPP/R1B1KB1R/QPnp b KQkq - 0 6\");\r\n```\r\n\r\nPushing a new move to the board:\r\n```javascript\r\nboard.push(\"g2g4\");\r\n```\r\n\r\nGenerate all legal moves in UCI and SAN notation:\r\n```javascript\r\nlet legalMoves = board.legalMovesStr().split(\" \");\r\nlet legalMovesSan = board.legalMovesSanStr().split(\" \");\r\n\r\nfor (var i = 0; i < legalMovesSan.length; i++) {\r\n    console.log(`${i}: ${legalMoves[i]}, ${legalMovesSan[i]}`);\r\n}\r\n```\r\n\r\n## Performance\r\n\r\nI conducted some initial performance test in comparision with [**chess.js**](https://github.com/jhlywa/chess.js) and [**crazyhouse.js**](https://github.com/jak3122/crazyhouse.js).\r\n\r\n### Move generation of two example positions for 1k iterations\r\n```javascript\r\nStandard Chess\r\n==================\r\nCall to board.legalMoves() took 27.46  milliseconds.\r\nCall to board.legalMovesStr()+legalMoves.split(\" \") took 24.84  milliseconds.\r\nboard.legalMovesSanStr().split(\" \").length: 29\r\nCall to board.legalMovesSanStr()+legalMoves.split(\" \") took 23.40  milliseconds.\r\nchess.moves().length: 29\r\nCall to chess.moves() took 880.41  milliseconds.\r\nCrazyhouse\r\n===========\r\nboard.legalMovesStr().split(\" \").length: 97\r\nCall to board.legalMoves() took 55.29  milliseconds.\r\ncrazyhouse.moves().length: 97\r\nCall to crazyhouse.moves() took 10257.35  milliseconds.\r\n```\r\n\r\n**ffish.js** is **~35x** faster than **chess.js** and **~185x** faster than **crazyhouse.js** for SAN move generation.\r\n\r\nYou can find the code of the testing server here:\r\n* https://github.com/QueensGambit/Fairy-Stockfish/tree/ffish_js/tests/js\r\n\r\nCurrently, there are two versions for generating the moves.\r\n\r\n`board.legalMovesSan()` and `board.legalMovesSanStr()`. The former returns the moves as a vector of strings and the later as a concatenated string with whitespaces.\r\nSurprisingly, the concatenated string plus a splitting operation is faster than the vector form as seen above.\r\nIf you agree, I suggest to remove the vector form then.\r\n\r\nAnother thing which I found odd, is that `board.legalMovesSanStr()` is slightly faster than generating the moves in UCI form by using `board.legalMovesStr()`.\r\n\r\n## TODOs\r\n\r\nThere are still few important TODOs:\r\n* Adding a `pushSan()` function which requires converting a SAN move to _Fairy-Stockfish's_ move representation\r\n* Validating FEN strings\r\n* Loading PGN files\r\n\r\nI can imagine that a native _Stockfish_ or _Multi-Variant-Stockfish_ version **fish.js**/**mvfish.js** for standard chess is 15x/10x faster than **ffish.js**.\r\n\r\nIt might be interesting to run a performance comparision with the [lichess-Scala-API](https://github.com/ornicar/scalachess) then.\r\nI saw that you also added a bughouse backend to _Fairy-Stockfish_. Lichess still doesn't support boughouse, so it could benefit from accessing your API via **ffish.js**.\r\n\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Wow, that is awesome. The performance also sounds very promising, although I agree that most likely a pure fish.js version could perhaps be ~10x faster as also perft is ~10x faster, but considering the already quite good performance compared to other libraries it probably will not be the bottleneck anyway. Below I have some more feedback:\r\n\r\n- The addition of the `ffishjs.cpp` breaks the existing appveyor builds\r\n  - The MSVC build must exclude the new file, see https://github.com/ianfab/Fairy-Stockfish/blob/f712f6f2d455ebe570e406edc369d332d5d655ab/appveyor.yml#L35\r\n  - The python extension also needs to exclude the new source file to work, see https://github.com/ianfab/Fairy-Stockfish/blob/f712f6f2d455ebe570e406edc369d332d5d655ab/setup.py#L27-L30\r\n- For source files that are purely Fairy-Stockfish code and do not originate from official SF (as for apiutil.h) I usually use a different copyright header, see e.g., variant.h or the like.\r\n- Including the building with emscripten and ideally also a few tests in the CI would be nice to avoid future regressions.\r\n- SF source code usually uses the convention to have opening braces for if/for (not for functions, methods, or classes) on new lines, and to skip them if not required (for single statements).\r\n- A simple stupid implementation of pushSan could be to just generate the list of legal SAN moves and compare the given string to them (same approach is used to parse coordinate notation, see https://github.com/ianfab/Fairy-Stockfish/blob/f712f6f2d455ebe570e406edc369d332d5d655ab/src/uci.cpp#L433-L435 This would of course neither be a very robust parsing (e.g., failing on optional disambiguation) nor the most performant, but might be sufficient for now.\r\n- FEN validation is planned since it is also required for pyffish and the CECP protocol, see https://github.com/ianfab/Fairy-Stockfish/issues/87 (but I have not started on it yet).\r\n\r\nThe first point is the only one I see as a must to include in this PR, everything else can be optional and also be done at a later point.",
+        "timestamp": "2020-06-27T07:34:16Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "I addressed your points.\r\n\r\n* I excluded `ffishjs.cpp` from the `pyffish` build.\r\n\r\n* The license of `apiutil.h`was updated and the following license header was added to `ffishjs.cpp`:\r\n```\r\n/*\r\n  ffish.js, a JavaScript chess variant library derived from Fairy-Stockfish\r\n  Copyright (C) 2020 Fabian Fichter, Johannes Czech\r\n  ffish.js is free software: you can redistribute it and/or modify\r\n  it under the terms of the GNU General Public License as published by\r\n  the Free Software Foundation, either version 3 of the License, or\r\n  (at your option) any later version.\r\n  ffish.js is distributed in the hope that it will be useful,\r\n  but WITHOUT ANY WARRANTY; without even the implied warranty of\r\n  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\r\n  GNU General Public License for more details.\r\n  You should have received a copy of the GNU General Public License\r\n  along with this program.  If not, see <http://www.gnu.org/licenses/>.\r\n*/\r\n```\r\nIf you want we can choose a different license here.\r\n\r\nI also added some new wrapper function:\r\n* Board()\r\n* Board(std::string uciVariant, std::string fen, bool is960)\r\n* pushSan()\r\n* pop()\r\n* reset()\r\n* is960()\r\n* turn()\r\n* gamePly()\r\n* isGameOver()\r\n\r\nRenamed / replaced:\r\n* legalMovesStr to legalMoves\r\n* legalMovesSanStr to legalMovesSan\r\n\r\n\r\nI added a unit test for every method using [mocha](https://mochajs.org/):\r\n\r\n```js\r\nnpm test\r\n\r\n  Constructor: no parameter \r\n    ✓ it creates a chess board from the default position (98ms)\r\n\r\n  Constructor: variant parameter \r\n    ✓ it creates a board object from a given UCI-variant\r\n\r\n  Constructor: variant parameter + fen \r\n    ✓ it creates a board object for a given UCI-variant with a given FEN\r\n\r\n  Constructor: variant parameter + fen + is960\r\n    ✓ it creates a board object for a given UCI-variant with a given FEN and is960 identifier\r\n\r\n  board.legalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.legalMovesSan()\r\n    ✓ it returns all legal moves in SAN notation as a concatenated string\r\n\r\n  board.numberLegalMoves()\r\n    ✓ it returns all legal moves in uci notation as a concatenated string\r\n\r\n  board.push()\r\n    ✓ it pushes a move in uci notation to the board\r\n\r\n  board.pushSan()\r\n    ✓ it pushes a move in san notation to the board\r\n\r\n  board.pop()\r\n    ✓ it undos the last move\r\n\r\n  board.reset()\r\n    ✓ it resets the board to its starting position\r\n\r\n  board.is960()\r\n    ✓ it checks if the board originates from a 960 position\r\n\r\n  board.fen()\r\n    ✓ it returns the current position in fen format\r\n\r\n  board.setFen()\r\n    ✓ it sets a custom position via fen\r\n\r\n  board.sanMove()\r\n    ✓ it converts an uci move into san\r\n\r\n  board.turn()\r\n    ✓ it returns the side to move\r\n\r\n  board.halfmoveClock()\r\n    ✓ it returns the halfmoveClock / 50-move-rule-counter\r\n\r\n  board.gamePly()\r\n    ✓ it returns the current game ply\r\n\r\n  board.isGameOver()\r\nr1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4\r\n    ✓ it checks if the game is over based on the number of legal moves\r\n\r\n\r\n  19 passing (260ms)\r\n```\r\nThe corresponding `appveyor.yml` file needs to be created to integrate the tests into CLI.\r\n\r\nSomehow the CI is still failing.\r\n\r\nIf version 0.1 is done we could publish it on [npm](https://www.npmjs.com/).",
+        "timestamp": "2020-06-29T00:59:38Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "I added another commit https://github.com/QueensGambit/Fairy-Stockfish/commit/589fa3d13dba0fea5c53eff297ced7710399d40e to the **ffish_js** branch which tries to fix the pyffish CLI but GitHub doesn't seem to update the PR properly. Maybe it has something to do with the current incidents:\r\n* https://www.githubstatus.com/incidents/d60fmldlvw48?utm_ts=1593423886",
+        "timestamp": "2020-06-29T11:20:19Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Sorry, I wanted to comment the solution here hours ago already, but due to github incidents I was not able to.\r\n\r\nI missed that the glob does not expand since it is a fixed path, so it remains with `/`. I now checked on Windows that using `os.path.join` works fine when constructing a path and removing it from a list of paths of a glob (i.e., I assume simply `sources.remove(os.path.join(\"src\", \"ffishjs.cpp\"))` should work.",
+        "timestamp": "2020-06-29T11:24:02Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "Should I create a new PR or can you push this change to the PR?\r\nAs mentioned, the PR wasn't updated properly.",
+        "timestamp": "2020-06-29T11:31:35Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I assume you are reffering to https://github.com/QueensGambit/Fairy-Stockfish/commit/589fa3d13dba0fea5c53eff297ced7710399d40e. However, I think this will not fix it, since normcase does not do the `/`->`\\\\` separator change of the path for windows (Edit: oh it does, I was not aware). If the PR does not update, then maybe squashing and force pushing might trigger it. ",
+        "timestamp": "2020-06-29T11:36:48Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "The force push indeed seems to have triggered it. From my perspective it looks fine, I will just wait for the CI to succeed and will then probably merge it in the evening. However, since a squash merge from my side would make me the author of the commit it would be nice if you could squash all your changes into one commit before I merge it in order to retain the author information. Thanks a lot again for your contribution.",
+        "timestamp": "2020-06-29T12:09:13Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2f40d6a",
+        "message": "Added initial version of ffish.js",
+        "author": "QueensGambit",
+        "timestamp": "2020-06-29T12:22:45Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#724",
+    "metadata": {
+      "title": "add Gale",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-10-31T10:26:38Z",
+      "reviewers": [],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks. I have some doubts though whether this is worth it, considering that this seems like a very special case and rather many new config values for a single variant, so I currently slightly tend towards not merging this.\r\n\r\n\r\nHowever, supporting file wildcards and rank 10 squares in the bitboard parsing of course would be useful, so that might be worth an independent PR. I would just suggest to use a `a*` syntax for that, since the `*` was at least by me intended like a wildcard, so `*1` means the file is a wildcard, while `a*` would mean the rank is a wildcard.",
+        "timestamp": "2023-09-29T08:54:14Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "Well, your project so up to you.\r\n\r\nThe different wildcard for files looks doable.",
+        "timestamp": "2023-09-30T00:39:25Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "Well, I flipped the order in the commit message, but you know what I mean",
+        "timestamp": "2023-09-30T00:51:41Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, what about instead of four configuration rules, there was a single ConnectionRule config where different connection rules were added as needed.\r\nie.\r\n```\r\n# [ConnectionRule]: connection-win rule [cross, cross-rotated, opposite, center, none]\r\n# - cross: white trying to connect north-south, black east-west (ie. Gale)\r\n# - cross-rotated: white trying to connect east-west, black north-south\r\n# - opposite: either player trying to connect north-south, or east-west (ie. Tak)\r\n# - center: either player trying to connect any 4-square corner with 9-square center (ie. Abak)\r\n```\r\nAny other misc connection rule that was mutually exclusive with the other connection rules could be added here as well.\r\n\r\nThis config is just an example, I am still only planning to add Gale in this Request.",
+        "timestamp": "2023-10-13T00:43:56Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I prefer your current approach compared to the new suggestion, it feels more transparent and flexible.\r\n\r\nI think there is a bug in your current implementation though if I understand it correctly. It does not seem to check whether the starting zone is occupied, it just loops over all starting squares. That is also where I think the implementation could potentially be much more efficient. E.g., one could first determine the two `var->connectRegion1[~sideToMove] & pieces(~sideToMove)` and `var->connectRegion2[~sideToMove] & pieces(~sideToMove)` and both have to be truthy to have a chance of connecting at all.\r\n\r\nAnd one could then beyond that probably also check the connectivity on a Bitboard level, basically the same as you do now, just not doing it per square, like\r\n```\r\nif (   (var->connectRegion1[~sideToMove] & pieces(~sideToMove))\r\n    && (var->connectRegion2[~sideToMove] & pieces(~sideToMove)))\r\n{\r\n    Bitboard target = var->connectRegion2[~sideToMove];\r\n    Bitboard current = var->connectRegion1[~sideToMove] & pieces(~sideToMove);\r\n    while (true)\r\n    {\r\n        Bitboard new = 0;\r\n        for (Direction d : var->connect_directions)\r\n            new |= shift(d, current | new) & pieces(~sideToMove); // the \"| new\" here probably saves a few loops\r\n        if (!(new & ~current) || (new & target))\r\n            break; // either got stuck or succeeded\r\n    }\r\n    // check result\r\n    ...\r\n}\r\n```\r\nNot necessarily the best implementation, but might be a rough direction one could go towards to speed it up.\r\n\r\nEdit: Doing the same from both sides and doing a meet in the middle might potentially be more efficient, but haven't really thought much about it.",
+        "timestamp": "2023-10-13T13:20:58Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "1. The ConnectionRule suggestion. I am just looking ahead. Adding the four zones is still a fine solution for the game I want to add. I had a look at Ludii at Connection games. Besides hexes and more complicated geometry there was:\r\n- Crossway, Gale, Resolve, Scaffold, Tara, Troll - would be covered by proposed \"cross\" or \"cross-rotated\" \r\n- Gonnect, Tak - would require an additional rule configuration anyway to specify that either player can connect north-south, or east-west.\r\n- Abak - connect any 4-square corner with 9-square center. would require an additional zone and an additional rule configuration to specify how it interacts.\r\n- Pippinzip, Pippinzip (Zipline) - \"If Black connects any two sides of the board with a single orthogonally-connected group, they win; White wins if they connect all four sides with a group connected either orthogonally or diagonally.\" at least one additional rule configuration.\r\n2. Starting zone occupation. Yes, I just tested with Gale, where both sides are guaranteed to be occupied. Using your suggestion.\r\n3. Bitboard optimizations. Using your suggestion.\r\n4. Reserved word \"new\" can't be as a variable name. Changing your suggestion.\r\n5. I understand what you mean by meeting in the middle. If you think it's worth it, I can take a shot.",
+        "timestamp": "2023-10-21T23:49:30Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks, it looks good to me now. However, after merging the other PR this now seems to have merge conflicts to resolve.",
+        "timestamp": "2023-10-24T20:09:52Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "I think this solves the conflicts.",
+        "timestamp": "2023-10-28T22:22:39Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "fb2398e",
+        "message": "add Gale",
+        "author": "rainrat",
+        "timestamp": "2023-09-20T05:08:54Z"
+      },
+      {
+        "sha": "36f9199",
+        "message": "wasn't supporting columns like '*a' in bitboard parser",
+        "author": "rainrat",
+        "timestamp": "2023-09-20T22:13:06Z"
+      },
+      {
+        "sha": "36680a7",
+        "message": "modify file wildcards to accept '*a' rather than 'a*'",
+        "author": "rainrat",
+        "timestamp": "2023-09-30T00:32:28Z"
+      },
+      {
+        "sha": "7a34433",
+        "message": "Merge branch 'master' into newvariants17",
+        "author": "RainRat",
+        "timestamp": "2023-09-30T00:33:46Z"
+      },
+      {
+        "sha": "f3eda38",
+        "message": "incorporate review suggestions",
+        "author": "rainrat",
+        "timestamp": "2023-10-21T23:26:37Z"
+      },
+      {
+        "sha": "0120a2a",
+        "message": "remove diff.txt",
+        "author": "rainrat",
+        "timestamp": "2023-10-22T00:20:16Z"
+      },
+      {
+        "sha": "02d0eca",
+        "message": "Merge branch 'master' into newvariants17",
+        "author": "RainRat",
+        "timestamp": "2023-10-26T05:08:17Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#907",
+    "metadata": {
+      "title": "Fix atomic SEE and endgames",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-08-22T20:43:16Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "* Fix SEE issues with double king explosions\r\n* Fix wrong atomic KQK and KXK endgame evaluation\r\n\r\nCredits to @johndoknjas for the initial fix."
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Performs well on the specific endgame, and no regression for normal play\r\n\r\n## Test results\r\n\r\n### From `2q1k3/4K3/8/8/8/8/8/8 w - - 0 1`\r\n```\r\nELO: 20.87 +-16.2 (95%) LOS: 99.4%\r\nNormalised ELO: 85.21\r\nTotal: 100 W: 6 L: 0 D: 94\r\n```\r\n\r\n### Normal book, HCE, STC\r\n```\r\nELO: 13.90 +-41.6 (95%) LOS: 74.5%\r\nNormalised ELO: 16.16\r\nTotal: 200 W: 78 L: 70 D: 52\r\n```\r\n\r\n### Normal book, NNUE, STC\r\n```\r\nELO: -3.47 +-36.1 (95%) LOS: 42.5%\r\nNormalised ELO: -4.64\r\nTotal: 200 W: 55 L: 57 D: 88\r\n```\r\n\r\n## Search logs\r\n### after\r\n```\r\ninfo depth 1 seldepth 1 multipv 1 score cp 0 nodes 6 nps 3000 tbhits 0 time 2 pv e7d7\r\ninfo depth 2 seldepth 2 multipv 1 score cp 0 nodes 17 nps 8500 tbhits 0 time 2 pv e7d7 c8c1\r\ninfo depth 3 seldepth 3 multipv 1 score cp 0 nodes 54 nps 27000 tbhits 0 time 2 pv e7d8 c8c1 d8d7\r\ninfo depth 4 seldepth 4 multipv 1 score cp 0 nodes 112 nps 56000 tbhits 0 time 2 pv e7d8 c8c1 d8d7 c1a1\r\ninfo depth 5 seldepth 5 multipv 1 score cp 0 nodes 220 nps 110000 tbhits 0 time 2 pv e7d8 c8c1 d8e7 c1d1 e7d8\r\ninfo depth 6 seldepth 6 multipv 1 score cp 0 nodes 386 nps 193000 tbhits 0 time 2 pv e7d8 c8c1 d8e7 c1d1 e7d8\r\ninfo depth 7 seldepth 7 multipv 1 score cp 0 nodes 469 nps 234500 tbhits 0 time 2 pv e7d8 c8c1 d8e7 c1d1 e7d8\r\ninfo depth 8 seldepth 8 multipv 1 score cp 0 nodes 802 nps 401000 tbhits 0 time 2 pv e7d8 c8c1 d8e7 c1d1 e7f6 d1d7 f6e7 d7h3\r\ninfo depth 9 seldepth 10 multipv 1 score cp 0 nodes 1373 nps 686500 tbhits 0 time 2 pv e7d8 c8c1 d8e7 c1d1 e7f6 d1d7 f6f7 d7d8 f7e7 d8d7\r\ninfo depth 10 seldepth 10 multipv 1 score cp 0 nodes 1750 nps 583333 tbhits 0 time 3 pv e7d8 c8c1 d8e7 c1d1 e7f6 d1d7 f6f7 d7d8 f7e7 d8d7\r\ninfo depth 11 seldepth 11 multipv 1 score cp 0 nodes 2736 nps 912000 tbhits 0 time 3 pv e7d8 c8c1 d8e7 c1d1 e7f6 d1d7 f6f7 d7d8 f7e7 d8d7 e7d8\r\ninfo depth 12 seldepth 20 multipv 1 score cp -32 nodes 20496 nps 1576615 tbhits 0 time 13 pv e7d7 e8f7 d7e6 f7f6 e6f5 f6g5 f5g4 g5h4 g4h3 h4h5 h3g4 h5g6 g4f5\r\ninfo depth 13 seldepth 17 multipv 1 score cp -32 nodes 36666 nps 1594173 tbhits 0 time 23 pv e7d7 e8f7 d7e6 f7f6 e6f5 f6e5 f5f4 e5e4 f4f3 e4e3 f3e2 e3f3 e2f2 f3g2 f2g1 g2f2 g1g2 f2f1\r\ninfo depth 14 seldepth 16 multipv 1 score cp -32 nodes 39034 nps 1626416 tbhits 0 time 24 pv e7d7 e8f7 d7e6 f7f6 e6f5 f6e5 f5f4 e5e4 f4f3 e4e3 f3e2 e3f3 e2f2 f3g4 f2f3 g4f4\r\ninfo depth 15 seldepth 19 multipv 1 score cp -32 nodes 44604 nps 1593000 tbhits 0 time 28 pv e7d7 e8f7 d7e6 f7f6 e6f5 f6e5 f5f4 e5e4 f4f3 e4f4 f3g4 f4f3 g4g3 f3f2 g3g2 f2f1 g2f3\r\ninfo depth 16 seldepth 18 multipv 1 score cp -32 nodes 57476 nps 1512526 tbhits 0 time 38 pv e7d7 e8f7 d7e6 f7f6 e6f5 f6e5 f5f4 e5e4 f4f3 e4f4 f3g4 f4f3 g4g3 f3f2 g3g2 f2f1 g2f3 f1g2\r\ninfo depth 17 seldepth 23 multipv 1 score cp -18 nodes 148159 nps 1722779 tbhits 0 time 86 pv e7d7 e8e7 d7e6 c8d7 e6f7 d7e8 f7e6 e8c8 e6e5 c8h3 e5d5 e7f8 d5d6 f8g7 d6e5 h3c8 e5f6 c8c1 f6e6\r\ninfo depth 18 seldepth 24 multipv 1 score cp 0 nodes 240378 nps 1821045 tbhits 0 time 132 pv e7d7 e8e7 d7e6 c8d7 e6d6 e7e8 d6e7 e8d8 e7e8 d8c8 e8d8 c8c7 d8c8 c7d6 c8c7 d6e6 c7d6 e6e7 d6e6 e7d8 e6e7 d8c8\r\ninfo depth 19 seldepth 27 multipv 1 score cp 0 nodes 286429 nps 1836083 tbhits 0 time 156 pv e7d7 e8e7 d7e6 c8d7 e6d6 e7e8 d6e7 e8d8 e7e8 d8e7 e8f7 d7e6 f7e8 e6c8 e8d7 e7f8 d7e7 c8c1 e7e6 c1a1 e6f7 f8g8\r\ninfo depth 20 seldepth 25 multipv 1 score cp -18 nodes 347020 nps 1885978 tbhits 0 time 184 pv e7d7 c8c7 d7e7 c7c6 e7d8 c6d6 d8e7 d6e5\r\n```\r\n\r\n### before\r\n```\r\ninfo depth 1 seldepth 1 multipv 1 score cp 0 nodes 6 nps 6000 tbhits 0 time 1 pv e7d7\r\ninfo depth 2 seldepth 2 multipv 1 score cp 0 nodes 17 nps 17000 tbhits 0 time 1 pv e7d7 c8c1\r\ninfo depth 3 seldepth 3 multipv 1 score cp 0 nodes 47 nps 47000 tbhits 0 time 1 pv e7d8 c8c1 d8d7\r\ninfo depth 4 seldepth 4 multipv 1 score cp 0 nodes 84 nps 84000 tbhits 0 time 1 pv e7f8 c8c1 f8f7 c1a1\r\ninfo depth 5 seldepth 5 multipv 1 score cp 0 nodes 161 nps 80500 tbhits 0 time 2 pv e7f8 c8c1 f8e7 c1a1 e7f8\r\ninfo depth 6 seldepth 6 multipv 1 score cp 0 nodes 318 nps 159000 tbhits 0 time 2 pv e7f8 c8c1 f8e7 c1a1 e7f8 a1h1\r\ninfo depth 7 seldepth 7 multipv 1 score cp 0 nodes 507 nps 253500 tbhits 0 time 2 pv e7f8 c8c1 f8e7 c1a1 e7d8 a1c3 d8e7\r\ninfo depth 8 seldepth 8 multipv 1 score cp 0 nodes 795 nps 397500 tbhits 0 time 2 pv e7f8 c8c1 f8e7 c1a1 e7f7 a1c3 f7e7 c3b4\r\ninfo depth 9 seldepth 11 multipv 1 score cp 0 nodes 2597 nps 865666 tbhits 0 time 3 pv e7f8 c8c1 f8e7 e8d7 e7e6 d7c6 e6d7 c6c7\r\ninfo depth 10 seldepth 12 multipv 1 score cp -1323 nodes 6430 nps 1286000 tbhits 0 time 5 pv e7f8 e8d7 f8e8 c8c1 e8e7 d7c7 e7d6 c1c5\r\ninfo depth 11 seldepth 13 multipv 1 score cp -1323 nodes 7944 nps 1324000 tbhits 0 time 6 pv e7f8 e8d7 f8e8 c8c5 e8e7 d7c7 e7d6 c7b6 d6c7 b6c6 c7d6\r\ninfo depth 12 seldepth 15 multipv 1 score cp 0 nodes 17699 nps 1474916 tbhits 0 time 12 pv e7f8 c8c2 f8e7 e8d7 e7d6 c2d1 d6e6 d7e7\r\ninfo depth 13 seldepth 17 multipv 1 score cp -5537 nodes 55755 nps 1467236 tbhits 0 time 38 pv e7f8 c8c5 f8e7 e8d8 e7d7 c5e7 d7c8 e7c7 c8d7 d8c8 d7e8 c8b7 e8f8\r\ninfo depth 14 seldepth 14 multipv 1 score cp -5537 nodes 58130 nps 1453250 tbhits 0 time 40 pv e7f8 c8c5 f8e7 e8d8 e7d7 c5e7 d7c8 e7c7 c8d7 d8c8 d7e8 c8b7 e8f8 b7a6\r\ninfo depth 15 seldepth 16 multipv 1 score cp -5529 nodes 72904 nps 1518833 tbhits 0 time 48 pv e7f8 c8d7 f8f7 d7b7 f7f6 b7a7 f6e6 a7h7 e6d6 h7d7 d6c5 e8f8 c5b4 f8g8\r\ninfo depth 16 seldepth 16 multipv 1 score cp -5521 nodes 87794 nps 1567750 tbhits 0 time 56 pv e7f8 c8d7 f8f7 e8d8 f7e7 d7c7 e7e6 c7e7 e6d5 d8e8 d5c4 e7f7 c4b4 f7f1\r\ninfo depth 17 seldepth 17 multipv 1 score cp -5534 nodes 145529 nps 1599219 tbhits 0 time 91 pv e7d7 c8a8 d7d6 a8d8 d6c5 e8f8 c5b4 d8c7 b4b5 c7c2 b5b6 c2c6 b6a7 f8g7 a7b8\r\ninfo depth 18 seldepth 18 multipv 1 score cp -5529 nodes 201254 nps 1623016 tbhits 0 time 124 pv e7d7 c8c7 d7e7 c7b7 e7e6 b7d7 e6f6 d7e6 f6g5 e6f7 g5g4 f7g8 g4h4 g8g3 h4h5 e8d8\r\ninfo depth 19 seldepth 19 multipv 1 score cp -5542 nodes 271645 nps 1697781 tbhits 0 time 160 pv e7d7 c8c7 d7e7 c7d8 e7f8 d8d7 f8f7 d7h3 f7g8 h3c8 g8g7 e8d8 g7h7 c8g4 h7h8 d8c7 h8h7\r\ninfo depth 20 seldepth 20 multipv 1 score cp -5430 nodes 323633 nps 1739962 tbhits 0 time 186 pv e7f8 c8e6 f8e7 e6d6 e7f7 d6f8 f7e6 f8f7 e6d6 f7b7 d6e5 b7d5 e5f4 d5e6 f4f3 e6e3 f3g2\r\n```",
+        "timestamp": "2025-08-21T21:06:58Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "A good test to verify the SEE fix: Use starting position with touching kings https://lichess.org/analysis/atomic/rnbq1bnr/pppppppp/8/4k3/4K3/8/PPPPPPPP/RNBQ1BNR_w_-_-_0_1\r\n\r\nResult:\r\n```\r\nELO: 77.71 +-47.2 (95%) LOS: 100.0%\r\nNormalised ELO: 81.46\r\nTotal: 200 W: 113 L: 69 D: 18\r\n```",
+        "timestamp": "2025-08-21T21:40:35Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab Nice. One thing is that stalemates/checkmates still call the evaluate function in search, and then they're both just given a winning eval. But I assume this doesn't really matter due to step 20 in the search?",
+        "timestamp": "2025-08-21T22:11:17Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I assume it likely doesn't make a big difference. The alternative would be to keep the check for legal moves and return the stalemate_value then. I tested it on a few endgame positions and there are some differences, but so far neither is consistently better. So not sure whether to do that. In theory perhaps safer.",
+        "timestamp": "2025-08-22T00:00:20Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab One (albeit small) consideration is the `eval` command will return incorrect values for stalemates/checkmates. But of course whatever helps the overall search is what matters most.\r\n\r\nWhen testing btw, did you return a mate value if no legal moves and the king was attacked? E.g., for KQ vs K, doing something like `return distance(loserKSq, queen) == 1 ? -VALUE_MATE : VALUE_DRAW;`.",
+        "timestamp": "2025-08-22T00:58:53Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I pushed the commit I used for testing. As you said it is more correct way to do it, so as long as it does not show any regression I will keep that change in. Below are examples how it behaves:\r\n\r\n```\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   | k |8 *\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   | Q |   |   |7\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |6\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |5\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |4\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   | K |   |   |   |3\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |2\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |1  \r\n +---+---+---+---+---+---+---+---+\r\n   a   b   c   d   e   f   g   h\r\n\r\nFen: 7k/5Q2/8/8/8/4K3/8/8 b - - 0 1\r\nSfen: 7k/5Q2/8/8/8/4K3/8/8 w - 2\r\nKey: 1007AE65883CC226\r\nCheckers: \r\nChased: \r\ninfo string classical evaluation enabled\r\n\r\n Contributing terms for the classical eval:\r\n+------------+-------------+-------------+-------------+\r\n|    Term    |    White    |    Black    |    Total    |\r\n|            |   MG    EG  |   MG    EG  |   MG    EG  |\r\n+------------+-------------+-------------+-------------+\r\n|   Material |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|  Imbalance |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|      Pawns |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Knights |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Bishops |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Rooks |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Queens |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Mobility |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|King safety |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Threats |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Passed |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Space |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Variant |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Winnable |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n|      Total |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n\r\nClassical evaluation   +0.00 (white side)\r\nFinal evaluation       +0.00 (white side)\r\n\r\n\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   | k |8  \r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   | Q |   |   |7\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |6\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |5\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |4\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   | K |   |   |   |3\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |2\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |1 *\r\n +---+---+---+---+---+---+---+---+\r\n   a   b   c   d   e   f   g   h\r\n\r\nFen: 7k/5Q2/8/8/8/4K3/8/8 w - - 0 1\r\nSfen: 7k/5Q2/8/8/8/4K3/8/8 b - 1\r\nKey: 9FBC787EBC118DF0\r\nCheckers: \r\nChased: \r\ninfo string classical evaluation enabled\r\n\r\n Contributing terms for the classical eval:\r\n+------------+-------------+-------------+-------------+\r\n|    Term    |    White    |    Black    |    Total    |\r\n|            |   MG    EG  |   MG    EG  |   MG    EG  |\r\n+------------+-------------+-------------+-------------+\r\n|   Material |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|  Imbalance |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|      Pawns |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Knights |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Bishops |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Rooks |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Queens |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Mobility |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|King safety |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Threats |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Passed |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Space |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Variant |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Winnable |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n|      Total |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n\r\nClassical evaluation   +48.89 (white side)\r\nFinal evaluation       +48.89 (white side)\r\n\r\n\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   | k |8 *\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   | Q |   |7\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |6\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |5\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |4\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   | K |   |   |   |3\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |2\r\n +---+---+---+---+---+---+---+---+\r\n |   |   |   |   |   |   |   |   |1  \r\n +---+---+---+---+---+---+---+---+\r\n   a   b   c   d   e   f   g   h\r\n\r\nFen: 7k/6Q1/8/8/8/4K3/8/8 b - - 0 1\r\nSfen: 7k/6Q1/8/8/8/4K3/8/8 w - 2\r\nKey: 98BB3178AD1AF50E\r\nCheckers: \r\nChased: \r\ninfo string classical evaluation enabled\r\n\r\n Contributing terms for the classical eval:\r\n+------------+-------------+-------------+-------------+\r\n|    Term    |    White    |    Black    |    Total    |\r\n|            |   MG    EG  |   MG    EG  |   MG    EG  |\r\n+------------+-------------+-------------+-------------+\r\n|   Material |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|  Imbalance |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n|      Pawns |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Knights |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Bishops |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Rooks |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Queens |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Mobility |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|King safety |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Threats |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|     Passed |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|      Space |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|    Variant |  0.00  0.00 |  0.00  0.00 |  0.00  0.00 |\r\n|   Winnable |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n|      Total |  ----  ---- |  ----  ---- |  0.00  0.00 |\r\n+------------+-------------+-------------+-------------+\r\n\r\nClassical evaluation   +153.85 (white side)\r\nFinal evaluation       +151.48 (white side)\r\n```",
+        "timestamp": "2025-08-22T10:13:41Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Performance between these two versions is basically indistinguishable, so I will keep the better behaving one:\r\n\r\n```\r\nELO: 1.16 +-14.8 (95%) LOS: 56.1%\r\nNormalised ELO: 1.37\r\nTotal: 1500 W: 538 L: 533 D: 429\r\n```\r\n\r\n### commit 1\r\n```\r\nPosition: 1/2 (7k/5Q2/8/8/8/4b3/3P4/6K1 w - - 0 1)\r\ninfo string classical evaluation enabled\r\ninfo depth 1 seldepth 1 multipv 1 score cp 4908 nodes 6 nps 6000 tbhits 0 time 1 pv d2e3\r\ninfo depth 2 seldepth 2 multipv 1 score cp 800 nodes 33 nps 33000 tbhits 0 time 1 pv g1g2 e3d4 d2d3\r\ninfo depth 3 seldepth 3 multipv 1 score cp 807 nodes 86 nps 86000 tbhits 0 time 1 pv g1h1 e3b6 d2d4\r\nbestmove g1h1 ponder e3b6\r\n\r\nPosition: 2/2 (7k/4Q3/8/8/8/4b3/3P4/6K1 w - - 0 1)\r\ninfo string classical evaluation enabled\r\ninfo depth 1 seldepth 1 multipv 1 score cp 4908 nodes 6 nps 6000 tbhits 0 time 1 pv d2e3\r\ninfo depth 2 seldepth 2 multipv 1 score cp 4857 nodes 13 nps 13000 tbhits 0 time 1 pv d2e3 h8g8\r\ninfo depth 3 seldepth 3 multipv 1 score cp 4808 nodes 23 nps 23000 tbhits 0 time 1 pv d2e3 h8g8 g1h1\r\nbestmove d2e3 ponder h8g8\r\n```\r\n\r\n### commit 2\r\n```\r\nPosition: 1/2 (7k/5Q2/8/8/8/4b3/3P4/6K1 w - - 0 1)\r\ninfo string classical evaluation enabled\r\ninfo depth 1 seldepth 1 multipv 1 score cp 799 nodes 6 nps 3000 tbhits 0 time 2 pv g1g2\r\ninfo depth 2 seldepth 2 multipv 1 score cp 821 nodes 20 nps 10000 tbhits 0 time 2 pv g1g2 e3f2\r\ninfo depth 3 seldepth 3 multipv 1 score cp 800 nodes 55 nps 27500 tbhits 0 time 2 pv g1g2 e3d4 d2d3\r\nbestmove g1g2 ponder e3d4\r\n\r\nPosition: 2/2 (7k/4Q3/8/8/8/4b3/3P4/6K1 w - - 0 1)\r\ninfo string classical evaluation enabled\r\ninfo depth 1 seldepth 1 multipv 1 score cp 4908 nodes 6 nps 6000 tbhits 0 time 1 pv d2e3\r\ninfo depth 2 seldepth 2 multipv 1 score cp 4857 nodes 13 nps 13000 tbhits 0 time 1 pv d2e3 h8g8\r\ninfo depth 3 seldepth 3 multipv 1 score cp 4808 nodes 23 nps 23000 tbhits 0 time 1 pv d2e3 h8g8 g1f1\r\nbestmove d2e3 ponder h8g8\r\n```\r\n\r\n",
+        "timestamp": "2025-08-22T11:51:39Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "7c99fba",
+        "message": "Fix atomic SEE and endgames\n\n* Fix SEE issues with double king explosions\n* Fix wrong atomic KQK and KXK endgame evaluation\n\nCredits to @johndoknjas for the initial fix.",
+        "author": "Fabian Fichter",
+        "timestamp": "2025-08-21T20:44:08Z"
+      },
+      {
+        "sha": "02273bd",
+        "message": "Correctly evaluate KXK stalemate/checkmate",
+        "author": "Fabian Fichter",
+        "timestamp": "2025-08-22T10:06:28Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#909",
+    "metadata": {
+      "title": "Fix bug with antichess K vs N",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-09-14T15:14:22Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "- In the first if statement of the diff, `if (pos.side_to_move() == strongSide && (attacks_bb<KNIGHT>(NSq) & KSq))` is a bug. I think the intention is to see if the king is attacking the knight, so I fixed it to that.\r\n- In some cases where the king is to move and it's on the edge (e.g., Kg1 and Ne2), the knight attacking the king actually does mean that the knight wins (but only if the king is not attacking any other squares the knight attacks). So I rewrote the code to handle all cases where the king and knight attack each other or share attacks.\r\n\r\nBriefly tested with a few positions, but haven't done a fishtest (http://www.variantfishtest.org:6543/tests doesn't load for me)."
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I read this code again and as far as I can see it was fully intentional.\r\n\r\nScenario 1: If the knight attacks the king and the king is to move, the knight side always wins by premoving to the king square.\r\nScenario 2: If the king and knight attack a common square and the knight is to move, it can sacrifice itself on that square.\r\n\r\nScenario 2 seems to miss the scenario where the knight already attacks the king, apart from that it looks fine. And in case of mandatory captures pruning is generally skipped, so it is unlikely to be a problem.\r\n\r\nNote that you can not use mate values in endgame evaluation, because it does not know about the current depth at which this position occurred (ss->ply).\r\n\r\nRegarding fishtest, I put it down some time ago due to inactivity to save costs, and it likely won't come back.\r\n\r\nEdit: One additional note. As the (somewhat brief) comment indicates, the general idea was to only catch the cases where the knight wins, because afterwards it assumes the king wins.",
+        "timestamp": "2025-08-22T20:37:30Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab In scenario 1 though, we could have something like Ke4 and Nc5. Premoving Ne4 wouldn't work since the king can go to d3.",
+        "timestamp": "2025-08-23T02:48:15Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Oops, in that case it was intentional but wrong. Nonetheless the rest of the comment stands as CR feedback.",
+        "timestamp": "2025-08-23T05:36:10Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab Updated to only change the first if statement. For some reason though, stockfish now can't find as quick a mate in this fen: `n7/8/8/8/8/8/8/7K w - - 0 1`. Can't figure out why.",
+        "timestamp": "2025-08-23T08:23:33Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "For me the example you mentioned works fine with your current code. However, I noticed that it is much less trivial than I thought to figure out all exceptions where the knight wins than I had thought, and now better understood why you initially wrote the code the way you did. So for testing I removed the mate scores and added an exception for king in the corner, because e.g. with king in the corner and knight in the corresponding center square (e.g., Kh1 Ne4) the knight wins with either(!) side to move.\r\n\r\nI have the feeling the king in the corner exception might be a bit overkill, but didn't have time to do any extensive comparison in terms of how it helps search yet, but at least in terms of evaluation this seems pretty accurate.\r\n\r\n```\r\n/// K vs N. The king usally wins, but there are a few exceptions.\r\ntemplate<>\r\nValue Endgame<KN, EG_EVAL_ANTI>::operator()(const Position& pos) const {\r\n\r\n  assert(pos.endgame_eval() == EG_EVAL_ANTI);\r\n\r\n  Square KSq = pos.square<COMMONER>(strongSide);\r\n  Square NSq = pos.square<KNIGHT>(weakSide);\r\n  Bitboard kingAttacks = attacks_bb<KING>(KSq);\r\n  Bitboard knightAttacks = attacks_bb<KNIGHT>(NSq);\r\n  bool strongSideToMove = pos.side_to_move() == strongSide;\r\n\r\n  if (strongSideToMove ? kingAttacks & NSq : knightAttacks & KSq)\r\n      return VALUE_TB_LOSS_IN_MAX_PLY + 1;\r\n  if (kingAttacks & knightAttacks)\r\n      return VALUE_TB_WIN_IN_MAX_PLY - 2;\r\n  if (strongSideToMove ? knightAttacks & KSq : kingAttacks & NSq)\r\n      return VALUE_TB_LOSS_IN_MAX_PLY + 3;\r\n\r\n  Value result = Value(push_to_edge(NSq, pos)) - push_to_edge(KSq, pos);\r\n  if (!(KSq & (SQ_A1 | SQ_A8 | SQ_H1 | SQ_H8)))\r\n      result += VALUE_KNOWN_WIN;\r\n\r\n  return strongSide == pos.side_to_move() ? result : -result;\r\n}\r\n```",
+        "timestamp": "2025-08-24T11:54:51Z"
+      },
+      {
+        "author": "johndoknjas",
+        "role": "CONTRIBUTOR",
+        "body": "@ianfab I've applied your patch, thanks. There's also scenarios where a knight can beat a king anywhere on the edge. E.g., Ke1 and Nc2/Ng2, when it is the king to move. This also means any position with Ke1 and the knight a move away from c2/g2 will be a win for the knight, when it is its turn. I've added a new commit that tries to handle all cases where a knight can win (not sure how it'll behave in fishtest though).\r\n\r\nFor what I was talking about for the longer mate, this branch finds a mate in 8 by depth 18, and a mate in 7 by depth 21. For the master branch though, a mate in 7 is found by depth 15. After the newest 5afc03b commit though, mate in 7 is found at depth 17.",
+        "timestamp": "2025-08-25T23:18:30Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks, right, I forgot about the other cases. However, there is a trade-off between complexity and accuracy, so I would like to stop before those non-trivial exceptions, as mentioned my own exclusion of corner kings already almost felt like overkill, although it at least codewise is simple. There is still search to handle the rest, it is sufficient to be a fairly decent heuristic. If we really want to make sure to avoid false win predictions, something simpler could be to just generalize the exception I made, like\r\n```\r\n-  if (!(KSq & (SQ_A1 | SQ_A8 | SQ_H1 | SQ_H8)))\r\n+  if (!(KSq & (FileABB | FileHBB | Rank1BB | Rank8BB)))\r\n```\r\nI think there isn't any case with a king not on the edge that doesn't win (apart from the conditions captured before already), so that would keep it conservative and still fairly simple.\r\n\r\n\r\nAs a side note, I think we are using different testing conditions (I use `./stockfish bench antichess 16 1 25 test.epd` with the FEN `n7/8/8/8/8/8/8/7K w - - 0 1` in the test.epd), as for me the latest version finds mate later than the commit before. Maybe you use 8x8 while I currently use the largeboard version. Either way, the difference is small.",
+        "timestamp": "2025-08-26T11:23:35Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f2eb952",
+        "message": "Fix bug in win condition for knight.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-22T01:41:14Z"
+      },
+      {
+        "sha": "73bc557",
+        "message": "Cover all cases where a piece attacks the other piece or a square it controls.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-22T19:22:21Z"
+      },
+      {
+        "sha": "082159e",
+        "message": "Merge branch 'master' into antichess-kn",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-23T08:20:34Z"
+      },
+      {
+        "sha": "608a6b2",
+        "message": "Undo changes, and only update the condition for the knight winning when it is the king to move.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-23T08:21:48Z"
+      },
+      {
+        "sha": "6ef31c6",
+        "message": "Revert \"Undo changes, and only update the condition for the knight winning when it is the king to move.\"\n\nThis reverts commit 608a6b20709013007016576264b8dd1e2110d13f.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-25T23:06:42Z"
+      },
+      {
+        "sha": "b7e7785",
+        "message": "Apply Fabian's suggestions: use TB_LOSS_IN_MAX_PLY, and do not evaluate as a known win if king in corner.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-25T23:12:01Z"
+      },
+      {
+        "sha": "5afc03b",
+        "message": "Do a recursive call to handle all(?) forced win cases for the knight.",
+        "author": "johndoknjas",
+        "timestamp": "2025-08-26T02:58:10Z"
+      },
+      {
+        "sha": "d95547e",
+        "message": "Use improved previous implementation\n\n* More conservative for king on the edge\n* Fix for largeboards",
+        "author": "Fabian Fichter",
+        "timestamp": "2025-09-10T20:51:57Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#638",
+    "metadata": {
+      "title": "Flagvariants",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-04-22T12:15:24Z",
+      "reviewers": [],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "- Add flagPieceBlockedWin (for flagPieceCount >1). If at least one of your flag piece is in the target flag zone, and all spaces in the flag zone are occupied, then you win.\r\n- Moved kono to variants.ini (to more easily try variations of flagPieceBlockedWin)\r\n- Support flagPieceCount in variants.ini\r\n- Add Xhess, Buffalo, Knight's Halma in variants.ini\r\n- Mention Kono and \"Fox and Hounds\" in readme.\r\n- Typo fixes\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks. I don't know of any other variant than kono yet that is using blockers of flag squares, so it is difficult for me to foresee how to best generalize this to make it reusable, since there are multiple ways how to interpret kono as a special case of a more general concept. Open questions e.g. are:\r\n* What should be counted as a blocker? Any occupancy (including own pieces and walls), only opponent pieces, or only specific opponent pieces?\r\n* Since in kono the flag piece count equals the number of flag squares, how should this be treated in the general case? Are we counting blockers always, or only after falling below the required count of free squares (equivalent to what you have now)? Like `flag piece count >= max(required count - blockers, 1)` vs `flag piece count >= max(min(required count, flag square count - blockers), 1)`.\r\n\r\nA small note with regards to performance. Since popcount can potentially be slow depending on hardware, it is best to avoid when not needed. E.g., `popcount(b) >= 1` is equivalent to just `b` in a boolean context, and `popcount(b) == 0` is the same as `!b`.\r\n",
+        "timestamp": "2023-04-11T18:23:58Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "I looked over the Zillions library (breakthrough/race types in specific) and did not find another where blocked piece=win. Usually the rules obligate a move or adjudicate it a different way. If one really wanted to deep dive, they could look into some of the other games that obligate a move and come up with some different generalizations for that.\r\n\r\nSo, currently, the criteria is if at least one flag piece is in the flag zone and none of the squares were *empty*.\r\n-If you had a game with flag pieces and non-flag pieces, AND you got one flag piece in the zone AND you filled the rest with your non-flag pieces, then this option would adjudicate as a win. This is admittedly not ideal.\r\n-Wall squares are not empty squares, so they would be considered blocking.\r\n \r\nI can possibly look at more games to find more ways to generalize, but with just one example, It's hard to generalize.",
+        "timestamp": "2023-04-11T20:35:15Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "1. I did the suggested optimization.\r\n2. I fixed the merge conflict\r\n3. I did a survey of breakthrough variants to see if there were other variations of the \"counting enemy pieces as your own\" rule and as far as I could find, the Kono rule is unique and I don't see any other variations on that rule that need support.\r\n[breakthrough survey.txt](https://github.com/fairy-stockfish/Fairy-Stockfish/files/11256333/breakthrough.survey.txt)\r\n\r\nIf you decide not to merge it, I can put the other proposed changes into a new branch and propose just those.",
+        "timestamp": "2023-04-17T22:34:46Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks a lot for the research and updates. Functionality-wise it looks good to me, but I have some concerns regarding the implementation of the game end conditions. In general it is good practice keep things separate and explicit, so what you wrote makes sense. However, Fairy-Stockfish is very feature heavy and subject to further extension, so I try to reduce the complexity in terms of number of code paths as much as possible, even if that makes the individual code paths maybe a bit harder to read, as it can otherwise quickly get out of hand with many rule configuration options when you try to allow arbitrary combination of rules. This is quite specific to this project and maybe also debatable, but so far this works best for me in this project to keep it maintainable.\r\n\r\nTherefore I would like to rather implement the conditions in a similar (though not necessarily identical) way as my formulas/pseudo-code above. However, I appreciate your efforts and don't like to ask you now to rewrite your functional code. So depending on what you prefer you could either try to update it yourself according to what I am describing if you are interested, or I would also be fine to merge it as is, and then would do the refactoring myself at a later point.",
+        "timestamp": "2023-04-18T19:31:58Z"
+      },
+      {
+        "author": "RainRat",
+        "role": "CONTRIBUTOR",
+        "body": "It's your project so it's up to you. If I had some concrete examples of rules that needed support, I'd be inclined to revise, but I looked high and low and couldn't find anything similar.",
+        "timestamp": "2023-04-19T23:17:32Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "I noticed that I already introduced some inconsistencies with respect to naming and also that `*` (all pieces) is not allowed for flag variants inconsistently with e.g. extinction variants, so it needs a general refactoring, therefore I merged the PR as is.",
+        "timestamp": "2023-04-22T12:34:14Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "646acb9",
+        "message": "add flagPieceBlockedWin for kono. support FlagPieceCount in variant.ini. small doc update",
+        "author": "rainrat",
+        "timestamp": "2023-04-05T05:36:14Z"
+      },
+      {
+        "sha": "274362e",
+        "message": "move kono to variants.ini",
+        "author": "rainrat",
+        "timestamp": "2023-04-05T20:49:45Z"
+      },
+      {
+        "sha": "64ac988",
+        "message": "add xhess. not related to rest of changes, just a small addition",
+        "author": "rainrat",
+        "timestamp": "2023-04-06T18:50:34Z"
+      },
+      {
+        "sha": "a626062",
+        "message": "add pre-atomic",
+        "author": "rainrat",
+        "timestamp": "2023-04-10T02:57:13Z"
+      },
+      {
+        "sha": "0a6425d",
+        "message": "add buffalo, hexapawn, knight's halma",
+        "author": "rainrat",
+        "timestamp": "2023-04-11T16:42:54Z"
+      },
+      {
+        "sha": "9638c11",
+        "message": "going to reduce this pull request to just flag variants to keep it focused",
+        "author": "rainrat",
+        "timestamp": "2023-04-11T16:48:56Z"
+      },
+      {
+        "sha": "0b71422",
+        "message": "add a piecetochartable to make buffalo move intuitive",
+        "author": "rainrat",
+        "timestamp": "2023-04-11T18:19:22Z"
+      },
+      {
+        "sha": "3f4417e",
+        "message": "fix typo",
+        "author": "rainrat",
+        "timestamp": "2023-04-11T18:20:51Z"
+      },
+      {
+        "sha": "a202502",
+        "message": "add suggested optimizations",
+        "author": "rainrat",
+        "timestamp": "2023-04-17T22:26:45Z"
+      },
+      {
+        "sha": "c0d4aae",
+        "message": "Merge branch 'master' into flagvariants",
+        "author": "RainRat",
+        "timestamp": "2023-04-17T22:28:29Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#286",
+    "metadata": {
+      "title": "Refactor FEN validation",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-04-10T16:20:03Z",
+      "reviewers": [],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "  - Support X-FEN validation\r\n  - Support fetching variant list in pyffish\r\n  - Use variant configuration properties more consistently\r\n  - Fix a few corner cases\r\n  - Improve test coverage\r\n  - More consistent formatting\r\n\r\nStill missing:\r\n- Validation of S-Chess and Ouk gating (\"castling\") info"
+    },
+    "discussion_timeline": [
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "@QueensGambit @gbtami If you have any input on the scenarios that should be covered for FEN validation please let me know.",
+        "timestamp": "2021-04-09T13:04:26Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "One convenient feature would be to allow a missing 50-move rule and full move counter.\r\nIn that case, we assume a 50-move rule counter of 0 and a full move counter as 1.\r\nThis is also possible on lichess.org.\r\n\r\ne.g. `4b1k1/1p3p2/4pPp1/p2pP1P1/P2P4/1P1B4/8/2K5 w - -`\r\nand `4b1k1/1p3p2/4pPp1/p2pP1P1/P2P4/1P1B4/8/2K5 w - - 0`\r\nwill be interpreted as a valid FEN and result in \r\n`4b1k1/1p3p2/4pPp1/p2pP1P1/P2P4/1P1B4/8/2K5 w - - 0 1`.\r\n\r\nThis behavior would also require some changes to the `FEN_INVALID_NB_PARTS` check.\r\n\r\nAdditionally, if the side to move information is missing as well, we could assume that it is White's turn to move, again same as on lichess.org.\r\n\r\ne.g. `4b1k1/1p3p2/4pPp1/p2pP1P1/P2P4/1P1B4/8/2K5`\r\nwill be interpreted as a valid FEN and result in \r\n`4b1k1/1p3p2/4pPp1/p2pP1P1/P2P4/1P1B4/8/2K5 w - - 0 1`.\r\n\r\n**Edit:** I just noticed, that Stockfish assumes Black's turn to move, if the move counter is missing.\r\nhttps://github.com/ianfab/Fairy-Stockfish/blob/master/src/position.cpp#L310\r\nI think this is fine as well.\r\n",
+        "timestamp": "2021-04-09T16:11:15Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks, I applied some changes to allow skipping move counts, castling and en passant, or all of them including side to move. Side to move now defaults to white, since that seems more intuitive. The tests now also cover these scenarios.",
+        "timestamp": "2021-04-09T21:40:06Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "A Janggi player,  called @cjssh1002 , reported a few issues in [LiGround#172](https://github.com/ml-research/liground/issues/172) about **ffish.js** regarding the FEN notation.\r\nIn the future I can also ping you, if anything **ffish.js** / _FairyStockfish_ related is reported on _LiGround_.\r\n\r\n\r\n> 2.janggi/janggicasual/janggitraditional/janggimodern\r\n> There are 4 types of rules. We hope to support all four types of rules.\r\n> \r\n>     1. When running janggi on Winboard/xBoard, use the CECP protocol. Currently, Riground uses the UCI protocol. (Add support for moving coordinates)\r\n>        So the starting rank is different.\r\n>        UCI starts at rank 1, but CECP starts at rank 0.\r\n>        So the PGN is not compatible.\r\n>        Separate the coordinates or ask for support to run in CECP mode.\r\n> \r\n>     2. FEN compatibility recognition problem [ex. v->add_piece(JANGGI_ELEPHANT,'b','e');]\r\n>        rhea1aehr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RHEA1AEHR w 0 1 (Winboard/Xboard)\r\n>        rnba1abnr/4k4/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/4K4/RNBA1ABNR w - - 0 1 (Riground)\r\n> \r\n> \r\n> Ask them to be able to recognize the following pieces as well.\r\n> n/N = h/H\r\n> b/B = e/E\r\n> w - - 0 1 = w 0 1\r\n\r\nWould changing the piece names for Janggi break certain things, or is a sort of _hack_ required to convert the piece names for Janggi?\r\n",
+        "timestamp": "2021-04-10T11:32:20Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "The support for the alternative piece symbols is just for compatibility with Winboard/XBoard, e.g., also for Xiangqi. Since Fairy-Stockfish supports parsing such FENs, we can also allow it in the FEN validation. On the output side I would however always use the standard names.",
+        "timestamp": "2021-04-10T13:33:26Z"
+      },
+      {
+        "author": "QueensGambit",
+        "role": "CONTRIBUTOR",
+        "body": "Sounds good to me.",
+        "timestamp": "2021-04-10T14:17:44Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "01d64b3",
+        "message": "Refactor FEN validation\n\n- Support X-FEN validation\n- Support fetching variant list in pyffish\n- Use variant configuration properties more consistently\n- Fix a few corner cases\n- Improve test coverage\n- More consistent formatting\n\nCloses #87.",
+        "author": "Fabian Fichter",
+        "timestamp": "2021-04-09T15:52:57Z"
+      }
+    ]
+  },
+  {
+    "story_id": "fairy-stockfish/Fairy-Stockfish#44",
+    "metadata": {
+      "title": "Support XBoard protocol (close #37)",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-11-03T16:29:19Z",
+      "reviewers": [],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "Implements CECP/XBoard as third supported protocol besides UCI and USI.\r\n\r\nSince I am not an expert on the CECP protocol, independent testing or review is very welcome. So far I tested analysis and game play with XBoard and cutechess for a few variants, which seems to be working fine.\r\n\r\nImplementation is based on specification in https://www.gnu.org/software/xboard/engine-intf.html#8."
+    },
+    "discussion_timeline": [
+      {
+        "author": "alwey",
+        "role": "CONTRIBUTOR",
+        "body": "I tested the PR version and it worked very well (for standard chess and mini shogi). Minor issue: I noticed that the mate-scores in xboard-mode are not quite compatible with the specs, e.g. giving a score of 500.03 instead of 499.97 (old spec) or 1000.03 (new spec).",
+        "timestamp": "2019-11-03T17:09:47Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Thanks, I will check the mate score issue.",
+        "timestamp": "2019-11-03T17:28:29Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Lol, first I thought I had a sign error, but then I noticed I overlooked a division by two. Anyhow, it should be fixed now.\r\n\r\nDo you by chance know whether there is any (well-known) GUI that does not send the time/otim commands to sync the clocks? I am asking because SF does not keep track of the time at all, it just relies on that the GUI always sends the time command.",
+        "timestamp": "2019-11-03T18:13:52Z"
+      },
+      {
+        "author": "alwey",
+        "role": "CONTRIBUTOR",
+        "body": "AFAIK fairly recent UIs that support Xboard protocol V2 will send `time` / `otim` if `feature time=1`, which is the default.  Perhaps it would be good to issue `feature .... time=1` explicitely.\r\n\r\nThe initial mechanism for time control is based on the `level` command and Xboard-engines were expected to have their own time measurement, especially protocol V1 engines. So this is an example of the fact that UCI engines are simpler and Xboard engines are more complex. \r\n",
+        "timestamp": "2019-11-04T11:18:32Z"
+      },
+      {
+        "author": "ianfab",
+        "role": "MEMBER",
+        "body": "Since time=1 is the default according to the spec, I did not include it, but I can of course add it to be safe. I just tried to keep the xboard state machine as small as possible, so if all protocol compliant GUIs send the time command when enabled, then it should be fine.",
+        "timestamp": "2019-11-04T11:46:32Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "517849c",
+        "message": "Support XBoard protocol (close #37)",
+        "author": "Fabian Fichter",
+        "timestamp": "2019-11-01T20:36:31Z"
+      }
+    ]
+  }
+]

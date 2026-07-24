@@ -1,0 +1,1245 @@
+[
+  {
+    "story_id": "bevyengine/bevy#18670",
+    "metadata": {
+      "title": "Remote entity reservation v9",
+      "labels": [
+        "C-Feature",
+        "A-ECS",
+        "M-Migration-Guide",
+        "X-Needs-SME",
+        "S-Waiting-on-SME"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-01-23T02:53:26Z",
+      "reviewers": [
+        "NthTensor",
+        "Brezak",
+        "andriyDev",
+        "ElliottjPierce",
+        "chescock"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "fixes #18003\r\n\r\n# Objective\r\n\r\nIt's version 9 of the same objective lol. For assets as entities, we need entities to be able to be reserved from any thread. Ideally, this can be done without depending on an async context, blocking, or waiting. Any of these compromises *could* hurt asset performance or discontinue the completely non-blocking nature of the asset system. \r\n\r\nAs a bonus, this PR makes allocating entities only need `&Entities` instead of `&mut`. `Entities::flush` is now completely optional, meaning none of the `Entities` methods depends on the flush at all, and there is protection against flushing an entity twice.\r\n\r\n(If you're curious, v9 actually branched from v8. v8 was focused on #18577 (never flush entities), but this still includes flushing.)\r\n\r\n> There's a doc [here](https://hackmd.io/@bevy/Bkjgqvcblx) that builds some background for this too. If you haven't been following this I'd highly recommend reading that before diving into the code.\r\n\r\n## Solution\r\n\r\nOrganizationally, I split off the underlying `EntityAllocator` from `Entities`. This makes it easier to read, etc, now that it's more involved.\r\n\r\nThe basic problem is that we need to be able to allocate an entity from any thread at any time. We also need to be able to free an entity. So at the allocator level, that's 3 operations: `free`, `alloc` (For when you know `free` isn't being called), and `remote_alloc` (can be called any time). None of these can require mutable access.\r\n\r\nThe biggest challenge is having a list of entities that are `free` and waiting to be re-used. The list needs to be fully functional without mutable access, needs to be resizable, and needs to be pinned in memory. I ended up using a strategy similar to [`SplitVec`](https://docs.rs/orx-split-vec/latest/orx_split_vec/). That dependency requires `std`, and knowing the max capacity ahead of time lets us simplify the implementation, so I made my own implementation here.\r\n\r\n## Testing\r\n\r\nNo new tests right now. It might be worth using [loom](https://docs.rs/loom/latest/loom/) at some point, but that requires an additional dependency, test-specific loom feature flags, and giving this treatment to multiple crates, especially bevy_platform. \r\n\r\n## Future work\r\n\r\n#18577 is still a good end game here IMO. Ultimately, (just like @maniwani said would happen), I decided that doing this all at once would be both too challenging and add too much complexity. However, v9 makes \"never flush\" much, *much* more approachable for the future. The biggest issues I ran into were that lots of places hold a reference to an entity's `Archetype` (but the entity now might not have an archetype) and that checking archetypes everywhere *might* actually be less performant than flushing. Maybe.\r\n\r\nWe can also potentially speed up a lot of different processes now that `alloc` can be called without mutable access and `free` (etc.) can be called without needing to `flush` first.\r\n\r\n## Costs\r\n\r\n<details>\r\n  <summary>Benchmarks</summary>\r\n\r\n```txt\r\ngroup                                           main_baseline                           remote_reservation_v9_baseline\r\n-----                                           -------------                           ------------------------------\r\nadd_remove/sparse_set                           1.06   625.2±42.08µs        ? ?/sec     1.00   591.8±24.97µs        ? ?/sec\r\nadd_remove/table                                1.00   883.9±66.56µs        ? ?/sec     1.06   941.1±34.62µs        ? ?/sec\r\nadd_remove_very_big/table                       1.08     37.7±2.55ms        ? ?/sec     1.00     34.9±0.76ms        ? ?/sec\r\nadded_archetypes/archetype_count/1000           1.13  688.8±175.58µs        ? ?/sec     1.00  608.6±137.61µs        ? ?/sec\r\nadded_archetypes/archetype_count/200            1.13    72.7±18.97µs        ? ?/sec     1.00    64.2±20.78µs        ? ?/sec\r\nadded_archetypes/archetype_count/2000           1.11  1086.7±290.33µs        ? ?/sec    1.00  977.2±118.15µs        ? ?/sec\r\nadded_archetypes/archetype_count/5000           1.09      2.7±0.29ms        ? ?/sec     1.00      2.5±0.27ms        ? ?/sec\r\ndespawn_world/10_entities                       1.00   695.6±13.85ns        ? ?/sec     1.09   760.4±40.01ns        ? ?/sec\r\ndespawn_world/1_entities                        1.00   182.0±24.14ns        ? ?/sec     1.56   284.3±50.46ns        ? ?/sec\r\ndespawn_world_recursive/10000_entities          1.00  1668.8±95.30µs        ? ?/sec     1.13  1878.0±111.75µs        ? ?/sec\r\ndespawn_world_recursive/10_entities             1.00      2.3±0.04µs        ? ?/sec     1.05      2.4±0.09µs        ? ?/sec\r\ndespawn_world_recursive/1_entities              1.00   382.2±36.07ns        ? ?/sec     1.41   539.1±60.46ns        ? ?/sec\r\nempty_archetypes/iter/10000                     1.07     12.8±1.61µs        ? ?/sec     1.00     12.0±0.49µs        ? ?/sec\r\nempty_archetypes/par_for_each/100               1.06      9.2±1.04µs        ? ?/sec     1.00      8.7±0.35µs        ? ?/sec\r\nempty_archetypes/par_for_each/1000              1.12     12.8±0.87µs        ? ?/sec     1.00     11.5±0.36µs        ? ?/sec\r\nempty_archetypes/par_for_each/10000             1.19     25.4±0.98µs        ? ?/sec     1.00     21.3±0.41µs        ? ?/sec\r\nempty_archetypes/par_for_each/2000              1.16     13.6±1.17µs        ? ?/sec     1.00     11.7±0.44µs        ? ?/sec\r\nempty_archetypes/par_for_each/500               1.08     11.1±0.70µs        ? ?/sec     1.00     10.3±0.28µs        ? ?/sec\r\nempty_commands/0_entities                       1.00      3.9±0.06ns        ? ?/sec     1.40      5.4±0.06ns        ? ?/sec\r\nentity_hash/entity_set_lookup_miss_gen/10000    1.00     41.6±6.26µs 229.0 MElem/sec    1.05     43.9±5.74µs 217.1 MElem/sec\r\nentity_hash/entity_set_lookup_miss_id/10000     1.25     44.5±5.30µs 214.2 MElem/sec    1.00     35.7±5.03µs 266.8 MElem/sec\r\nevent_propagation/four_event_types              1.13   606.5±27.06µs        ? ?/sec     1.00    535.9±5.38µs        ? ?/sec\r\nevent_propagation/single_event_type             1.12   870.3±27.20µs        ? ?/sec     1.00   776.4±18.86µs        ? ?/sec\r\nfake_commands/2000_commands                     1.00     12.1±0.08µs        ? ?/sec     1.28     15.4±0.25µs        ? ?/sec\r\nfake_commands/4000_commands                     1.00     24.2±0.26µs        ? ?/sec     1.28     30.9±0.38µs        ? ?/sec\r\nfake_commands/6000_commands                     1.00     36.3±0.50µs        ? ?/sec     1.27     46.2±0.48µs        ? ?/sec\r\nfake_commands/8000_commands                     1.00     48.3±0.15µs        ? ?/sec     1.28     61.6±0.87µs        ? ?/sec\r\ninsert_simple/base                              1.29   403.9±79.33µs        ? ?/sec     1.00   312.1±56.57µs        ? ?/sec\r\ninsert_simple/unbatched                         2.41  1021.5±234.06µs        ? ?/sec    1.00   423.2±17.00µs        ? ?/sec\r\niter_fragmented/base                            1.00    346.6±8.58ns        ? ?/sec     1.40    485.0±9.30ns        ? ?/sec\r\niter_fragmented/foreach                         1.07    141.4±6.76ns        ? ?/sec     1.00    132.4±3.85ns        ? ?/sec\r\niter_fragmented_sparse/base                     1.19      7.9±0.16ns        ? ?/sec     1.00      6.6±0.09ns        ? ?/sec\r\niter_simple/foreach_wide                        2.76     46.4±0.46µs        ? ?/sec     1.00     16.8±0.18µs        ? ?/sec\r\niter_simple/foreach_wide_sparse_set             1.00    80.9±13.81µs        ? ?/sec     1.12    90.3±29.10µs        ? ?/sec\r\nobserve/trigger_simple                          1.00    450.3±9.25µs        ? ?/sec     1.08    488.5±9.99µs        ? ?/sec\r\nquery_get/50000_entities_table                  1.00    138.8±0.67µs        ? ?/sec     1.05    145.9±1.23µs        ? ?/sec\r\nquery_get_many_5/50000_calls_sparse             1.06   607.3±14.47µs        ? ?/sec     1.00   570.5±42.57µs        ? ?/sec\r\nsized_commands_0_bytes/2000_commands            1.00     10.6±1.20µs        ? ?/sec     1.26     13.3±0.18µs        ? ?/sec\r\nsized_commands_0_bytes/4000_commands            1.00     20.6±0.33µs        ? ?/sec     1.29     26.5±0.42µs        ? ?/sec\r\nsized_commands_0_bytes/6000_commands            1.00     30.8±0.26µs        ? ?/sec     1.29     39.9±0.61µs        ? ?/sec\r\nsized_commands_0_bytes/8000_commands            1.00     41.4±0.77µs        ? ?/sec     1.28     53.1±0.65µs        ? ?/sec\r\nsized_commands_12_bytes/2000_commands           1.00     11.6±0.29µs        ? ?/sec     1.23     14.2±0.32µs        ? ?/sec\r\nsized_commands_12_bytes/4000_commands           1.00     22.8±3.30µs        ? ?/sec     1.24     28.3±0.30µs        ? ?/sec\r\nsized_commands_12_bytes/6000_commands           1.00     33.6±0.20µs        ? ?/sec     1.27     42.8±0.63µs        ? ?/sec\r\nsized_commands_12_bytes/8000_commands           1.00     48.8±6.10µs        ? ?/sec     1.22     59.7±0.76µs        ? ?/sec\r\nsized_commands_512_bytes/2000_commands          1.00     46.3±1.28µs        ? ?/sec     1.06     48.9±1.73µs        ? ?/sec\r\nsized_commands_512_bytes/4000_commands          1.00     90.5±2.06µs        ? ?/sec     1.08     97.4±3.33µs        ? ?/sec\r\nspawn_commands/2000_entities                    1.00   155.4±11.61µs        ? ?/sec     1.22   189.5±15.70µs        ? ?/sec\r\nspawn_commands/4000_entities                    1.00   303.7±15.69µs        ? ?/sec     1.22   371.1±18.58µs        ? ?/sec\r\nspawn_commands/6000_entities                    1.00   463.3±31.95µs        ? ?/sec     1.20   554.8±12.55µs        ? ?/sec\r\nspawn_commands/8000_entities                    1.00   619.7±44.57µs        ? ?/sec     1.19   734.9±16.71µs        ? ?/sec\r\nspawn_world/1000_entities                       1.06     41.5±2.97µs        ? ?/sec     1.00     39.1±2.94µs        ? ?/sec\r\nspawn_world/100_entities                        1.20      4.8±2.29µs        ? ?/sec     1.00      4.0±0.69µs        ? ?/sec\r\nspawn_world/10_entities                         1.15   461.9±80.36ns        ? ?/sec     1.00   400.5±26.17ns        ? ?/sec\r\nspawn_world/1_entities                          1.05     41.4±6.35ns        ? ?/sec     1.00     39.4±3.02ns        ? ?/sec\r\nworld_get/50000_entities_sparse                 1.00    167.1±4.23µs        ? ?/sec     1.07    178.8±2.44µs        ? ?/sec\r\nworld_query_get/50000_entities_sparse_wide      1.00    125.0±0.31µs        ? ?/sec     1.08   135.7±78.30µs        ? ?/sec\r\nworld_query_iter/50000_entities_sparse          1.00     38.7±0.08µs        ? ?/sec     1.18     45.6±0.60µs        ? ?/sec\r\n```\r\n</details>\r\n\r\n**Interpreting benches:**\r\n\r\nIn most places, v9 is on par with or even faster than main. Some notable exceptions are the \"sized_commands\" and \"fake_commands\" sections, but the regression there is purely due to `Entities::flush` being slower, but we make up for that elsewhere. These commands don't actually do anything though, so this is not relevant to actual use cases. The benchmarks just exist to stress test `CommandQueue`.\r\n\r\nThe only place where v9 causes a significant and real-world applicable regression is \"spawn_commands\", where v9 is roughly 15% slower than main. This is something that can be changed later now that `alloc` doesn't need mutable access. I expect we can change this 15% regression to a 15% improvement given that \"spawn_world\" is roughly 20% faster on v9 than on main. For users that need really fast spawn commands though, they are already using some form of batch spawning or direct world access.\r\n\r\nOther regressions seem to be either minimal, unrealistic, easily corrected in the future, or wrong. I feel confident saying \"wrong\" since running them back to back can sometimes yield different results. I'm on a M2 Max, so there might be some things jumping from perf cores to efficiency cores or something. (I look forward to standardized benchmarking hardware.)\r\n\r\n**Wins:** I was worried that, without \"never flush\", this would be an overall regression, but I am relived that that is not the case. Some very common operations, \"insert_simple/unbatched\" for example, are way faster on this branch than on main. Basically, on main, `alloc` also adds `EntityMeta` for the entity immediately, but on this branch, we only do so in `set`. That seems to improve temporal cache locality and leads to this roughly 220% improvement. \"added_arhcetype\" sees 20%-80% improvements too, etc. \"iter_simple/foreach_wide\" also sees a 270% improvement.\r\n\r\nI think in practice, v9 will out perform main for real-world schedules. And I think moving towards \"never flush\" (even for only a few operations, like `Commands::spawn`) will improve performance even more."
+    },
+    "discussion_timeline": [
+      {
+        "author": "chescock",
+        "role": "CONTRIBUTOR",
+        "body": "> ```\r\n> group                                          main_baseline                           remote_reservation_v9_baseline\r\n> -----                                          -------------                           ------------------------------\r\n> insert_simple/base                             1.00   403.9±79.33µs        ? ?/sec     1.48    596.6±4.11µs        ? ?/sec\r\n> insert_simple/unbatched                        2.19  1021.5±234.06µs        ? ?/sec    1.00    466.7±4.37µs        ? ?/sec\r\n> ```\r\n\r\nDoes this say that `spawn_batch` got 48% worse?  I think I gave up on https://github.com/chescock/bevy/pull/8 because benchmarking showed that getting around 20% worse, and I assumed that would be a hard blocker.  \r\n\r\nIf we're okay with making `spawn_batch` slower, then maybe I should revive that branch as a counter-proposal.  \r\n\r\nOtherwise, I think we can't do any approach that requires atomic ops in `alloc()` and `free()`.  The reason `spawn_batch` is so efficient today is that it has `&mut Entities` and can do everything with normal memory access.  So I think the only viable approach would be the one with a separate queue for remote requests that gets refilled during `flush`.  (I think that was V6, https://github.com/bevyengine/bevy/pull/18525?)",
+        "timestamp": "2025-04-02T14:57:15Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "> > ```\r\n> > group                                          main_baseline                           remote_reservation_v9_baseline\r\n> > -----                                          -------------                           ------------------------------\r\n> > insert_simple/base                             1.00   403.9±79.33µs        ? ?/sec     1.48    596.6±4.11µs        ? ?/sec\r\n> > insert_simple/unbatched                        2.19  1021.5±234.06µs        ? ?/sec    1.00    466.7±4.37µs        ? ?/sec\r\n> > ```\r\n> \r\n> Does this say that `spawn_batch` got 48% worse? \r\n\r\nYes. This is wrong though. I think my Mac dumped it on an efficiency core instead of a performance core. I literately just ran the benchmark again (with zero changes) and: \r\n![Screenshot 2025-04-02 at 11 03 05 AM](https://github.com/user-attachments/assets/b0379d3f-a3cd-4131-9a74-b890599f3b1a)\r\nNow main is 20% slower for batch spawning lol. I updated the PR description. \r\n\r\nMy (rough) understanding is that this is because of temporal cache locality: `alloc` no longer touches the `meta` list, only `set` does, and it extends it as needed in a `#[cold]` function to help with branch prediction. The result is that the translation look aside buffer doesn't need to find the `meta` list, which not only saves time, but also frees up another cache lane. That's my best explanation anyway. That does mean we could carry these improvements over to main without the rest of these changes, but I think bringing remote reservation with it is worth it.\r\n\r\nI can't wait for actual standardized hardware that can fix these benchmarking goofs lol.",
+        "timestamp": "2025-04-02T15:09:38Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks all for the reviews so far. Take your time. This is tricky.\r\n\r\nQuick highlights for ongoing todo items here:\r\n\r\n- [ ] ~~Make a separate PR for my changes to freeing from `Entities`'s perspective (not the allocator itself). That should make this easier to review.~~\r\n- [ ] Try to get #18148  merged. That should also make this easier to review.\r\n- [x] CI currently fails because some commands are not being flushed. This needs to be investigated. I don't think any of the `flush` calls I removed were needed. I suspect this PR uncovered the bug but didn't cause it, but needs investigating.\r\n- [ ] The free list currently supposes that all `u32::MAX + 1` entities are not freed at the same time. The free list uses a u32 as its length so it can hold `u32::MAX` entities. However, the entity *index* is `u32`, so there can be `u32::MAX + 1` valid entities at the same time. Neither this implementation nor that of main handles this properly. I need a separate PR to fix this.\r\n\r\nSo that's 3 PRs (maybe 4 depending on the bug) that need to be merged ahead of this that will make review easier. Scrutinize the allocator especially for now, and when these other PRs are done, look at the rest. (Or look at all of it now if you have the time. I'd certainly appreciate it.)",
+        "timestamp": "2025-04-03T02:31:17Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "Quick update that the new `FreeBufferLen` tracking did not majorly affect performance. The benchmarks in the description have been updated accordingly.",
+        "timestamp": "2025-04-03T03:50:08Z"
+      },
+      {
+        "author": "github-actions[bot]",
+        "role": "CONTRIBUTOR",
+        "body": "It looks like your PR is a breaking change, but **you didn't provide a migration guide**.\n\n  Please review the [instructions for writing migration guides](https://github.com/bevyengine/bevy/tree/main/release-content/migration_guides.md), then expand or revise the content in the [migration guides directory](https://github.com/bevyengine/bevy/tree/main/release-content/migration-guides) to reflect your changes.",
+        "timestamp": "2025-04-04T13:10:37Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "I realized most of the benchmarks start with a fresh world, so the free list isn't really being benchmarked.\r\n\r\nI added some benchmarks to rest this and the results were surprising:\r\n\r\n<details>\r\n<summary>Benchmark Results</summary>\r\n```txt\r\nentity_allocator_batched_and_freed_1024/allocate                   1.00      9.3±0.14µs        ? ?/sec     2.32     21.5±0.36µs        ? ?/sec\r\nentity_allocator_batched_and_freed_1024/allocate_with_flush        1.00     10.8±0.11µs        ? ?/sec     2.15     23.3±0.25µs        ? ?/sec\r\nentity_allocator_batched_and_freed_1024/reserve                    1.00      9.3±0.11µs        ? ?/sec     2.76     25.5±0.43µs        ? ?/sec\r\nentity_allocator_batched_and_freed_1024/reserve_batch              1.00      7.2±0.08µs        ? ?/sec     2.46     17.7±0.25µs        ? ?/sec\r\nentity_allocator_batched_and_freed_1024/reserve_batch_and_flush    1.00      7.6±0.08µs        ? ?/sec     2.41     18.3±0.39µs        ? ?/sec\r\nentity_allocator_batched_and_freed_128/allocate                    1.00      2.3±0.02µs        ? ?/sec     1.91      4.3±0.08µs        ? ?/sec\r\nentity_allocator_batched_and_freed_128/allocate_with_flush         1.00      2.5±0.03µs        ? ?/sec     1.86      4.5±0.06µs        ? ?/sec\r\nentity_allocator_batched_and_freed_128/reserve                     1.00      2.3±0.03µs        ? ?/sec     2.10      4.8±0.07µs        ? ?/sec\r\nentity_allocator_batched_and_freed_128/reserve_batch               1.00      2.0±0.05µs        ? ?/sec     1.93      3.9±0.04µs        ? ?/sec\r\nentity_allocator_batched_and_freed_128/reserve_batch_and_flush     1.00      2.1±0.02µs        ? ?/sec     1.87      3.9±0.07µs        ? ?/sec\r\nentity_allocator_fresh_1024/allocate                               1.00      3.4±0.05µs        ? ?/sec     2.45      8.3±0.14µs        ? ?/sec\r\nentity_allocator_fresh_1024/allocate_with_flush                    1.00      4.4±0.05µs        ? ?/sec     2.04      9.0±0.16µs        ? ?/sec\r\nentity_allocator_fresh_1024/reserve                                1.00      2.9±0.02µs        ? ?/sec     3.26      9.4±0.17µs        ? ?/sec\r\nentity_allocator_fresh_1024/reserve_batch                          1.00   915.4±14.24ns        ? ?/sec     1.21  1107.9±22.50ns        ? ?/sec\r\nentity_allocator_fresh_1024/reserve_batch_and_flush                1.37      2.3±0.03µs        ? ?/sec     1.00  1652.4±48.55ns        ? ?/sec\r\nentity_allocator_fresh_128/allocate                                1.00  1445.5±26.20ns        ? ?/sec     1.35  1955.5±27.01ns        ? ?/sec\r\nentity_allocator_fresh_128/allocate_with_flush                     1.00  1635.4±271.26ns        ? ?/sec    1.33      2.2±0.04µs        ? ?/sec\r\nentity_allocator_fresh_128/reserve                                 1.00  1155.2±15.58ns        ? ?/sec     1.97      2.3±0.03µs        ? ?/sec\r\nentity_allocator_fresh_128/reserve_batch                           1.00   919.9±12.08ns        ? ?/sec     1.22  1124.1±36.01ns        ? ?/sec\r\nentity_allocator_fresh_128/reserve_batch_and_flush                 1.00  1137.6±14.43ns        ? ?/sec     1.07  1218.8±29.36ns        ? ?/sec\r\n```\r\n</details>\r\n\r\nThe new entity allocator in isolation is roughly twice as slow as the old one on my M2 max. That sounds bad, but I'm relieved. \r\n\r\nFirst, the difference stays pretty even. No matter how many entities are being requested or what state `Entities` is in, performance remains about 1.75 to 2.25 times slower. (There are some outliers, including one where main is almost 40% slower, but 2x slower is the trend.) The fact that the performance change is *even* across these benchmarks tells me that the state of `Entities` is irrelevant to the rest of the benchmarks, which reflect actual uses of the ecs and show a significant performance improvement.\r\n\r\nSecond, this is the worst possible case for v9. A lot of the optimizations that went into this dealt with cache. For example, the pending list (now the free list) does not have to look back at the `meta` list. That saves a cache lane. Similar improvements were made to `alloc`, `reserve_entities`, etc. As existing benchmarks show, that makes a big difference in real world performance. But these benchmarks only deal with `Entities`, meaning nothing makes use of the newly available cache lane, so that improvement is not represented here.\r\n\r\nSo even though this shows the new allocator as 2x slower, in the context of real-world application, it's actually quite a bit faster, as shown by the other benchmarks. And we don't have to worry about those benchmarks not getting the full picture, because these benchmarks show no meaningful performance difference between branches for any of the starting states of `Entities`.\r\n\r\nAlso, v9 offers a much more flexible API, reducing `flush` calls, adding things like `alloc_entities`, making `alloc` read only, etc. Bevy can use that to squeeze out a lot more performance here. This is just the tip of the iceberg.",
+        "timestamp": "2025-04-05T23:48:25Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "Quick roadmap update here. I want #18148 and #18704 to be resolved, so I can clean up some of this. Once I see where that lands us, I'll add some unit tests, probably with loom, and polish docs. I don't want to do that too early though in case those two PRs end up changing a lot here.\r\n\r\nAfter that, I think more widespread review is in order, especially a final pass on the explanatory docs and how we communicate this to users. Because this makes so many changes to `reserve` vs `alloc` semantics and opens up remote allocation to users, this might even be worth a release note, especially if we build on this to allow custom allocators (which I want anyway for components as entities). But I'll leave the release note decision up to others. I've been staring at this for too long lol.",
+        "timestamp": "2025-04-20T17:53:58Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "Adding blocked just to clarify. Need to finish #18704 and some associated follow up before I can polish this up. Still would appreciate more allocator reviews though.",
+        "timestamp": "2025-05-07T02:10:28Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "Just finished a nasty merge. This could be a while.",
+        "timestamp": "2025-05-08T15:41:05Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "I believe this pr is pretty much ready now. I'll run some updated benches shortly, but I think it all should be good.\r\n\r\nThe only remaining question is if we want to add [loom](https://docs.rs/loom/latest/loom/) test. This would be an easy yes, but it requires using their version of atomics in tests but not in debug mode, etc. So we'd need new test feature flags, and to build loom into `bevy_platform`. In an ideal world, we could do that, but I don't think that should be a blocker here.",
+        "timestamp": "2025-05-08T17:34:37Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "BTW, updated benchmarks are in. I didn't bother posting them anywhere since there's not much to talk about.\r\n\r\nSome kinds of change detection is ~20% worse. Spawn commands are ~ 30% faster. Some despawns are ~60% faster. In general, I didn't see any benchmarks that concerned me.\r\n\r\nNote that many benches don't free any entities, so we aren't getting the full picture here. But I looked into that [here](https://github.com/bevyengine/bevy/pull/18670#issuecomment-2781136070) and saw no issues.",
+        "timestamp": "2025-05-08T18:44:37Z"
+      },
+      {
+        "author": "maniwani",
+        "role": "CONTRIBUTOR",
+        "body": "OK, I understand the high-level design now.\r\n\r\nThe safety invariants seem fine.\r\n- The allocator/freelist is chunked so that the chunks have stable memory locations and an `Arc<SharedAllocator>` is used so that those locations remain valid until all `Arc` clones are dropped. \r\n- Callsites uphold the invariant that there are no races between `alloc` and `free`, and `remote_alloc`  can't race because it will only commit a change to the freelist if uninterrupted (and not currently disabled by a `free`).\r\n\r\nThis looks good to me, but I just wanted to ask one more question for clarification—\r\n\r\nAn alternative to this was having the world poll a queue for remote allocation requests during each `flush` (v6). Are the reasons to prefer this PR that it performs better than v6 and that it, unlike v6, never forces remote threads to block?",
+        "timestamp": "2025-05-20T03:23:45Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "> An alternative to this was having the world poll a queue for remote allocation requests during each `flush` (v6). Are the reasons to prefer this PR that it performs better than v6 and that it, unlike v6, never forces remote threads to block?\r\n\r\nYeah, pretty much. In my experimentation, I found pretty much five ways to do remote reservation:\r\n\r\n1. Keep a concurrent remote \"ready\" list that remote reservations can pull from. Top it off on each `flush`. But, that means, we have a longer flush time, sacrifice N entities to always be in the queue, and have the potential to either block and await when the ready list runs dry or allocate a brand new index, which is effectively a memory leak. This is v6, and we block.\r\n2. Keep a 2-way channel when other threads request an entity, and those requests are fulfilled. We wouldn't need to fulfill them in `flush`, it could be another `SubApp::update` item. Trouble is, now remote reservations is very block/await heavy. It's not ideal that an asset loader might have to stop or delay reading form disk to await a new frame so it has an entity id. And if we fulfill it more than once per frame, now performance is worse. This was v5.\r\n3. Keep a `Vec` and an atomic len in an arc. When reallocating, make a new arc. Hold a `RwLock`  of the most recent vec arc. When the list runs dry, or every once in a while, try to upgrade to a new vec arc. We can cache if there's a new one via an atomic flag. This is effectively a pinned vec, but harder. It does work though; this was v4.\r\n4. Fundamentally split the storage of remote and local entities to have different allocators for them, once counting 0 and up, the other `u32::MAX` and down. This was v1, and ultimately this is a no-go since splitting that storage could have a negative perf impact across the board.\r\n5. Keep a pinned vec in memory to hold a stack of free ids. Decouple `alloc` from spawning and `reserve` from `flush`. (This Pr, v9).\r\n\r\nSo this Pr is the best solution of the options I tried IMO. It has the best performance, doesn't block, lock, or await. (It may wait for a `free` to finish, but that's no more blocking than being in a CPU scheduler.) It improves some performance over main. It opens up a lot of room for future Improvements, like not flushing for command spawning, readonly `alloc` calls instead of the slightly more expensive `reserve`, and maybe in the future, never flushing! Also, because it decouples allocation from spawning, we can use this to unblock components as entities. (We don't need to figure out what happens when a component entity is despawned; we just never *spawn* it, even though we do *allocate* its `Entity` id.) This decoupling could be done to any remote reservation scheme, but it was only necessary for v9, and at the time, I didn't realize howe useful this might be.\r\n\r\nAs a history of what I've explored:\r\n\r\n- v1: split meta storage; too slow.\r\n- v2: separate pending lists for remote vs local; unsound.\r\n- v3: failed attempt to fix v2 but not practical; no pr opened.\r\n- v4: lazy replaced vec (instead of reallocating); v9 is just better.\r\n- v5: two way async remote requests; too slow and async heavy, and v6 is just better.\r\n- v6: one way remote requests (it's technically two ways, but only to inform how much to refill the buffer by); still a viable alternative, but not as fast and means a blocking asset system (kinda disapointing to loose one of the marketing points of our asset system...)\r\n- v7: Remove the whole reserve and flush scheme and ditch the empty archetype; Very ugly.\r\n- v8: Remove the whole reserve and flush scheme, but keep the empty archetype; very promising, but too much for one pr (no pr opened).\r\n- v9: Evolution of v8, leaving the rest of \"never flush\" as future work to evaluate on a case-by-case basis.\r\n\r\nI'm not saying I've explored everything, but v9 is the best so far IMO. That said, if anyone has an idea I haven't tried, I'm all ears.\r\n\r\nFor reference flecs seems to be kinda similar to v9. It pages entities; v9 calls them chunks. I haven't looked too closely, and I'm sure there are differences, but I think this is the right track.",
+        "timestamp": "2025-05-20T14:07:32Z"
+      },
+      {
+        "author": "maniwani",
+        "role": "CONTRIBUTOR",
+        "body": "> I'm not saying I've explored everything, but v9 is the best so far IMO. That said, if anyone has an idea I haven't tried, I'm all ears.\r\n\r\nThat's alright. I was asking because I didn't follow all of your discussions and design work leading up to this PR, and I wanted to be sure I had the justification right before approving.",
+        "timestamp": "2025-05-20T16:47:02Z"
+      },
+      {
+        "author": "maniwani",
+        "role": "CONTRIBUTOR",
+        "body": "(My approval doesn't hinge on any of this stuff. I just wanted to address the other parts of your comment separately.)\r\n\r\n>  Also, because it decouples allocation from spawning, we can use this to unblock components as entities. (We don't need to figure out what happens when a component entity is despawned; we just never spawn it, even though we do allocate its Entity id.)\r\n\r\nGood to know, but IIRC components-as-entities had only been blocked on deciding whether or not to let `!Send` types be components (because we also want to store resources as components).\r\n\r\nCorrect me if I'm wrong but this seems only loosely related. Asset loaders don't have access to the world, so they can't initialize queries or systems (and that shouldn't change in the future because queries and systems will be entities that need to be instantiated).\r\n\r\nIn any case, handling component entities being despawned shouldn't be a tough problem. Bevy's ECS has immutable components and reactivity, so it'd be easy enough to create some `IsComponent` component that panics if removed the normal way. That's basically how flecs handles it.  \r\n\r\nReflection can be significantly empowered (and simplified) if component registrations are normal entities and you can attach your own components to them, so I don't see it as something we want to avoid.\r\n\r\n> For reference flecs seems to be kinda similar to v9. It pages entities; v9 calls them chunks. I haven't looked too closely, and I'm sure there are differences, but I think this is the right track.\r\n\r\nflecs' entity metadata is closer to how bevy currently is (last I checked anyway). Its equivalent of the `meta` vector is chunked to save memory and the stability also allows other internal structures to cache pointers to the metadata of specific entities.\r\n\r\n(flecs has a `make_alive` API you can use to spawn a specific entity ID. If you spawn 100 entities and then `make_alive` index 10000, it'd be a waste to allocate memory for the whole index range in between.)\r\n\r\nI don't know if flecs directly supports \"remote\" reservation of entities or if Sander even considers it necessary. (I don't recall it being a feature but if he's said otherwise then ignore me lol.)",
+        "timestamp": "2025-05-20T16:51:40Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "> I found pretty much five ways to do remote reservation:\r\n\r\nThanks, this is an amazing writeup!",
+        "timestamp": "2025-05-20T17:23:54Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "> Good to know, but IIRC components-as-entities had only been blocked on deciding whether or not to let `!Send` types be components (because we also want to store resources as components).\r\n\r\nYeah; I don't mean that remote reservation is a prerequisite for components as entities; just that it lets us start reworking the `ComponentId` representation before we need to put any data on the spawned entity itself. That lets us plow forward with unblocking fragmenting components etc while we resolve other questions.\r\n\r\nA few of those questions (that I still have anyway) are: 1) Is panicking the best way to handle a removed/despawned component entity? Why not yank the component from all archetypes and continue? 2) Can we make the resource singleton entity different from the component info singleton entity? I don't see why not and that would let us punt `!Send` for later. 3) What kind of data do we want to expose via components on the component entity? (These are all questions to discuss elsewhere, but my point is that this pr will let us start the id/fragmenting part of components as entities, while we work out these details.)\r\n\r\n> Correct me if I'm wrong but this seems only loosely related. Asset loaders don't have access to the world, so they can't initialize queries or systems (and that shouldn't change in the future because queries and systems will be entities that need to be instantiated).\r\n\r\nYeah, this is 100% a separate issue. I just want to do the id/fragmenting portion of components as entities soon. There's already prs for query by value, fragmenting components, etc that would really benefit from this.\r\n\r\n> In any case, handling component entities being despawned shouldn't be a tough problem. Bevy's ECS has immutable components and reactivity, so it'd be easy enough to create some `IsComponent` component that panics if removed the normal way. That's basically how flecs handles it.\r\n\r\nThat's a solid option. I don't mean to dig up old questions if we've already reached a consensus here. I just don't know what it is. Maybe worth laying out a plan explicitly somewhere. If one exists, I haven't been able to find it.\r\n\r\n> Reflection can be significantly empowered (and simplified) if component registrations are normal entities and you can attach your own components to them, so I don't see it as something we want to avoid.\r\n\r\nVery much looking forward to this!\r\n\r\n> flecs' entity metadata is closer to how bevy currently is (last I checked anyway). Its equivalent of the `meta` vector is chunked to save memory and the stability also allows other internal structures to cache pointers to the metadata of specific entities.\r\n\r\nYeah, that makes sense. I only glanced at it, and yeah; doesn't seem to support remote reservation.\r\n\r\n\r\n",
+        "timestamp": "2025-05-20T18:41:35Z"
+      },
+      {
+        "author": "maniwani",
+        "role": "CONTRIBUTOR",
+        "body": "> 1\\) Is panicking the best way to handle a removed/despawned component entity? Why not yank the component from all archetypes and continue?\r\n\r\nEh, I mean, it's not like today's Bevy lets you unregister a component. Configurable cleanup is a feature itself, so I wouldn't tie them together.\r\n\r\n> 2\\) Can we make the resource singleton entity different from the component info singleton entity? I don't see why not and that would let us punt `!Send` for later.\r\n\r\nI think the matter of `!Send` data was settled by #18386. Bevy's own first-party plugins are no longer using `!Send` resources, so I think all that's left is to formally deprecate them (which I'm guessing would happen with or following #17485). We had been punting it for too long already lol.\r\n\r\n> 3\\) What kind of data do we want to expose via components on the component entity?\r\n\r\nI don't have a list, but low-hanging fruit would be components that represent \"implements `Clone`\" and such. Then you could write a query that finds all clonable components, all networked components, etc.\r\n\r\nIf we spawn entities to represent plugins and link them to their components with `ChildOf`, then you could find out which components come from which plugin.\r\n\r\nThings like that.",
+        "timestamp": "2025-05-20T21:26:39Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "For y'all who haven't been following this for a while, I want to draw attention to [this](https://github.com/bevyengine/bevy/pull/18670#issuecomment-2781136070) comment from a while ago. It raises a potential performance concern about a benchmarking blindspot. My assessment is that it's fine, but I want this to be out in the open.\r\n\r\nThere's also a doc out [here](https://hackmd.io/@bevy/Bkjgqvcblx) that gives some more background if you're interested.",
+        "timestamp": "2025-05-21T02:16:33Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "@urben1680 Thanks for the review! But to save you time, this pr might not be the solution to remote reservation. It certainly could be, but I'm waiting on #19451 and a decision on entity paging. Depending on what happens there, we might do this pr or something more efficient that those things open up. I'll keep you posted though!",
+        "timestamp": "2025-06-22T02:19:45Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "> It might be worth using loom at some point.\r\n\r\nI've found loom to be fairly incomplete, and verging on unmaintained. I would recommend [shuttle](https://github.com/awslabs/shuttle) instead. ",
+        "timestamp": "2025-08-15T02:30:41Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "I have revived this PR after #19451 as the last step in a basic remote reservation setup.\r\n\r\nBenches show roughly as expected.\r\nThis PR makes the allocator roughly 2x slower than before, and that leads to performance regressions.\r\nAs I discuss [here](https://github.com/bevyengine/bevy/pull/18670#issuecomment-2781136070) though, the 2x difference doesn't result in a too major loss to a full entity workflow.\r\nThe worst performance loss is in despawning, which sees a 40-50% regression, but this is right behind the 20-30% improvement to the same benches, so I expect it's actually not much worse compared to 0.17.\r\nAlso, I want to stress that Bevy's benches don't usually bench a fully set up world.\r\nThey bench a fresh world, so not every part of the allocator has been fully benched.\r\nBut again (see my linked comment above), I don't think this will make more than a 10-15% regression is spawning overall.\r\n\r\nHere's the raw numbers on my M2 Max:\r\n```txt\r\ngroup                                                                                                    pre                                                 post\r\n-----                                                                                                    ----------------------                   ------------------------\r\nadded_archetypes/archetype_count/1000                                                                    1.17   639.5±20.10µs        ? ?/sec      1.00  548.8±138.84µs        ? ?/sec\r\nbuild_schedule/100_schedule_no_constraints                                                               1.28  1031.1±64.49µs        ? ?/sec      1.00   806.4±63.57µs        ? ?/sec\r\ndespawn_world/10000_entities                                                                             1.06   269.6±21.12µs        ? ?/sec      1.00    254.5±3.47µs        ? ?/sec\r\ndespawn_world/1_entities                                                                                 1.00   170.4±11.21ns        ? ?/sec      1.57   266.9±13.26ns        ? ?/sec\r\ndespawn_world_recursive/1_entities                                                                       1.00   318.5±51.60ns        ? ?/sec      1.43   456.5±56.81ns        ? ?/sec\r\necs::bundles::insert_many::insert_many/only_last                                                         1.00    236.0±9.92µs        ? ?/sec      1.12   263.7±10.63µs        ? ?/sec\r\necs::bundles::spawn_many_zst::spawn_many_zst/static                                                      1.16   122.1±41.23µs        ? ?/sec      1.00   105.6±29.18µs        ? ?/sec\r\necs::bundles::spawn_one_zst::spawn_one_zst/static                                                        1.00   182.8±16.54µs        ? ?/sec      1.40   256.7±44.68µs        ? ?/sec\r\necs::entity_cloning::hierarchy_tall/clone                                                                1.13     14.3±1.36µs  3.4 MElem/sec      1.00     12.7±1.36µs  3.8 MElem/sec\r\necs::entity_cloning::hierarchy_tall/reflect                                                              1.14     17.6±1.85µs  2.8 MElem/sec      1.00     15.5±0.47µs  3.1 MElem/sec\r\necs::entity_cloning::hierarchy_wide/clone                                                                1.12     11.6±0.29µs  4.2 MElem/sec      1.00     10.3±0.92µs  4.7 MElem/sec\r\necs::entity_cloning::hierarchy_wide/reflect                                                              1.08     14.8±1.39µs  3.3 MElem/sec      1.00     13.7±2.40µs  3.5 MElem/sec\r\necs::entity_cloning::single/clone                                                                        1.17   777.9±67.36ns 1255.4 KElem/sec    1.00   663.3±92.48ns 1472.3 KElem/sec\r\nempty_archetypes/iter/10000                                                                              1.00      9.3±0.19µs        ? ?/sec      1.06      9.9±0.27µs        ? ?/sec\r\nempty_archetypes/par_for_each/10                                                                         1.00      8.1±0.32µs        ? ?/sec      1.10      8.9±1.03µs        ? ?/sec\r\nempty_archetypes/par_for_each/100                                                                        1.00      8.3±0.19µs        ? ?/sec      1.06      8.9±0.26µs        ? ?/sec\r\nempty_archetypes/par_for_each/1000                                                                       1.09     12.3±0.18µs        ? ?/sec      1.00     11.3±0.10µs        ? ?/sec\r\nempty_archetypes/par_for_each/10000                                                                      1.12     22.9±0.33µs        ? ?/sec      1.00     20.5±0.23µs        ? ?/sec\r\nempty_commands/0_entities                                                                                1.13      2.4±0.02ns        ? ?/sec      1.00      2.1±0.04ns        ? ?/sec\r\nentity_hash/entity_set_lookup_hit/1000                                                                   1.20  1686.1±26.00ns 565.6 MElem/sec     1.00  1403.6±11.46ns 679.4 MElem/sec\r\nentity_hash/entity_set_lookup_hit/10000                                                                  1.18     23.5±0.41µs 405.4 MElem/sec     1.00     20.0±1.60µs 476.7 MElem/sec\r\nentity_hash/entity_set_lookup_hit/3162                                                                   1.15      5.8±0.12µs 517.8 MElem/sec     1.00      5.1±0.06µs 595.0 MElem/sec\r\nentity_hash/entity_set_lookup_miss_gen/3162                                                              1.00     13.6±1.66µs 222.3 MElem/sec     1.15     15.6±3.83µs 193.6 MElem/sec\r\nentity_hash/entity_set_lookup_miss_id/10000                                                              1.00     40.9±5.18µs 233.0 MElem/sec     1.27     51.8±4.65µs 183.9 MElem/sec\r\nevents_send/size_16_events_100                                                                           1.08   158.4±22.22ns        ? ?/sec      1.00   146.4±20.18ns        ? ?/sec\r\nfake_commands/10000_commands                                                                             1.00     49.0±0.58µs        ? ?/sec      1.07     52.2±0.80µs        ? ?/sec\r\nfake_commands/1000_commands                                                                              1.00      4.9±0.06µs        ? ?/sec      1.07      5.2±0.09µs        ? ?/sec\r\nfake_commands/100_commands                                                                               1.00    504.3±5.33ns        ? ?/sec      1.05    531.9±7.36ns        ? ?/sec\r\ninsert_simple/unbatched                                                                                  1.00  885.9±234.43µs        ? ?/sec      1.11  983.6±158.83µs        ? ?/sec\r\niter_simple/foreach_wide                                                                                 2.76     46.5±0.42µs        ? ?/sec      1.00     16.8±0.14µs        ? ?/sec\r\niter_simple/wide                                                                                         1.07     39.6±0.26µs        ? ?/sec      1.00     36.9±0.26µs        ? ?/sec\r\nmultiple_archetypes_none_changed_detection/20_archetypes_10000_entities_ecs::change_detection::Sparse    1.00    130.3±2.20µs        ? ?/sec      1.15   150.4±17.32µs        ? ?/sec\r\nnonempty_spawn_commands/1000_entities                                                                    1.00     15.0±1.00µs        ? ?/sec      1.05     15.8±2.58µs        ? ?/sec\r\nobserve/observer_custom/10000_entity                                                                     1.07   606.2±16.28µs        ? ?/sec      1.00   565.9±37.26µs        ? ?/sec\r\nobserve/observer_lifecycle_insert                                                                        1.00    493.8±5.71µs        ? ?/sec      1.10   541.5±19.95µs        ? ?/sec\r\nrun_condition/yes/1000_systems                                                                           1.00  1186.4±45.52µs        ? ?/sec      1.06  1262.9±34.60µs        ? ?/sec\r\nrun_condition/yes_using_resource/1000_systems                                                            1.05  1303.5±22.58µs        ? ?/sec      1.00  1240.5±31.14µs        ? ?/sec\r\nsized_commands_0_bytes/10000_commands                                                                    1.00     36.9±0.47µs        ? ?/sec      1.08     39.9±0.58µs        ? ?/sec\r\nsized_commands_0_bytes/1000_commands                                                                     1.00      3.7±0.05µs        ? ?/sec      1.08      4.0±0.09µs        ? ?/sec\r\nsized_commands_0_bytes/100_commands                                                                      1.00   384.9±10.48ns        ? ?/sec      1.06    406.6±5.75ns        ? ?/sec\r\nsized_commands_12_bytes/100_commands                                                                     1.00    449.8±6.41ns        ? ?/sec      1.06    475.6±6.78ns        ? ?/sec\r\n```\r\nThere are certainly a few outliers in the benches.\r\nIf someone with a more deterministic setup want's to get some more rigorous numbers, that would be awesome.\r\nBut I think these results are enough to justify proceeding here.\r\n\r\nI've changed around a few things, so I think some fresh review is next.\r\nI *think* everything should be much more clear now, especially safety comments.\r\nI think we are pretty close now.",
+        "timestamp": "2025-11-04T20:16:47Z"
+      },
+      {
+        "author": "Igor-dvr",
+        "role": "NONE",
+        "body": "> The worst performance loss is in despawning, which sees a 40-50% regression, but this is right behind the 20-30% improvement to the same benches, so I expect it's actually not much worse compared to 0.17.\r\n\r\n\"despawn_world/10000_entities\" is actually 6% faster with this PR?  \r\n\"despawn_world/1_entities\" and  \"despawn_world_recursive/1_entities\" is slower but as mentioned there were improvements in the previous pr:\r\n\r\n> This roughly doubles command spawning speed! Despawning also sees a 20-30% improvement. Dummy commands improve by 10-50% (due to not needing an entity flush). Other benchmarks seem to be noise and are negligible. It looks to me like a massive performance win!                                                         ",
+        "timestamp": "2025-11-04T21:20:25Z"
+      },
+      {
+        "author": "cart",
+        "role": "MEMBER",
+        "body": "So far with our current benches, the only relevant changes are the despawn benchmarks, which (as expected) have regressed.\r\n\r\nThe spawn benchmarks are in the noise (+/- < 2%, oscillating back and forth across benches).\r\n\r\nI'd still like to run the new benches before merging, but I think the despawn performance is acceptable.\r\n\r\n<img width=\"819\" height=\"911\" alt=\"image\" src=\"https://github.com/user-attachments/assets/f7f57e8a-fd0e-44c3-b699-017f09e314f1\" />\r\n",
+        "timestamp": "2026-01-21T01:49:40Z"
+      },
+      {
+        "author": "ElliottjPierce",
+        "role": "CONTRIBUTOR",
+        "body": "> So far with our current benches, the only relevant changes are the despawn benchmarks, which (as expected) have regressed.\r\n\r\nHeads up that we *might* be able to improve this with batching free calls without much trouble, but that's something to try later.\r\n\r\n> The spawn benchmarks are in the noise (+/- < 2%, oscillating back and forth across benches).\r\n\r\nThat's as expected. This doesn't really test the `FreeList`, only the `FreshAllocator`.\r\n\r\n> I'd still like to run the new benches before merging, but I think the despawn performance is acceptable.\r\n\r\nYeah, the new benchmarks would shed some light on the situation. My original benchmarks were just quick and dirty tests, and I don't have those anymore. I just kept them around long enough to test the theory.\r\n\r\nIf you want to double check the perf change when the `FreeList` is used (and yeah, we probably should), there are two options:\r\n\r\n- We could add a some micro-benches for benching just the allocator itself under different free vs fresh loads. This is what I did originally, and the results were the 2x difference. (That is a tiny regression compared to the whole task of spawning an entity, so I don't think it really affects anything.) But these benches wouldn't really bench anything realistic, so I don't know how useful they would be beyond validating this PR.\r\n- We could change the existing benches relating to spawning to first pre-process the world by spawning and despawning a ton of entities. This makes running benches take a little longer but will probably make *every* relevant benchmark more realistic. Of course, now what is being benched will have changed, and that could mess up existing comparisons, etc.\r\n\r\nWhich route would you like me to take here, and I'm assuming I should do the benchmark changes in a different pr first?\r\n",
+        "timestamp": "2026-01-21T05:20:14Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "I prefer the second more realistic and robust option. Do merge the benchmarks in a seperate pr first though to give us a baseline!",
+        "timestamp": "2026-01-21T05:45:15Z"
+      },
+      {
+        "author": "cart",
+        "role": "MEMBER",
+        "body": "> We could add a some micro-benches for benching just the allocator itself under different free vs fresh loads.\r\n\r\nYeah I think benching `world.entities_allocator().alloc()` (and `remote_alloc`) under different conditions is the correct way to benchmark what we care about here. Those are \"real\" scenarios!\r\n\r\nBenching similar scenarios for spawning (including some components) is also useful, but it would make it harder to zoom in on what we care about here, so I'm content with skipping them until later (unless you are feeling inclined to do them now too).",
+        "timestamp": "2026-01-21T23:33:15Z"
+      },
+      {
+        "author": "cart",
+        "role": "MEMBER",
+        "body": "Also we should really rename `world.entities_allocator()` to `world.entity_allocator()`. We missed that when we renamed `EntitiesAllocator` to `EntityAllocator`.",
+        "timestamp": "2026-01-21T23:38:24Z"
+      },
+      {
+        "author": "cart",
+        "role": "MEMBER",
+        "body": "https://github.com/bevyengine/bevy/pull/22638",
+        "timestamp": "2026-01-21T23:45:20Z"
+      },
+      {
+        "author": "cart",
+        "role": "MEMBER",
+        "body": "Alrighty here are the results on my machine! (filtered to benches with \"spawn\" or \"entity_allocator\" in the name)\r\n**before**: main + the two benchmark prs)\r\n**after**: this pr merged with main + the two benchmark prs\r\n\r\n```\r\ngroup                                                   after                                  before\r\n-----                                                   ---------                              ----------\r\ndespawn_world/10000_entities                            1.21    280.6±6.30µs        ? ?/sec    1.00    231.5±3.53µs        ? ?/sec\r\ndespawn_world/100_entities                              1.19      4.0±0.94µs        ? ?/sec    1.00      3.4±0.75µs        ? ?/sec\r\ndespawn_world/1_entities                                1.26   197.0±10.40ns        ? ?/sec    1.00    156.1±7.84ns        ? ?/sec\r\ndespawn_world_recursive/10000_entities                  1.08  1032.1±64.06µs        ? ?/sec    1.00    951.3±4.22µs        ? ?/sec\r\ndespawn_world_recursive/100_entities                    1.31     13.7±0.16µs        ? ?/sec    1.00     10.4±0.13µs        ? ?/sec\r\ndespawn_world_recursive/1_entities                      1.01   333.4±27.69ns        ? ?/sec    1.00   330.5±31.46ns        ? ?/sec\r\necs::bundles::spawn_many::spawn_many/static             1.18   141.2±10.79µs        ? ?/sec    1.00    120.0±4.28µs        ? ?/sec\r\necs::bundles::spawn_many_zst::spawn_many_zst/static     1.07    103.7±8.09µs        ? ?/sec    1.00     97.0±1.41µs        ? ?/sec\r\necs::bundles::spawn_one_zst::spawn_one_zst/static       1.00    214.1±2.05µs        ? ?/sec    1.00    213.5±5.33µs        ? ?/sec\r\nentity_allocator_allocate_fresh/10000_entities          1.02     77.2±3.76µs        ? ?/sec    1.00     75.7±0.61µs        ? ?/sec\r\nentity_allocator_allocate_fresh/100_entities            1.07   842.3±43.68ns        ? ?/sec    1.00   783.8±19.69ns        ? ?/sec\r\nentity_allocator_allocate_fresh/1_entities              1.20     10.7±0.36ns        ? ?/sec    1.00      8.9±0.34ns        ? ?/sec\r\nentity_allocator_allocate_fresh_bulk/10000_entities     1.15     12.2±0.56µs        ? ?/sec    1.00     10.7±0.11µs        ? ?/sec\r\nentity_allocator_allocate_fresh_bulk/100_entities       1.30   150.0±15.45ns        ? ?/sec    1.00    115.5±2.27ns        ? ?/sec\r\nentity_allocator_allocate_fresh_bulk/1_entities         1.32     19.7±0.46ns        ? ?/sec    1.00     14.9±0.36ns        ? ?/sec\r\nentity_allocator_allocate_reused/10000_entities         1.55     79.7±4.38µs        ? ?/sec    1.00     51.2±1.45µs        ? ?/sec\r\nentity_allocator_allocate_reused/100_entities           1.59   874.1±37.64ns        ? ?/sec    1.00   549.8±19.90ns        ? ?/sec\r\nentity_allocator_allocate_reused/1_entities             2.54     32.5±6.39ns        ? ?/sec    1.00     12.8±2.02ns        ? ?/sec\r\nentity_allocator_allocate_reused_bulk/10000_entities    1.12     12.1±1.50µs        ? ?/sec    1.00     10.7±0.23µs        ? ?/sec\r\nentity_allocator_allocate_reused_bulk/100_entities      1.43   161.2±17.06ns        ? ?/sec    1.00    113.0±4.61ns        ? ?/sec\r\nentity_allocator_allocate_reused_bulk/1_entities        2.85     42.5±8.21ns        ? ?/sec    1.00     14.9±0.58ns        ? ?/sec\r\nentity_allocator_free/10000_entities                    4.20     92.1±6.97µs        ? ?/sec    1.00     21.9±0.34µs        ? ?/sec\r\nentity_allocator_free/100_entities                      2.67   984.7±21.72ns        ? ?/sec    1.00   368.8±16.15ns        ? ?/sec\r\nentity_allocator_free/1_entities                        8.57   147.1±13.05ns        ? ?/sec    1.00     17.2±0.66ns        ? ?/sec\r\nnonempty_spawn_commands/10000_entities                  1.11   203.6±17.13µs        ? ?/sec    1.00   183.2±14.29µs        ? ?/sec\r\nnonempty_spawn_commands/1000_entities                   1.14     19.3±1.10µs        ? ?/sec    1.00     16.9±1.32µs        ? ?/sec\r\nnonempty_spawn_commands/100_entities                    1.15  1985.8±92.96ns        ? ?/sec    1.00  1725.4±97.48ns        ? ?/sec\r\nspawn_commands/10000_entities                           1.05   768.7±82.07µs        ? ?/sec    1.00   729.2±24.41µs        ? ?/sec\r\nspawn_commands/1000_entities                            1.05     75.2±6.64µs        ? ?/sec    1.00     71.6±1.94µs        ? ?/sec\r\nspawn_commands/100_entities                             1.01      7.2±0.27µs        ? ?/sec    1.00      7.1±0.21µs        ? ?/sec\r\nspawn_world/10000_entities                              1.06   462.1±38.21µs        ? ?/sec    1.00   437.5±34.12µs        ? ?/sec\r\nspawn_world/100_entities                                1.06      4.8±0.44µs        ? ?/sec    1.00      4.5±0.45µs        ? ?/sec\r\nspawn_world/1_entities                                  1.01     44.2±5.15ns        ? ?/sec    1.00     43.9±4.81ns        ? ?/sec\r\nspawn_world_batch/10000_entities                        1.00   350.4±47.49µs        ? ?/sec    1.00   351.7±45.63µs        ? ?/sec\r\nspawn_world_batch/1000_entities                         1.14   405.8±47.82µs        ? ?/sec    1.00   356.1±48.36µs        ? ?/sec\r\nspawn_world_batch/100_entities                          1.00   355.5±43.25µs        ? ?/sec    1.00   354.9±41.74µs        ? ?/sec\r\nspawn_world_batch/1_entities                            1.03   506.6±51.10µs        ? ?/sec    1.00   491.2±44.52µs        ? ?/sec\r\n```\r\n\r\nThe \"free\" op (and therefore despawn) has definitely taken the biggest hit. But not to a worrying degree relative to what we gain. And in the context of a \"full\" entity despawn (and not just the free), the regression is relatively tame.",
+        "timestamp": "2026-01-23T02:24:37Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "3472810",
+        "message": "chunk data",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T17:08:45Z"
+      },
+      {
+        "sha": "2ce0fb4",
+        "message": "get and set chunks",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T17:14:18Z"
+      },
+      {
+        "sha": "3a8f328",
+        "message": "free and alloc",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T17:41:53Z"
+      },
+      {
+        "sha": "c37c32b",
+        "message": "remote_alloc",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T18:18:38Z"
+      },
+      {
+        "sha": "d40c4ba",
+        "message": "SharedAllocator",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T18:33:10Z"
+      },
+      {
+        "sha": "e028a6d",
+        "message": "Allocator",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T18:41:27Z"
+      },
+      {
+        "sha": "af83bf3",
+        "message": "construction",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T18:44:13Z"
+      },
+      {
+        "sha": "dac8921",
+        "message": "fix small bug",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T18:59:36Z"
+      },
+      {
+        "sha": "cd864b4",
+        "message": "fixed another small bug",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T19:02:47Z"
+      },
+      {
+        "sha": "b38df40",
+        "message": "remote allocation",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T19:15:59Z"
+      },
+      {
+        "sha": "46dce5f",
+        "message": "begin integrating the allocator",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T19:36:02Z"
+      },
+      {
+        "sha": "2bda8ec",
+        "message": "fixed length methods",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T20:18:11Z"
+      },
+      {
+        "sha": "3bd5666",
+        "message": "docs and fix errors",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T20:24:13Z"
+      },
+      {
+        "sha": "4752167",
+        "message": "allocation implemented",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T20:31:19Z"
+      },
+      {
+        "sha": "45693d2",
+        "message": "fix reserving",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T22:11:55Z"
+      },
+      {
+        "sha": "e010509",
+        "message": "fix free",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T22:41:10Z"
+      },
+      {
+        "sha": "0c3507e",
+        "message": "RemoteEntities",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T22:54:12Z"
+      },
+      {
+        "sha": "15e36d5",
+        "message": "implement Debug again",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-03-31T22:58:10Z"
+      },
+      {
+        "sha": "c1bff6c",
+        "message": "fixed bug where entity length was wrong",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T01:05:08Z"
+      },
+      {
+        "sha": "867baff",
+        "message": "don't test unimplemented",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T01:07:14Z"
+      },
+      {
+        "sha": "cb298fa",
+        "message": "rename for clarity\n\nfree and pending are now more distinct",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T02:25:58Z"
+      },
+      {
+        "sha": "86c0cda",
+        "message": "track pending and flush",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T02:53:59Z"
+      },
+      {
+        "sha": "c4e2f56",
+        "message": "clarified flush behavior",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T02:58:58Z"
+      },
+      {
+        "sha": "7333626",
+        "message": "allow remote pending to be flushed",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:11:30Z"
+      },
+      {
+        "sha": "a8ce70d",
+        "message": "queue pending",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:20:10Z"
+      },
+      {
+        "sha": "3abdac7",
+        "message": "flush reserve_entities",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:26:34Z"
+      },
+      {
+        "sha": "f729253",
+        "message": "naming consistency",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:26:59Z"
+      },
+      {
+        "sha": "af9f9db",
+        "message": "iterator drop warning",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:30:43Z"
+      },
+      {
+        "sha": "7edefb5",
+        "message": "restore old `get` behavior",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:36:12Z"
+      },
+      {
+        "sha": "e11d173",
+        "message": "fixed flushing",
+        "author": "Elliott Pierce",
+        "timestamp": "2025-04-01T03:39:43Z"
+      }
+    ]
+  },
+  {
+    "story_id": "bevyengine/bevy#10466",
+    "metadata": {
+      "title": "Define a basic set of Primitives",
+      "labels": [
+        "C-Feature",
+        "S-Ready-For-Final-Review",
+        "A-Math"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-11-15T17:05:22Z",
+      "reviewers": [
+        "alice-i-cecile",
+        "NiseVoid",
+        "Jondolf",
+        "djeedai"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "# Objective\r\n\r\n- Implement a subset of https://github.com/bevyengine/rfcs/blob/main/rfcs/12-primitive-shapes.md#feature-name-primitive-shapes\r\n\r\n## Solution\r\n\r\n- Define a very basic set of primitives in bevy_math\r\n- Assume a 0,0,0 origin for most shapes\r\n- Use radius and half extents to avoid unnecessary computational overhead wherever they get used\r\n- Provide both Boxed and const generics variants for shapes with variable sizes\r\n  - Boxed is useful if a 3rd party crate wants to use something like enum-dispatch for all supported primitives\r\n  - Const generics is useful when just working on a single primitive, as it causes no allocs\r\n\r\n#### Some discrepancies from the RFC:\r\n\r\n- Box was changed to Cuboid, because Box is already used for an alloc type\r\n- Skipped Cone because it's unclear where the origin should be for different uses\r\n- Skipped Wedge because it's too niche for an initial PR (we also don't implement Torus, Pyramid or a Death Star (there's an SDF for that!))\r\n- Skipped Frustum because while it would be a useful math type, it's not really a common primitive\r\n- Skipped Triangle3d and Quad3d because those are just rotated 2D shapes\r\n\r\n## Future steps\r\n\r\n- Add more primitives\r\n- Add helper methods to make primitives easier to construct (especially when half extents are involved)\r\n- Add methods to calculate AABBs for primitives (useful for physics, BVH construction, for the mesh AABBs, etc)\r\n- Add wrappers for common and cheap operations, like extruding 2D shapes and translating them\r\n- Use the primitives to generate meshes\r\n- Provide signed distance functions and gradients for primitives (maybe)\r\n\r\n---\r\n\r\n## Changelog\r\n\r\n- Added a collection of primitives to the bevy_math crate\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "superdump",
+        "role": "CONTRIBUTOR",
+        "body": "Cool!\r\n\r\nPart of the RFC was about bounding volumes. These are often used for culling. Every frame has at least one frustum. I wouldn’t say they’re rare. And they are a bounding volume. I’m thinking if debug gizmos are implemented for all of these, it would be good to also have frustum included.\r\n\r\nAside from that if any of these are to be used for bounding volumes and would replace any existing bounding volumes or intersection methods used for culling or other rendering functionality, naturally ensuring no performance regressions is super important. :)",
+        "timestamp": "2023-11-09T08:57:59Z"
+      },
+      {
+        "author": "NiseVoid",
+        "role": "CONTRIBUTOR",
+        "body": "Not really saying Frustums are rare by theirselves, but rather uncommon to be used as a primitive shape, tho I guess the same could be said about Ray2d/3d. I'd probably also define the primitive shape for a Frustum differently than how I would store it for bounding checks.\r\n\r\nBounding volumes are probably the most logical next step. Culling, rendering (be it rasterized of raytracing with sdfs or meshes) and collisions could all use them. Some solid tests and benchmarks would definitely be important there. I think we'd at the very least want AABBs and a fairly complete set of intersection tests, aabb overlaps, frustum checks, ray casts and padded ray casts (used for shape casts). ",
+        "timestamp": "2023-11-09T15:41:41Z"
+      },
+      {
+        "author": "NiseVoid",
+        "role": "CONTRIBUTOR",
+        "body": "Fixed (I hope) most of the comments, and added a few helpers but I'm not 100% sold on some of their names.\r\n\r\nAnd I think we could use some extra opinions on the comments about:\r\n- Vec vs Box vs const generics\r\n- Direction2d/3d vs Dir2d/3d\r\n- ~~LineSegment vs Segment~~",
+        "timestamp": "2023-11-12T22:10:10Z"
+      },
+      {
+        "author": "jnhyatt",
+        "role": "CONTRIBUTOR",
+        "body": "I only have general concerns about the usability of the new types. All the specific concerns I have were already mentioned. Generally, though, I feel like a lot of the issues that were brought up ended with performance considerations trumping usability and ergonomics. I realize that a major goal is exposing common types for physics and rendering engines (and other 3rd party libs), so we can't dismiss performance concerns. At the same time, this feels like premature optimization. This is somewhat of an experiment in \"ecosystem cohesion\", and in that spirit, I think a more \"grokable\" design first with optimization later (once users start complaining about performance) might be a better starting point. ",
+        "timestamp": "2023-11-14T23:35:29Z"
+      },
+      {
+        "author": "NiseVoid",
+        "role": "CONTRIBUTOR",
+        "body": "> I think a more \"grokable\" design first with optimization later (once users start complaining about performance) might be a better starting point.\r\n\r\nI think the main thing here is that you can't see primitives as a thing with a single user. There will be people writing code that creates primitives, and there will be people using the primitives to do math. The former requires easy ways to create a primitive from whatever inputs they have, while the latter want something that's easy to do math with.\r\n\r\nThe people creating primitives will of course be the bigger group, but they'll also most likely just know which shape they want and check the docs or autocomplete on how to make one with their inputs.\r\n\r\nThere's a few reasons why it makes sense to choose efficient internal representations now, rather than disregarding performance in favor of ergonomics:\r\n1. With every representation, it will inevitably be different from what the user has, so you can't ever escape writing helpers\r\n2. If the internal representation requires conversions for most math operations, the complexity and performance hit will make maintainers of other parts of bevy and plugins very unlikely to switch to these types\r\n3. The breaking changes from later performance improvements would not be fun\r\n\r\nPoint 2 and 3 are especially important since these could prevent this part of the engine from seeing any real adoption and the improvement that would come with it.\r\n\r\nOf course that doesn't mean we can just disregard ergonomics, primitives can be fairly abstract mathmatical constructs. Good docs and a complete set of helper functions is something we should aim for, but those are much harder to get right in an initial PR than getting a reasonably efficient internal representation.",
+        "timestamp": "2023-11-15T03:28:44Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "Calling for another round of review: I think we should be able to get this merged soon :)",
+        "timestamp": "2023-11-15T14:06:53Z"
+      },
+      {
+        "author": "djeedai",
+        "role": "CONTRIBUTOR",
+        "body": "> If the internal representation requires conversions for most math operations, the complexity and performance hit will make maintainers of other parts of bevy and plugins very unlikely to switch to these types\r\n\r\nThis is the most critical point to me that makes it an actual design rather than an optimization (and why I'm a bit picky on review). Not everything that cares about performance is an optimization; ECS is the prime example, where organizing data in a certain way leads to increased performance, yet is absolutely not something you can retrofit. It's critical that the types here are optimal enough that they're appealing for crate maintainers, otherwise that whole effort is useless.",
+        "timestamp": "2023-11-15T14:44:17Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "Alright, merging this in! We can iterate on this more (and add *all* of the helper methods) in follow-up PR. ",
+        "timestamp": "2023-11-15T16:50:59Z"
+      },
+      {
+        "author": "JasmineLowen",
+        "role": "CONTRIBUTOR",
+        "body": "I'm a bit late to the party but also quiet interested in this. While there was already some discussion here and this is closed for a while I still have some questions to the authors and reviewers.\r\n\r\nMainly I think that @jnhyatt made a good point and while some of the justifications made sense I still don't get some of the details. As I understand it, we implicitly assume that the line types pass through the origin to save some memory which plays nice with the ECS. My main questions are:\r\n\r\n- How are we supposed to do math with the `Line2D` and `LineSegment2D` types?\r\n- To be more specific, just an example: How would we implement line intersections for arbitrary lines (which don't necessarily pass through the origin) with these types?\r\n\r\nMaybe I just have tomatoes on my eyes though 🙈 \r\n",
+        "timestamp": "2023-12-17T21:27:04Z"
+      },
+      {
+        "author": "Jondolf",
+        "role": "CONTRIBUTOR",
+        "body": "In cases where positions are required, it should just be stored/passed separately. For the line intersection example, it could be something like this:\r\n\r\n```rust\r\nfn line_intersection(line1: Line2d, line2: Line2d, pos1: Vec2, pos2: Vec2) {\r\n    // ...\r\n}\r\n```\r\n\r\nThe Parry collision detection library does collision detection similarly, where the primitive shapes and isometries (or relative isometries) are given separately.\r\n\r\nEventually, we'll probably have some kind of intersections and collision detection built in via traits, and I'd expect it work similarly by taking an isometry.\r\n\r\nAlso note that if we wanted to, we still *could* store positions in the shape structs if we just made a wrapper, e.g. a collider could be something like this:\r\n\r\n```rust\r\nLine2dCollider {\r\n    line: Line2d,\r\n    position: Vec2,\r\n}\r\n```\r\n\r\nBut for a lot of things where the primitive shapes should be used (e.g. meshes and colliders) there wil probably be a `Transform` already, so storing a separate position inside the primitive would be unnecessary memory usage and effort.\r\n\r\nI agree that it'd be more convenient to do some math things on the primitives if they stored positions, but I think e.g. computing line intersections is much more niche in comparison to the other use cases of primitives, so in my opinion it's not worth the added complexity and memory usage, especially when the positions can still be passed separately.",
+        "timestamp": "2023-12-18T11:37:48Z"
+      },
+      {
+        "author": "JasmineLowen",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the clarification. Just curious: What are these general use cases you talk about?\n\nAlso wouldn't it be more in line with the design philosophy to store `LineSegment2D` with just one field `end` assuming that the start is the origin?",
+        "timestamp": "2023-12-18T22:25:43Z"
+      },
+      {
+        "author": "Jondolf",
+        "role": "CONTRIBUTOR",
+        "body": "> What are these general use cases you talk about?\r\n\r\nPrimitive shapes should be used for use cases like the ones listed here: #10572\r\n\r\nSome very common ones include mesh creation (#10569) and colliders (not implemented yet). Both of these are in the context of entities, and those entities have `Transform`s that can be used.\r\n\r\nGizmo methods like `circle_2d` also already take position separately, so I think it'd make sense to do that for primitives too.\r\n\r\nAnother reason to store position separately is that you might want to make multiple copies of the same underlying primitive, but at different positions. This could be for meshes, colliders, gizmos, basically anything. If the position was stored in the primitive itself, it could be more annoying to copy it at different positions, although I guess there could be some `transformed` method.\r\n\r\nOne exception is bounding volumes (#10946). They are inherently used in contexts where they have specific global extents, as they are used for several acceleration structures, so it makes sense to encode the position into the struct. However, they're not actually in the `primitives` module, so they're not really counted as \"geometric primitives\" in the same sense.\r\n\r\n> Also wouldn't it be more in line with the design philosophy to store LineSegment2D with just one field end assuming that the start is the origin?\r\n\r\n`LineSegment2d` could use just one field like `end` and save the 32 bits of the f32 `half_length`, but that's not desirable for other reasons. To access the direction of the segment, you'd need to normalize it every time instead of just on instantiation (`Direction2d/3d` is guaranteed to be normalized), and getting the length would require a square root and dot product instead of just `2.0 * half_length`. I believe storing the direction and half-length also makes some other computations like intersections more trivial, but I haven't thought much about it.\r\n\r\nOverall, the high-level goal is summarized quite well by the [RFC](https://github.com/bevyengine/rfcs/blob/main/rfcs/12-primitive-shapes.md#feature-name-primitive-shapes):\r\n\r\n> These geometric primitives, or \"primitive shapes\", are lightweight types for use across Bevy engine crates and as interoperability types for plugins and libraries. The goal is to provide an API that considers ergonomics for the common use cases, such as meshing, bounding, and collision, without sacrificing performance.\r\n\r\nThe primitives are lightweight types that can be used everywhere in the Bevy ecosystem that uses shapes. Domain-specific properties can be handled via traits and/or wrappers, but the \"low-level\" types should not assume that e.g. storing positions in the primitives is needed, as it is *not* needed everywhere. The shapes need to strike a balance between memory efficiency (minimal size in bytes), computational efficiency (common operations should be cheap), and ergonomics (the API should be nice to use). The main focus is perhaps on the first two, but the third can be done quite well using helpers such as convenient constructors, getters, and wrappers.",
+        "timestamp": "2023-12-18T23:03:54Z"
+      },
+      {
+        "author": "JasmineLowen",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, I'm fine and fully onboard with going the very minimalistic route of defining the structs. I just want to be consistent here:\n\nWhy aren't we going for the maximum laziness in all situations?\n\nIf we apply the same logic for storing the positions to storing the half lengths: Couldn't we just cache the length field separately outside of the `LineSegment2D` struct the same way we are planning to do it for the position field?\n\nLet's say we're just interested in one of you're mentioned main use cases: creating the meshes of a bunch of lines for rendering. Then if we keep the half length we would:\n\n- a) calculate the `Direction2D` for all these lines which uses the square root operation we talked about above. (To be fair it's only done once so that's probably no biggie)\n- b) store the half length for no reason\n\nMaybe the current design is cool for your specific domain of use cases, but coming from a CAD background I currently don't see any benifits of using these types over using my own math lib. It's diverging too much from how we think about geometry. And I really wish it wasn't that way. So please could we just reconsider the things mentioned above? That way we can really base our CAD math ontop of the primitives like you envisioned it.\n\n",
+        "timestamp": "2023-12-19T16:29:53Z"
+      },
+      {
+        "author": "Jondolf",
+        "role": "CONTRIBUTOR",
+        "body": "> If we apply the same logic for storing the positions to storing the half lengths: Couldn't we just cache the length field separately outside of the LineSegment2D struct the same way we are planning to do it for the position field?\r\n\r\nIf we stored the length separately, what would `LineSegment2d` be? Just a direction? In that case, it would just be a `Line2d`.\r\n\r\nEach primitive is supposed to contain the minimum amount of data that *fully* represents the core shape (although interpretations of \"fully\" may vary). For line segments, the critical piece of information is that it describes a way to get from point `a` to point `b`, as a line segment by definition is \"*a part of a straight line that is bounded by two distinct end points*\". How that is implemented is just an implementation detail (i.e. two endpoints or a direction and half-length), but the core idea should remain the same.\r\n\r\nThe position differs from length in that it is not required to describe the core shape itself. The position is just a transformation that moves the shape relative to the origin. No matter how you transform a shape (outside non-uniform scaling), it will always be [geometrically similar](https://en.wikipedia.org/wiki/Similarity_(geometry)) and therefore represent the shape accurately. This same logic does not work for lengths, as they are *required* to describe the actual shape.\r\n\r\nCaching length separately also means that line segments would need to be special-cased everywhere. Positions are handled the same way for all primitives, so you can use e.g. traits and share quite a lot of logic and APIs, but if the lengths of line segments (or other shapes) were stored separately, each system or method would need to handle them in a special way to get access to the length. Caching data that describes the core shapes fragments the API and logic, and frankly makes the idea of the primitives useless.\r\n\r\n> ...coming from a CAD background I currently don't see any benifits of using these types over using my own math lib. It's diverging too much from how we think about geometry.\r\n\r\nI'm not entirely sure *what* your specific needs are, just storing positions in the primitives?\r\n\r\nEither way, I don't think these primitives are supposed to be tailored to geometry and math specifically, as that is not what they are typically used for in games or in Bevy internally. They are general-purpose in the sense that they aim to support as many use cases as possible, but this does come with the trade-off that they might not be the perfect solution for some domains as requirements differ.\r\n\r\nI'm open to reconsidering the approach if there are concrete use cases that aren't reasonably possible with the current approach, but it also shouldn't be at the detriment of the \"main use cases\" mentioned earlier. I think creating an issue could be useful if you can nicely outline the current problems you have with the approach, and perhaps a proposal of how it *should* be done and what kind of use cases it would enable.\r\n\r\nOthers are also free to chime in, I'm just sharing my personal thoughts and may have missed things :P",
+        "timestamp": "2023-12-19T18:02:33Z"
+      },
+      {
+        "author": "Jondolf",
+        "role": "CONTRIBUTOR",
+        "body": "Also, returning to storing positions in primitives for a moment, what would that actually look like? Consider the following example of creating a mesh:\r\n\r\n```rust\r\ncommands.spawn(PbrBundle {\r\n    mesh: meshes.add(\r\n        Cuboid::new(1.0, 1.0, 1.0).mesh().transform_by(Transform::from_xyz(1.0, 2.0, 0.0)).into(),\r\n    ),\r\n    transform: Transform::from_xyz(5.0, 0.0, 0.0),\r\n});\r\n```\r\n\r\nWhat is the position of the mesh here? We could specify the primitive transform as a local transform relative to the entity's own `Transform`, but then the entity would have a kind of \"pseudo hierarchy\" internally, and this would also still require passing separate transforms to e.g. collision detection, as that requires global transforms, not local transforms. There would just be an extra layer of transforms that makes a lot of logic more convoluted and unclear (although it does admittedly have some use cases too).\r\n\r\nAlternatively, we could treat it as a global transform, but that has it's own set of very bad problems. It would require having systems that constantly update the positions of the primitives, which would be expensive and prone to scheduling issues. It would be very implicit, as users expect the normal `Transform` on the entity to work. And if you only specify the entity's `Transform` and not the primitive's transform, what would be used as the default value, the origin or the entity `Transform`?\r\n\r\nI feel like having two models for positions, `Transform` and \"primitive transforms\", is rather problematic due to its implicitness, scheduling issues, and potential confusion. In bevy_xpbd I have `Position` and `Rotation` for physics positions because of very specific requirements, and it requires quite a lot of syncing logic to work correctly. It's basically hidden in the API, but I still wouldn't want that complexity for something as simple as geometric primitive shapes.",
+        "timestamp": "2023-12-19T18:02:45Z"
+      },
+      {
+        "author": "JasmineLowen",
+        "role": "CONTRIBUTOR",
+        "body": "> If we stored the length separately, what would LineSegment2d be? Just a direction? In that case, it would just be a Line2d.\r\n\r\nI was talking about storing it separately when using the approach of just using the \"end point representation\". Sorry for the wording and for making it easy to misinterpret.\r\n\r\n> Each primitive is supposed to contain the minimum amount of data that fully represents the core shape (although interpretations of \"fully\" may vary)...\r\n\r\nJust the endpoint is also a full representation of the line segement given that we implicitly take the origin as the start point. Let's focus a bit. My argument was: \r\n\r\n1. You chose to go \"two endpoint representation\" < \"direction + half length representation\" because of ECS reasons (among other things) since the latter has a smaller memory footprint\r\n2. I just stated that \"just one endpoint\" has an even smaller memory footprint\r\n3. You said that this representation requires that we need to recalc the length which is an expensive operation\r\n4. I said yeah that's true, but we can cache it and it isn't needed for some of the use cases and would mean needless operations and memory in these cases\r\n\r\n> Caching length separately also means that line segments would need to be special-cased everywhere...\r\n\r\nYeah that's kind of fair and would incur some extra logic although I doubt it would be special cased everywhere. Imo: through careful design we could probably hide away the caching mechanism, making the systems calculate the length JIT or something. But that's just an idea and would probably mean other challanges in case of a real implementation\r\n\r\n> I'm not entirely sure what your specific needs are, just storing positions in the primitives?\r\n\r\nWe're doing a lot of projections and intersections with lines and I fear that the current design just creates friction if we always have to transform forth to the actual position of the primitive and back to the origin representation of the primitive.\r\n\r\n> Either way, I don't think these primitives are supposed to be tailored to geometry and math specifically, ...\r\n\r\nI didn't say that or at least I didn't mean to say it if it sounded like I was\r\n\r\n> I'm open to reconsidering the approach if there are concrete use cases that aren't reasonably possible with the current approach, but it also shouldn't be at the detriment of the \"main use cases\" mentioned earlier...\r\n\r\nHonestly I'm at a point where this discussion is just too exhausting and I feel like this is bike shedding. We can leave it as it is and I'll just trust you.",
+        "timestamp": "2023-12-19T20:43:43Z"
+      },
+      {
+        "author": "Jondolf",
+        "role": "CONTRIBUTOR",
+        "body": "> I was talking about storing it separately when using the approach of just using the \"end point representation\". Sorry for the wording and for making it easy to misinterpret.\r\n\r\nAh, gotcha. I didn't realize it was in the context of the end point approach, makes sense now!\r\n\r\n> Just the endpoint is also a full representation of the line segement given that we implicitly take the origin as the start point.\r\n\r\nThis is true, but it has the issue of more expensive computations (which you do address right after). That being said, I think we might be overengineering this a bit and doing premature optimization. A few extra bytes or computations should rarely matter in practise, so unless it shows up in profiling, it's probably a non-issue.\r\n\r\n> We're doing a lot of projections and intersections with lines and I fear that the current design just creates friction if we always have to transform forth to the actual position of the primitive and back to the origin representation of the primitive.\r\n\r\nThat's fair. If the issue is specifically in the line segment representation, and it'd be solved by simply using endpoints `a` and `b`, then I could get behind that change. I find it to be the most intuitive and common representation (used by most prior art I could find), and it's also what the original RFC uses.\r\n\r\nThe main issues would be memory usage and computational efficiency as mentioned earlier, but in practise it probably wouldn't be a big deal. I think those are secondary if the approach enables more advanced use cases and better ergonomics, and by your description, it seems like it does.\r\n\r\nHowever, the thing I don't want is for all primitives to have an actual position or transform stored in them (outside of \"implicit position\" defined by e.g. the endpoints) due to the reasons I've mentioned earlier and also for the reasons the [RFC mentions](https://github.com/bevyengine/rfcs/blob/main/rfcs/12-primitive-shapes.md#where-are-the-transforms).\r\n\r\n> I didn't say that or at least I didn't mean to say it if it sounded like I was\r\n\r\nSorry, my bad. I read this: \"I currently don't see any benifits of using these types over using my own math lib. It's diverging too much from how we think about geometry\" and interpreted it as you wanting things to be generally more math/geometry focused, but I believe you meant that specifically it doesn't quite fit your requirements for CAD.\r\n\r\n> Honestly I'm at a point where this discussion is just too exhausting and I feel like this is bike shedding. We can leave it as it is and I'll just trust you.\r\n\r\nYeah, agreed that this might be bike shedding. I feel like I've been a bit too critical/defensive here, so my apologies if it came across like that. Like you, I just want the primitives to be as good as possible, which is why I've been defending my viewpoints quite thoroughly.\r\n\r\nBut as I mentioned, I could get behind the line segment representation of two endpoints in case that'd be enough for your use case. Or we can just leave it be, or return to it later.",
+        "timestamp": "2023-12-19T21:54:27Z"
+      },
+      {
+        "author": "JasmineLowen",
+        "role": "CONTRIBUTOR",
+        "body": "I think we both have some points. For now I'm fine with leaving it as it is. Let's see where things are going. We can always discuss things when they're popping up :+1:\r\n\r\nSorry for being pesky with all of this fuss. I just wanted to create some awareness for the CAD people as there are already some companies using bevy for real world use cases.\r\n\r\nThank you for being accommodating to me after all. Let's work together on this to create the best for everyone 🤝 ",
+        "timestamp": "2023-12-19T22:31:30Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f681821",
+        "message": "Implement a basic set of primitives",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-09T01:36:00Z"
+      },
+      {
+        "sha": "2795df6",
+        "message": "Add some derives",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-09T02:06:55Z"
+      },
+      {
+        "sha": "4cc1bd4",
+        "message": "Fix doc-markdown warnings",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-09T03:07:29Z"
+      },
+      {
+        "sha": "3903a6e",
+        "message": "Improve some docs and debug_assert from_normalized",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-09T19:44:44Z"
+      },
+      {
+        "sha": "00c2505",
+        "message": "Use half_length of LineSegment and add some helpers",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-12T21:57:39Z"
+      },
+      {
+        "sha": "ef5c035",
+        "message": "Add helpers to get the start and end position of a LineSegment2d/3d",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-12T22:03:29Z"
+      },
+      {
+        "sha": "225ccb2",
+        "message": "Small fixes",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-13T16:07:35Z"
+      },
+      {
+        "sha": "8538b51",
+        "message": "Docs, naming and helper improvements",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-13T18:54:31Z"
+      },
+      {
+        "sha": "5508362",
+        "message": "Fix 2d capitalization in docs on Triangle2d\n\nCo-authored-by: Joona Aalto <jondolf.dev@gmail.com>",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-13T19:08:35Z"
+      },
+      {
+        "sha": "4ef3913",
+        "message": "Apply suggestions from code review\n\nCo-authored-by: Joona Aalto <jondolf.dev@gmail.com>",
+        "author": "NiseVoid",
+        "timestamp": "2023-11-15T16:25:22Z"
+      }
+    ]
+  },
+  {
+    "story_id": "bevyengine/bevy#10701",
+    "metadata": {
+      "title": "Cubic splines overhaul",
+      "labels": [
+        "C-Feature",
+        "S-Ready-For-Final-Review",
+        "A-Math",
+        "D-Complex"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-02-28T17:34:11Z",
+      "reviewers": [
+        "NthTensor",
+        "IQuick143",
+        "JasmineLowen",
+        "alice-i-cecile",
+        "JohnTheCoolingFan"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "# Objective\r\n\r\nImprove the `bevy::math::cubic_splines` module by making it more flexible and adding new curve types.\r\nCloses #10220 \r\n\r\n## Solution\r\n\r\nAdded new spline types and improved existing\r\n\r\n---\r\n\r\n## Changelog\r\n\r\n### Added\r\n\r\n- `CubicNurbs` rational cubic curve generator, allows setting the knot vector and weights associated with every point\r\n- `LinearSpline` curve generator, allows generating a linearly interpolated curve segment\r\n- Ability to push additional cubic segments to `CubicCurve`\r\n- `IntoIterator` and `Extend` implementations for `CubicCurve`\r\n\r\n### Changed\r\n\r\n- `Point` trait has been implemented for more types: `Quat` and `Vec4`.\r\n- `CubicCurve::coefficients` was moved to `CubicSegment::coefficients` because the function returns `CubicSegment`, so it seems logical to be associated with `CubicSegment` instead. The method is still not public.\r\n\r\n### Fixed\r\n\r\n- `CubicBSpline::new` was referencing Cardinal spline instead of B-Spline\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "The only thing left is documentation for the new types and methods, I think",
+        "timestamp": "2023-12-02T09:18:25Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "@aevyrie Ok, ready for review now",
+        "timestamp": "2023-12-04T09:50:20Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "The failed check doesn't seem to be related to the changes in this PR but rather the main branch code.",
+        "timestamp": "2024-01-26T21:30:36Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "> Given that the conversion of NURBS to CubicCurve is only approximate (as far as I understand, please correct me if I'm wrong), there might be a need for the ability to sample CubicNurbs directly.\r\n\r\n@IQuick143 The matrix form is just a simplified version of the original definition, brought into a form that is sometimes easier to use. The conversion is not approximate.",
+        "timestamp": "2024-01-28T13:07:02Z"
+      },
+      {
+        "author": "IQuick143",
+        "role": "CONTRIBUTOR",
+        "body": "> > Given that the conversion of NURBS to CubicCurve is only approximate (as far as I understand, please correct me if I'm wrong), there might be a need for the ability to sample CubicNurbs directly.\r\n> \r\n> @IQuick143 The matrix form is just a simplified version of the original definition, brought into a form that is sometimes easier to use. The conversion is not approximate.\r\n\r\nMy concern is that NURBS curves are known to be able to express curves such as conic sections, whereas polynomial curves (of any degree) are not.\r\n\r\nAlso looking at the code again, I see that  weights are used only in the constructor, when scaling the control_points, but then are completely missing from other calculations, I don't see how that can be right given that NURBS curves are defined by the formula:\r\n`Curve(t) = (sum_i N_i(t) weight_i P_i) / (sum_i N_i(t) weight_i)` (this ratio is why it's a *Rational* spline)\r\nWhere `N_i(t)` is a polynomial spline for the i-th control point.\r\n\r\nScaling the points by weight, will calculate the top sum, but completely avoid the denominator expression.",
+        "timestamp": "2024-01-28T16:34:30Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "Well, the way you wrote it, `(sum_i N_i(t) weight_i)` completely cancels out from the expression it seems. I assume you have some error in that expression, so I'll read up on how weights are applied in nurbs.",
+        "timestamp": "2024-01-28T16:39:31Z"
+      },
+      {
+        "author": "IQuick143",
+        "role": "CONTRIBUTOR",
+        "body": "Also as far as I've read the paper cited in the source code, it does not deal with rational splines at all, only non-uniform B-splines. I think overall NURBS is a misnomer, because we don't actually implement a NURBS curve, just a non-uniform B-spline with a weird weight scaling thing going on.",
+        "timestamp": "2024-01-28T16:41:22Z"
+      },
+      {
+        "author": "IQuick143",
+        "role": "CONTRIBUTOR",
+        "body": "> Well, the way you wrote it, `(sum_i N_i(t) weight_i)` completely cancels out from the expression it seems. I assume you have some error in that expression, so I'll read up on how weights are applied in nurbs.\r\n\r\nIt does not cancel out, because the control points in front of each summand are different. Here's a toy worked example for two control points:\r\n\r\n```\r\nCurve(t) =\r\n(sum_i N_i(t) weight_i P_i) / (sum_i N_i(t) weight_i) =\r\n(N_1(t) * w_1 * P_1 + N_2(t) * w_2 * P_2) / (N_1(t) * w_1 + N_2(t) * w_2)\r\n```\r\nOne can see, this fraction does not cancel down to `P_1 + P_2` or anything similar.\r\n\r\nNot to mention, if you tried to cancel it out you would end up with `P_i` which is a malformed expression, because nothing specifies what the index is (like if you tried to move the body of for loop out into an expression and then had an undefined index).\r\n\r\nYou're not completely wrong in principle however, if the control points were all the same it would work:\r\n```\r\n(sum_i A_i * X) / (sum_i A_i) = (X * sum_i A_i) / (sum_i A_i) = X * (sum_i A_i) / (sum_i A_i) = X\r\n```\r\nHere the important thing is we factored out `X` out of the sum, which we could do because it did not depend on the summation index.",
+        "timestamp": "2024-01-28T16:48:26Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "Oh, I see, I was confused by the notation. I though `sum_i` is just another variable/function, but it's an operator.\r\nCurrently I'm working through the math on wikipedia to see how I can simplify rational basis functions.\r\n\r\nUPD: got some progress by expanding the denominator into a polynomial, I'm just not sure what I can do now. Try to simplify the whole expression to include the denominator part into the resulting polynomial coefficients if that's possible or try and add a second polynomial by which the result would be divided.\r\n\r\nUPD2: Although changing anything in the `CubicSegment`, which is responsible for the actual polynomial itself, might require some changes to velocity and acceleration calculations as well. Which is part of the reason I'm still trying to break the formulas back into a cubic polynomial form. No major success so far, sadly.",
+        "timestamp": "2024-01-28T17:26:49Z"
+      },
+      {
+        "author": "IQuick143",
+        "role": "CONTRIBUTOR",
+        "body": "I agree NURBS curves have many uses, but they cannot be reduced to a CubicCurve, as they are rational functions, not polynomials, you can at best find an approximation, but that kinda defeats the purpose imo.\r\nWell... they can if you use homogeneous coordinates of a projective space, though you wont avoid the final division in the end.\r\n\r\nProjective spaces work based on the idea of using lines as points, the motivation comes from a camera projection, under which every point along a ray hits a certain pixel.\r\nTo do this mathematically you take a space like R^3 (3D real space, think `Vec3`) and consider two points to be equivalent if they are multiples of eachother, ie (a,b,c) and (x,y,z) are equivalent if a = kx, b = ky, c = kz for some multiplier k.\r\nIf two vectors are equivalent, then they correspond to the same point, these are homogeneous coordinates of the point, they're sometimes denoted with : like (a : b : c).\r\n\r\n(Sidetrack: The term homogeneity refers to the act of scaling of the coordinates, another (somewhat unrelated) example would be homogeneous functions of degree n, which satisfy: f(ka, kb, kc...) = k^n * f(a,b,c...), (they exhibit a similar symmetry under scaling). The term homogeneous polynomial is a special case of this. Vector norms (the length of a vector) are yet another example of a homogeneous function (of degree 1).)\r\n\r\nJust like 3D space projects onto a 2D space, the projective space that is created this way is one dimension less than the space you started with. You can identify a 2D space with a part of the projective space with 3 coordinates, by saying:\r\nthe point (x,y) corresponds to the point (x : y : 1) (the same point could be also described with coordinates (2x : 2y : 2), but we fix the last coordinate to be 1 in order to ensure consistency).\r\n\r\n(Sidetrack: this does not actually cover every point in the projective space, because points given by (x : y : 0) cannot be represented using (x : y : 1), but we don't need them here, we just want to represent our usual points.)\r\n\r\n(Sidetrack: This representation is useful in graphics and transforms, because it allows us to represent translations with the following matrix:\r\n```\r\n[1 0 0 x]\r\n[0 1 0 y]\r\n[0 0 1 z]\r\n[0 0 0 1]\r\n```\r\nIf I'm not mistaken, projection matrices work similarly, but they do not preserve the 1 in the last spot, one then has to \"normalise\" the vector by dividing it by the last component (which makes the last component 1 again). This division then finishes the projection transformation... which leads us back to this subject being named projective geometry)\r\n\r\nSo how does this relate to NURBS?\r\nYou can represent NURBS by a CubicCurve in a 4D space, and then convert the homogeneous coordinates into 3D as described earlier.\r\nSo to compute a NURBS curve in 3D you take your control points (x_i, y_i, z_i), convert them into points in projective space (x_i, y_i, z_i, 1), scale them by their weights (which changes the coordinates but not the point):\r\n(w_i*x_i, w_i*y_i, w_i*z_i, w_i) calculating a CubicCurve through these points. This gives you a point described by homogeneous coordinates (a : b : c : w), and then you convert them to a point by doing (a / w, b / w, c / w).\r\n\r\nWikipedia has a good image to show how this works:\r\nhttps://en.wikipedia.org/wiki/B-spline#/media/File:RationalBezier2D.svg\r\n\r\nThis mechanism is also why NURBS curves are able to describe conic sections, all you need to do is to describe a curve on the surface of a cone (a parabola does the job, and that is a quadratic curve), these points correspond to lines passing through the origin, forming the surface of the cone, computing the last step effectively computes an intersection of these lines with a w = 1 plane, giving the desired conic section, again wikipedia has a good visualisation:\r\nhttps://en.wikipedia.org/wiki/Non-uniform_rational_B-spline#/media/File:NURBS-circle-3D.svg\r\n\r\nSo... to sum up:\r\nA (cubic) NURBS curve cannot be converted to a CubicCurve (at least not losslessly), it is simply too expressive for that.\r\nBut one can compute a NURBS<Vec2/3> with a CubicCurve<Vec3/4> with the caveat that after computing the point, one has to divide the vector by its last component.",
+        "timestamp": "2024-01-29T18:13:22Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "I'm in the middle of another much more thorough review of this, given that there seems to be a little contention in this thread.\r\n\r\nFirst off, I think we can assume given the topic of this PR that we are all familiar with homogeneous coordinates.\r\n\r\nSome of the confusion here may stem from our not directly using de Boor's algorithm to sample B-splines. Instead, we pre-compute the coefficients for a sequence of piecewise continuous cubics using a characteristic matrix derived from Boor's. This means we don't really have direct access to the B-Spline basis functions relied upon by the Piegl-Tiller formulation of NURBS, so whatever we do is going to look a little different from the classic version.\r\n\r\nLooks like we either want to add `RationalCurve` and `RationalSegment` structs representing the quotient of the corresponding cubic ones, or just completely replace all latter with rational cubic curves. `CubicNurbs` can output precomputed piecewise rational curves (Choi et al. derives the homogeneous 4x4 matrix we need here), then we can sample those just like the rest of the API and we can maybe get rid of that weird B-splines paper.",
+        "timestamp": "2024-01-29T21:24:10Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "Also we really should just do a second pass on all the documentation of the `cubic_splines` module. It's gets a little technical and sparse in several places. I would move to merge this first and then do a complete review to bring everything in line.",
+        "timestamp": "2024-01-29T21:29:11Z"
+      },
+      {
+        "author": "IQuick143",
+        "role": "CONTRIBUTOR",
+        "body": "Apologies, spontaneous math rambles are my weakness. I try to avoid unexplained jargon because most people I meet are not aware of it.\r\n\r\nI understand that we use piecewise `CubicSegment`s for the sampling instead of Basis functions, but the end result is the same that we are handling piecewise polynomial functions, which therefore don't express rational curves like NURBS is. If I read the code correctly, we dropped the R from NURBS. I haven't read Piegl-Tiller's work, so I'm not sure how their formulation looks (I assume it's similar to what I wrote given that you mention it).\r\n(I'm not a spline expert, so I apologise if I'm getting anything wrong here, I just had a hunch the code is not doing what it should be.)\r\n\r\nA `Rational[Cubic]Curve` and `Rational[Cubic]Segment` sound like a good design to me. I'm not sure about moving existing `CubicCurve`s over since sampling a `RationalCurve` is potentially more expensive (like all performance concerns, benchmark's needed here) even in cases where it provides no benefit. I'd say however that a conversion method (a `From` impl perhaps?) `CubicCurve -> RationalCurve` would be desirable.",
+        "timestamp": "2024-01-30T02:40:46Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "I've just finished checking and the current form of `generate_matrix` is absolutely 100% correct. If you go through the derivation, that matrix actually encodes the quotient of the basis functions. Choi and Qin use slightly different derivations and both end up with the exactly this result, and Choi gives an explicit formula using it which matches the existing use in `CubicCurve`. Nurbs can absolutely be formulated as a vector-valued cubic parametric curve.\r\n\r\nI still need to take a very close look at how `CubicCurve` is actually sampled, and I still want to visually test this, but I am now **highly confident** in the core method of implementation. I don't think we will need extra types to represent rational cubic curves after all. Very nice work all in all.\r\n\r\nEdit: Choi et al. is \"Matrix representation for NURB curves and surfaces\" btw, I think it's a better reference than the Qin paper for the derivation, but Qin is (apparently) more efficient. Piegl & Tiller wrote \"The NURBS Book\" back in the 90s, and it's what I used the only other time I had to do stuff with Nurbs.",
+        "timestamp": "2024-01-30T02:57:56Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "For reviewers who may be lurking, this is much closer but still not yet ready for merge. @IQuick143 identified a serious flaw with sampling and did a fantastic job fixing and documenting it, but there is still a few pending issues and a lack of tests.",
+        "timestamp": "2024-01-31T17:42:52Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "Yep, I'm happy to count your review here @NthTensor :) The main thing is \"make sure that we have consensus and eyes across multiple Bevy community members\", and this PR *certainly* counts.",
+        "timestamp": "2024-02-03T16:57:19Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "Going to hold off on merging this until the 0.14 cycle: I want to give us time for this to bake and get tested and refined, rather than shipping it last minute.",
+        "timestamp": "2024-02-03T16:57:56Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "Yep, that's a fair call. I will submit some more tests to the upstream fork next week. I'm sure we can get this rock-solid for 0.14.\r\n\r\nThanks Alice!",
+        "timestamp": "2024-02-03T22:11:44Z"
+      },
+      {
+        "author": "aevyrie",
+        "role": "MEMBER",
+        "body": "Love the addition of NURBS, this was on my list of things I wanted to add eventually. I'm glad to see the characteristic matrix design still works for this. I referenced the NURBS matrix paper during v2 of this module, so I had hoped this was the case.\n\nPlease re run benchmarks; performance was one of my key focuses when writing this, and some performance sensitive code was touched. I seem to recall removing exponents, for example, but found the naive approach was faster. It would be good to double check that there are no surprising perf regressions.",
+        "timestamp": "2024-02-23T18:57:18Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "Ran `bezier` benchmarks group, performance has improved compared to current `main`:\r\n```\r\neasing_1000             time:   [21.065 µs 21.071 µs 21.075 µs]                         \r\n                        change: [-8.2162% -8.1920% -8.1685%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\n\r\ncubic_position_Vec2     time:   [1.4079 ns 1.4096 ns 1.4113 ns]                                 \r\n                        change: [-20.278% -19.988% -19.452%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 2 outliers among 100 measurements (2.00%)\r\n  1 (1.00%) high mild\r\n  1 (1.00%) high severe\r\n\r\ncubic_position_Vec3     time:   [2.2770 ns 2.2782 ns 2.2792 ns]                                 \r\n                        change: [-19.322% -19.203% -19.082%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 22 outliers among 100 measurements (22.00%)\r\n  4 (4.00%) low severe\r\n  1 (1.00%) low mild\r\n  1 (1.00%) high mild\r\n  16 (16.00%) high severe\r\n\r\ncubic_position_Vec3A    time:   [1.1719 ns 1.1720 ns 1.1722 ns]                                  \r\n                        change: [-25.940% -25.825% -25.718%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 15 outliers among 100 measurements (15.00%)\r\n  2 (2.00%) low severe\r\n  4 (4.00%) high mild\r\n  9 (9.00%) high severe\r\n\r\nbuild_pos_cubic_100_points                                                                            \r\n                        time:   [155.26 ns 155.64 ns 156.25 ns]\r\n                        change: [-26.596% -26.464% -26.321%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 5 outliers among 100 measurements (5.00%)\r\n  1 (1.00%) high mild\r\n  4 (4.00%) high severe\r\n\r\nbuild_accel_cubic_100_points                                                                            \r\n                        time:   [166.01 ns 166.18 ns 166.36 ns]\r\n                        change: [-21.800% -21.664% -21.512%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 4 outliers among 100 measurements (4.00%)\r\n  2 (2.00%) high mild\r\n  2 (2.00%) high severe\r\n  ```",
+        "timestamp": "2024-02-24T02:44:14Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "I think we need to think about the orphan rule before making a decision about the blanket trait impl.\r\n\r\nLeft some thoughts on that comment thread (even thought it is marked resolved).",
+        "timestamp": "2024-02-24T02:58:04Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "I still consider this feature blocking on tests. We should not merge this until someone writes a more complete test suite for the nonlinear portion of NURBS. That can be me, if you are willing to wait a week or two.",
+        "timestamp": "2024-02-24T03:01:59Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "I've also uploaded the benchmark results to my website: https://jtcf.ru/bevy-benches/",
+        "timestamp": "2024-02-24T03:04:30Z"
+      },
+      {
+        "author": "aevyrie",
+        "role": "MEMBER",
+        "body": "I'm seeing different results (MacOS, M3 Max), with the first bench being a wash, the next three being a ~10% regression, and the last two a ~10% improvement. Here are two runs going from `main` to this PR branch:\r\n\r\n<details>\r\n<summary>Run 1</summary>\r\n\r\n```\r\neasing_1000             time:   [8.0191 µs 8.0530 µs 8.0967 µs]                         \r\n                        change: [-3.2295% -2.5671% -1.8296%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\n\r\ncubic_position_Vec2     time:   [1.2105 ns 1.2113 ns 1.2120 ns]                                 \r\n                        change: [+11.656% +11.899% +12.117%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 9 outliers among 100 measurements (9.00%)\r\n  1 (1.00%) low severe\r\n  1 (1.00%) low mild\r\n  2 (2.00%) high mild\r\n  5 (5.00%) high severe\r\n\r\ncubic_position_Vec3     time:   [2.1178 ns 2.1204 ns 2.1245 ns]                                 \r\n                        change: [+11.433% +11.705% +11.990%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 8 outliers among 100 measurements (8.00%)\r\n  1 (1.00%) low mild\r\n  2 (2.00%) high mild\r\n  5 (5.00%) high severe\r\n\r\ncubic_position_Vec3A    time:   [2.2291 ns 2.2304 ns 2.2319 ns]                                  \r\n                        change: [+9.0580% +9.3894% +9.7763%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 10 outliers among 100 measurements (10.00%)\r\n  3 (3.00%) high mild\r\n  7 (7.00%) high severe\r\n\r\nbuild_pos_cubic_100_points                                                                            \r\n                        time:   [108.25 ns 108.35 ns 108.46 ns]\r\n                        change: [-11.158% -10.965% -10.776%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 11 outliers among 100 measurements (11.00%)\r\n  8 (8.00%) high mild\r\n  3 (3.00%) high severe\r\n\r\nbuild_accel_cubic_100_points                                                                            \r\n                        time:   [108.05 ns 108.13 ns 108.22 ns]\r\n                        change: [-11.318% -11.175% -11.025%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 10 outliers among 100 measurements (10.00%)\r\n  4 (4.00%) high mild\r\n  6 (6.00%) high severe\r\n```\r\n</details>\r\n\r\n<details>\r\n<summary>Run 2</summary>\r\n\r\n```\r\neasing_1000             time:   [7.9431 µs 7.9541 µs 7.9662 µs]                         \r\n                        change: [-1.2036% -0.6829% -0.1405%] (p = 0.01 < 0.05)\r\n                        Change within noise threshold.\r\nFound 11 outliers among 100 measurements (11.00%)\r\n  4 (4.00%) high mild\r\n  7 (7.00%) high severe\r\n\r\ncubic_position_Vec2     time:   [1.2122 ns 1.2130 ns 1.2139 ns]                                 \r\n                        change: [+11.096% +11.780% +12.551%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 16 outliers among 100 measurements (16.00%)\r\n  5 (5.00%) low severe\r\n  5 (5.00%) high mild\r\n  6 (6.00%) high severe\r\n\r\ncubic_position_Vec3     time:   [2.1370 ns 2.1390 ns 2.1412 ns]                                 \r\n                        change: [+12.254% +12.580% +12.878%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 8 outliers among 100 measurements (8.00%)\r\n  2 (2.00%) low severe\r\n  2 (2.00%) low mild\r\n  1 (1.00%) high mild\r\n  3 (3.00%) high severe\r\n\r\ncubic_position_Vec3A    time:   [2.2316 ns 2.2333 ns 2.2353 ns]                                  \r\n                        change: [+8.4694% +8.7661% +9.0287%] (p = 0.00 < 0.05)\r\n                        Performance has regressed.\r\nFound 10 outliers among 100 measurements (10.00%)\r\n  2 (2.00%) low severe\r\n  1 (1.00%) low mild\r\n  3 (3.00%) high mild\r\n  4 (4.00%) high severe\r\n\r\nbuild_pos_cubic_100_points                                                                            \r\n                        time:   [108.50 ns 108.64 ns 108.81 ns]\r\n                        change: [-11.073% -10.855% -10.665%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 3 outliers among 100 measurements (3.00%)\r\n  1 (1.00%) low mild\r\n  2 (2.00%) high mild\r\n\r\nbuild_accel_cubic_100_points                                                                            \r\n                        time:   [109.18 ns 109.43 ns 109.71 ns]\r\n                        change: [-12.361% -11.958% -11.573%] (p = 0.00 < 0.05)\r\n                        Performance has improved.\r\nFound 4 outliers among 100 measurements (4.00%)\r\n  3 (3.00%) high mild\r\n  1 (1.00%) high severe\r\n```\r\n</details>\r\n\r\nOn a hunch, I remember performance being very sensitive to change in `CubicSegment::position`. After reverting this to using `powi` and retesting, it seems to account for all of the performance change. In other words, reverting that one line accounts for all the perf difference I see between this branch and main.\r\n\r\nWe'd need to look at the assembly to understand if this is just a fluke or not, but it seems to be consistent. Your benchmark results suggest this is a platform specific micro-optimization, I'm guessing between Arm and x86.",
+        "timestamp": "2024-02-24T07:41:16Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "I was using my workstation for the benchmarks, which uses a Ryzen 5 3600 and 4x8GB 3200MHz CL16 RAM configuration.\r\n\r\nThe change in results on your machine did surprise me, but it does make sense when you consider the vast differences between arm and x86. Either in the discussions or in one of the related commit messages there was a link to godbolt comparing the two implementations, it can probably be used to see the difference on arm as well.",
+        "timestamp": "2024-02-24T08:00:34Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "The godbolt link turned out to be in a thread in discord (before math-dev was created): https://godbolt.org/z/M7s3zY3cx\r\n\r\nUPD: Same but with rustc 1.76.0 and target set to `aarch64-apple-darwin`: https://godbolt.org/z/eKczTvd7T\r\nThe difference in assembly is miniscule, a couple of instructions less with the new implementation, which is weird considering your benchmark results.",
+        "timestamp": "2024-02-24T09:12:35Z"
+      },
+      {
+        "author": "NthTensor",
+        "role": "CONTRIBUTOR",
+        "body": "I don't know what our position is on platform specific optimizations, but we could special case the use of pow if the performance difference really is that significant.\r\n\r\nWRT the blanket implementation, I am starting to come around to agree with @aevyrie. Feels S-controversial, but silly to mark the whole PR because of this.\r\n\r\nGood point that bevy_math should be focused on glam.",
+        "timestamp": "2024-02-24T16:00:28Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "`bevy_math` uses glam as it's the most convenient and best fitting library. It's a primary library, not the only one. I think it's better to provide the implementations instead of making them do the whole new type dance if they dare use some other type.\r\nIt could be possible to have a feature to switch between blanket impl and only glam impls. But I don't find it clean and it feels like an overcomplicating due to a conflict in opinions. I don't expect anyone to like this approach, but that's just my opinion.",
+        "timestamp": "2024-02-24T17:50:07Z"
+      },
+      {
+        "author": "aevyrie",
+        "role": "MEMBER",
+        "body": "> I don't know what our position is on platform specific optimizations\r\n\r\nIt's probably not worth it unless we had more confidence/data to suggest they were worthwhile. I think the change in this PR is probably fine. It's a bit of a trade on ARM, but a win on x86, at least with that one sample.\r\n\r\nRE: blanket impl:\r\n\r\n> It's a primary library, not the only one.\r\n\r\nIsn't it exactly the only one?\r\n\r\n`bevy_math` only has 3 dependencies (now 4 with `thiserror`), only uses `glam` for math types, and exposes features for `mint` interoperation. Up to this point, `bevy_math`'s M.O. has been to entirely use `glam` and rely on `glam`'s `mint` feature to allow users to easily convert to/from `glam` types.\r\n\r\nIn other words, the behavior of `bevy_math` w.r.t. other math types has always been conversion. Without the blanket impl, you can just use the built in `mint` conversions (or bring your own):\r\n\r\n```rs\r\nlet bezier = CubicBezier::<Vec3>::new([[\r\n        my_nalgebra_vec3_1.into(),\r\n        my_nalgebra_vec3_2.into(),\r\n        my_nalgebra_vec3_3.into(),\r\n        my_nalgebra_vec3_4.into(),\r\n    ]])\r\n    .to_curve();\r\n```",
+        "timestamp": "2024-02-24T18:22:31Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry, my wording was a bit messed up. I meant \"not the only one allowed to be used\".\r\nRegarding the `mint` feature, I was not aware of it's existence, and it does make the situation better.\r\nAt this point I am unsure on what to do, as the downsides of reverting the blanket impl again have been addressed.\r\nI think if it were to be reverted, the list of types that the trait is impled on should be revised to make sure that it includes all the types that would possibly be used, from glam and std.",
+        "timestamp": "2024-02-24T18:29:51Z"
+      },
+      {
+        "author": "aevyrie",
+        "role": "MEMBER",
+        "body": "> I think if it were to be reverted, the list of types that the trait is impled on should be revised to make sure that it includes all the types that would possibly be used, from glam and std.\r\n\r\nI agree, the existing list should be expanded. I also think we should document the points from this discussion in code for the next person. 🙂 ",
+        "timestamp": "2024-02-24T23:40:16Z"
+      },
+      {
+        "author": "JohnTheCoolingFan",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, the `Point` trait is no more a blanket implementation and more types implement it, specifically `Vec4` and `Quat`. There are reasons why I didn't implement it on more types:\r\n1. glam's `MatX` do not implement `Div<f32>`, only `Mut<f32>`, which I reported here: https://github.com/bitshifter/glam-rs/issues/476\r\n2. `Color` from `bevy_color` and other color types also do not implement all the math operation traits required. I'm not sure whether implementing them wouldn't produce anything undesirable, so I would like to get more opinions, and implementing this would probably be better as a different PR\r\n3. `f64` and types based on that don't interoperate with `f32`. So unless `Point` gets a generic argument or associated type specifying the type (`f32`, `f64`, potentially even more if it makes sense). Same for integers.",
+        "timestamp": "2024-02-28T15:29:51Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "Like I said on Discord, I'd like to leave the `Color` implementations for follow-up :) Doing a final review pass now.",
+        "timestamp": "2024-02-28T16:08:48Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "0152a0f",
+        "message": "Added Nurbs spline",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-11-22T16:56:36Z"
+      },
+      {
+        "sha": "344c942",
+        "message": "Helper methods for generating various knot vectors",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-11-24T17:53:53Z"
+      },
+      {
+        "sha": "70a13c5",
+        "message": "Added IntoIterator and Extend implementations for CubicCurve",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-11-25T14:41:43Z"
+      },
+      {
+        "sha": "19e6772",
+        "message": "Added push_segment method",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-11-25T15:15:49Z"
+      },
+      {
+        "sha": "004a72c",
+        "message": "Added linear spline",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-11-25T15:23:08Z"
+      },
+      {
+        "sha": "ae63196",
+        "message": "Make Point trait impl a blanket impl",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T07:33:24Z"
+      },
+      {
+        "sha": "22542c1",
+        "message": "Removed unused imports",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T07:33:45Z"
+      },
+      {
+        "sha": "7972a72",
+        "message": "Moved some math to helper associated functions",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T07:46:06Z"
+      },
+      {
+        "sha": "6084556",
+        "message": "Fixed open uniform knot vector generation function",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T07:48:29Z"
+      },
+      {
+        "sha": "d738eed",
+        "message": "Implementation for basis matrix generation",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T07:59:21Z"
+      },
+      {
+        "sha": "6246848",
+        "message": "Implemented cubci generator for nurbs",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:08:35Z"
+      },
+      {
+        "sha": "dec3be5",
+        "message": "Weight normalization and application",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:26:50Z"
+      },
+      {
+        "sha": "95c8e08",
+        "message": "Fixed lint error",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:30:26Z"
+      },
+      {
+        "sha": "0101867",
+        "message": "Moved coefficients computation to CubicSegment",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:39:47Z"
+      },
+      {
+        "sha": "c1a5105",
+        "message": "Fixed typo in comment",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:42:21Z"
+      },
+      {
+        "sha": "1407647",
+        "message": "Extract multiplied index to a variable",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:43:20Z"
+      },
+      {
+        "sha": "2e0a2a4",
+        "message": "Remoevd panics with Result and error enum",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:56:09Z"
+      },
+      {
+        "sha": "42de336",
+        "message": "Improvbed wording in open uniform knot vector fn documentation",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T08:58:12Z"
+      },
+      {
+        "sha": "e3f45e5",
+        "message": "Removed code that wasn't doing anything",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T09:00:06Z"
+      },
+      {
+        "sha": "754d3fe",
+        "message": "Made weight normalization use L0 norm",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-02T09:08:41Z"
+      },
+      {
+        "sha": "3c3f34b",
+        "message": "Correct misunderstanding of `windows` method",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-03T12:56:00Z"
+      },
+      {
+        "sha": "2d3cc3b",
+        "message": "Improved documentation of CubicNurbs",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:30:18Z"
+      },
+      {
+        "sha": "4fc0fa8",
+        "message": "Added 4 point minimum note to nurbs constructor",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:31:15Z"
+      },
+      {
+        "sha": "410dade",
+        "message": "Fixed an error in CubicBSpline::new doc comment",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:32:37Z"
+      },
+      {
+        "sha": "eff9f98",
+        "message": "Wording and typo fixes",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:34:41Z"
+      },
+      {
+        "sha": "26c0ea2",
+        "message": "Wording fix for CubicNurbs::new",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:35:18Z"
+      },
+      {
+        "sha": "d5c2da5",
+        "message": "Import CubicNurbs and CubicNurbsError in prelude",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:40:11Z"
+      },
+      {
+        "sha": "f5e8580",
+        "message": "Fixed NURBS example",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-04T09:42:42Z"
+      },
+      {
+        "sha": "68d88fa",
+        "message": "Improved doc wording for normalize_weights",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-05T10:19:25Z"
+      },
+      {
+        "sha": "d9c0187",
+        "message": "Fixed typo",
+        "author": "JohnTheCoolingFan",
+        "timestamp": "2023-12-05T10:19:54Z"
+      }
+    ]
+  },
+  {
+    "story_id": "bevyengine/bevy#4482",
+    "metadata": {
+      "title": "Animatable trait for interpolation and blending",
+      "labels": [
+        "C-Feature",
+        "S-Ready-For-Final-Review",
+        "A-Animation"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-02-02T21:34:13Z",
+      "reviewers": [
+        "mockersf",
+        "gschup",
+        "alice-i-cecile",
+        "Elabajaba",
+        "djeedai",
+        "kirusfg",
+        "tim-blackbird",
+        "james7132"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "# Objective\r\nAllow animation of types other than translation, scale, and rotation on `Transforms`.\r\n\r\n## Solution\r\nAdd a base trait for all values that can be animated by the animation system. This provides the basic operations for sampling and blending animation values for more than just translation, rotation, and scale.\r\n\r\nThis implements part of bevyengine/rfcs#51, but is missing the implementations for `Range<T>` and `Color`. This also does not fully integrate with the existing `AnimationPlayer` yet, just setting up the trait."
+    },
+    "discussion_timeline": [
+      {
+        "author": "james7132",
+        "role": "MEMBER",
+        "body": "Removing the controversial label as the RFC has been merged. I'll update this PR and address the comments as soon as I can.",
+        "timestamp": "2023-08-03T08:07:15Z"
+      },
+      {
+        "author": "Tebarem",
+        "role": "NONE",
+        "body": "After some heavy research and trying to understand everything I have found out that godot's implementation is similiar to what we are going for and they have so far pretty much done all the heavy lifting. \r\n\r\nWe pretty much just have to rewrite what godot has in rust and then link it to the bevy-engine. https://github.com/godotengine/godot/tree/master/scene/animation\r\n\r\nAlso we would have to change somethings so that we can interface with it as in godot's implemention you interface it with the editor which we do not have yet.",
+        "timestamp": "2023-09-21T20:18:08Z"
+      },
+      {
+        "author": "djeedai",
+        "role": "CONTRIBUTOR",
+        "body": "> Removing the controversial label as the RFC has been merged. I'll update this PR and address the comments as soon as I can.\r\n\r\nI don't know what this refers to but bevyengine/rfcs#49 is in Draft, not merged. And to me at least is very much controversial. See my review for context.",
+        "timestamp": "2023-09-30T09:24:15Z"
+      },
+      {
+        "author": "james7132",
+        "role": "MEMBER",
+        "body": "bevyengine/rfcs#51 is the RFC in question, which was written to be independent of the primitives RFC and has been merged. I'll probably rewrite the primitives RFC when it comes time to do reflection-based \"animate anything\" work. For now, this is strictly focused on composition of skeletal animation and morph targets.",
+        "timestamp": "2023-09-30T09:32:08Z"
+      },
+      {
+        "author": "djeedai",
+        "role": "CONTRIBUTOR",
+        "body": "> [bevyengine/rfcs#51](https://github.com/bevyengine/rfcs/pull/51) is the RFC in question, which was written to be independent of the primitives RFC and has been merged. I'll probably rewrite the primitives RFC when it comes time to do reflection-based \"animate anything\" work. \r\n\r\nOk, this was confusing because the PR description only talks about bevyengine/rfcs#49 and says this PR implements it (which looks to be the case), while there's no mention of bevyengine/rfcs#51.\r\n\r\n> For now, this is strictly focused on composition of skeletal animation and morph targets.\r\n\r\nThen I think a trait for each individual value is the wrong abstraction I think. If we want an optimized system for those two, and I think we do, then we should do specifically that and heavily optimize it. That means trying to gather as many `Transform` as possible and then batch-interpolate them with a tight SIMD loop (data oriented pipeline). There should be no function call there. This is the only way we can have a performant animation system handling complex/large skeletons at scale. I very much doubt we need the \"interpolate a `Handle<T>`\" in that part, there's no way we will have a skeleton with one `Handle<T>` per bone/joint or per vertex for a morph target. If we want the animation system to also account for `Handle<T>` animations then that's necessarily at a different, reduced scale, and then we can consider a different design. Here we're doing a generic approach mixing all scales.",
+        "timestamp": "2023-09-30T15:46:11Z"
+      },
+      {
+        "author": "james7132",
+        "role": "MEMBER",
+        "body": "> Ok, this was confusing because the PR description only talks about [bevyengine/rfcs#49](https://github.com/bevyengine/rfcs/pull/49) and says this PR implements it (which looks to be the case), while there's no mention of [bevyengine/rfcs#51](https://github.com/bevyengine/rfcs/pull/51).\r\n\r\nThanks. Forgot to update that since this PR was written originally while the RFC's review was under way. Done.\r\n \r\n> That means trying to gather as many `Transform` as possible and then batch-interpolate them with a tight SIMD loop (data oriented pipeline). There should be no function call there. \r\n\r\nThat is exactly what `Animatable::blend` is. Note how it has no `self` argument of any kind, it takes a iterator of BlendInputs, and there's zero use of dynamic dispatch within any of it's implementations. It's meant to be a way to gather a weighted blend of inputs from an iterator, which can be sourced from a cache-friendly data-oriented data store. The Vec3A, Vec4, and Transform implementations all rely on glam's built in SIMD acceleration. The Vec3 implementation is specialized to use Vec3A's since it's likely to improve performance, even when unaligned. Is there another SIMD operation that I'm missing here that would help that is not being included in that loop?\r\n\r\n> I very much doubt we need the \"interpolate a `Handle<T>`\" in that part\r\n\r\nThese other implementations are there for when we enable reflection-based animation, and will not be directly used. The trait was designed to support the immediate use case of skeletal/morph target animation, but not get in the way of a reflection based \"animate anything\" down the line. `Handle<T>` was primarily desirable for sprite and material swap animation.\r\n\r\n> there's no way we will have a skeleton with one `Handle<T>` per bone/joint or per vertex for a morph target. If we want the animation system to also account for `Handle<T>` animations then that's necessarily at a different, reduced scale, and then we can consider a different design. Here we're doing a generic approach mixing all scales.\r\n\r\nAs mentioned in the PR description, this PR only aims to introduce the trait, not dictate how it's integrated into existing components or systems. The current plan is to use this in conjunction with the animation graph presented in the composition RFC to enable composable skeletal/morph target animation, and that won't use implementations other than Vec3(A), Quat, and Transform, nor any form of dynamic dispatch.",
+        "timestamp": "2023-09-30T23:52:35Z"
+      },
+      {
+        "author": "djeedai",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry for dragging that, I still don't understand how this trait is supposed to work with the current system in a way that's performant. I think the main red flag I have is `impl Animatable for Quat` (and `Vec3`), which hints at a \"one call per translation/rotation/scale value\".\r\n\r\n> That is exactly what Animatable::blend is. Note how it has no self argument of any kind, it takes a iterator of BlendInputs, and there's zero use of dynamic dispatch within any of it's implementations. It's meant to be a way to gather a weighted blend of inputs from an iterator, which can be sourced from a cache-friendly data-oriented data store.\r\n\r\nI was writing an answer with pseudo-code and I think I understood what's going on. You intend `blend()` to be called once with the entire collection of all `Transform` from all sources, including all animations being blended, possibly from different animation roots, is that correct? That is, ideally, you intend `<Transform as Animatable>::blend()` to be called exactly once per frame, no matter how many animations from how many graphs are being animated. Did I get that right?\r\n\r\nAssuming this is the case, this is a lot better than I thought, thanks for your patience! I do have a couple of remarks though for performance:\r\n- The layout of `BlendInput<T>` is not great, and becomes worse the bigger T is and the higher its alignment is. I think the type will always have padding, no matter what `T` we use (assuming at least 4 bytes like `f32`, because it's unlikely we'll blend some `u8`). This will waste some space on the CPU cache and increase cache misses. I think it would be best to tightly pack the `T` values, and tightly pack the `weight` values (so struct of arrays, instead of array of structs). Reading from 2 different arrays in a hot loop is not too bad perf-wise if the loop is long enough.\r\n- The `additive` per `BlendInput` forces the `if` check to be _inside_ the hot loop. I think this is bad, given you will likely have sequences of 64~256 transforms (bones/joints) with the same constant value, then comes the data for another animation which changes that. I'd try to find a way to move that `if` outside the loop. Maybe we need 2 loops, one for additive blend and one for non-additive one. Or maybe we need to replace a single flat iterator with a nested one (iterate over batches, which can be additive or not, and each batch has a {value + weight} pair only, inheriting the additive-ness from the batch itself).\r\n\r\n> The Vec3A, Vec4, and Transform implementations all rely on glam's built in SIMD acceleration. The Vec3 implementation is specialized to use Vec3A's since it's likely to improve performance, even when unaligned.\r\n\r\nFair, but the `Vec3` doesn't (even thought there's probably no SIMD in glam for that) and neither does the `Quat` one. Given that it's likely more performant and space-effective to split `Transform` animation by tracks/curves along each translation/rotation/scale (plenty of animations have unit scale for example, this is a big waste to blend thousands of `Vec3::ONE`) I expect `impl Animatable for Quat` to be one of the most used code of the entire PR (for skeletal animation), closely followed by `impl Animatable for Vec3/A`, and `impl Animatable for Transform` be marginal for those very complex animations that animate all of translation/rotation/scale at once (but even then we could split the processing).\r\n\r\n> Is there another SIMD operation that I'm missing here that would help that is not being included in that loop?\r\n\r\nIt's not a clear cut to me that {load + lerp + store} in SIMD is faster than lerping on CPU. This definitely used to be false, although more recent architectures are tremendously faster at load/store. In any case, this probably needs 1) removing the `if` from the middle as previously mentioned, and 2) possibly unrolling the loop manually (say, 4 times, to keep SIMD registry use low) to pipeline the loads/stores. That way I think this can become a win over pure CPU. Another trick that unrolling 4 times helps is loading 4 `Vec3` tightly packed in memory into 3 registers directly without CPU copy (48 bytes), shuffling to convert to `Vec3A` directly inside the SIMD registers, then blend and do the opposite to store back to CPU. I don't think the compiler would be able to do that directly from the current code, it will likely have to copy the `Vec3` into a stack-allocated `Vec3A`, load that (so 4 loads instead of 3) and then on store do yet another copy from `Vec3A` to `Vec3`. All of that needs to be profiled obviously.\r\n\r\nOk so overall I don't have any more concern performance-wise provided this PR allows the above suggestions to be implemented in the future (or proven they're not needed). This means that my last blockers I think would be:\r\n1. That `Quat::interpolate()` implemented manually (although, see remark below, could be ignored for now and fixed in a later PR, it's just that this looks like a reimplementing of `glam`)\r\n2. The rotation blend in `Transform::blend()` that I find pretty dodgy. Maybe I got the maths wrong but weighting `Quat`s looks incorrect. The `glam` implementation of `impl Mul<f32> for Quat` clearly casts the `Quat` to `Vec4` so doesn't interpret it as a rotation in any way. And scaling all components of a `Quat` as far as I know produce nothing that looks like a rotation.\r\n3. The per-value `additive` and the `if` inside the hot loop, and the layout of `BlendInput`, which we can't really change once the PR is merged without breaking everything.\r\n\r\nWe can optimize the individual `Animatable` implementations later.",
+        "timestamp": "2023-10-01T12:15:31Z"
+      },
+      {
+        "author": "alice-i-cecile",
+        "role": "MEMBER",
+        "body": "I've submitted several PRs to James's branch to address some of the reviewer comments: https://github.com/james7132/bevy/pulls\r\n\r\nAssuming those are all accepted we need to:\r\n\r\n1. Decide whether [animations or `BlendInput` should control whether or not blending is additive](https://github.com/bevyengine/bevy/pull/4482/files#r1341926639).\r\n2. Consider [improving the layout](https://github.com/bevyengine/bevy/pull/4482#issuecomment-1742062303) of `BlendInput<T>`.\r\n\r\nI think that the following work should be handled in follow-up PRs (this PR is *very* old by now):\r\n\r\n1. Benchmarking and optimizing interpolation performance (including the question about Vec3A).\r\n2. Adding handle/asset-based interpolation (the assets v2 rework broke existing code).\r\n3. Providing an end-user API (and examples) for this feature.",
+        "timestamp": "2024-01-11T22:07:27Z"
+      },
+      {
+        "author": "pcwalton",
+        "role": "CONTRIBUTOR",
+        "body": "I don't have much to add to the review other than what @rodolphito said, looks good otherwise.",
+        "timestamp": "2024-01-29T20:58:46Z"
+      },
+      {
+        "author": "atlv24",
+        "role": "CONTRIBUTOR",
+        "body": "There's a bigger problem with switching to nlerp i've discovered: Glam's nlerp is not commutative, nor can it easily be made commutative. This is because it is normalizing after interpolating, which makes sense for blending two quaternions, but it also means that its no longer a truly linear operation. To commutatively blend an arbitrary number of quaternions, one would need to defer the normalization til the very end. This is problematic however because the intermediary values are not true rotation quaternions because they are not unit length. We'd want to encode this in the type system somehow. I think it can be done with a PR to glam, but it might be contentious as it adds complexity and would need some extra implementations. There would need to be a `DenormalizedQuaternion` type that implements `Into<Quaternion>`, and have specialized lerp methods that take combinations of `DenormalizedQuaternion`s and `Quaternion`s to linearly interpolate them. Then at the end it would be silently normalized and converted into a `Quaternion` as soon as it gets used.\r\n\r\nFor this reason I am opting to leave slerp in for the moment, because this would need further discussion and upstream work in glam.",
+        "timestamp": "2024-01-31T05:31:10Z"
+      },
+      {
+        "author": "atlv24",
+        "role": "CONTRIBUTOR",
+        "body": "I've realized there actually is a simpler way forward that can be implemented now without changes to glam.",
+        "timestamp": "2024-01-31T05:50:17Z"
+      },
+      {
+        "author": "atlv24",
+        "role": "CONTRIBUTOR",
+        "body": " `BlendInput` says `additive` determines \"Whether or not to additively blend this input into the final result\" which is actually not what its doing. Additive BlendInputs are being applied in the order they are given in the blend stack, meaning if a non-additive `BlendInput` is present after an additive one, the additive one is not blended into the final result as claimed. This *will* look wrong and be unintuitive, compared to most animation solutions ive worked with",
+        "timestamp": "2024-01-31T06:08:19Z"
+      },
+      {
+        "author": "pcwalton",
+        "role": "CONTRIBUTOR",
+        "body": "@rodolphito I've been told that what this PR does actually matches what Unity does. In Unity override layers cancel out the results of previous additive layers.",
+        "timestamp": "2024-02-02T00:49:11Z"
+      },
+      {
+        "author": "james7132",
+        "role": "MEMBER",
+        "body": "For posterity, the discussion that led to this being merged can be found here: https://discord.com/channels/691052431525675048/774027865020039209/1202358388466384956",
+        "timestamp": "2024-02-02T21:47:44Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6a209f1",
+        "message": "Add Animatable trait",
+        "author": "james7132",
+        "timestamp": "2022-04-15T12:22:02Z"
+      },
+      {
+        "sha": "ef0963f",
+        "message": "more accurate approx_sqrt\n\nCo-authored-by: Kirillov Kirill <kirusfg@gmail.com>",
+        "author": "James Liu",
+        "timestamp": "2022-04-15T22:43:30Z"
+      },
+      {
+        "sha": "bec4c6d",
+        "message": "Update comment about implementation, appease clippy",
+        "author": "james7132",
+        "timestamp": "2022-04-28T00:56:57Z"
+      },
+      {
+        "sha": "1601c5d",
+        "message": "Merge branch 'main' into animatable",
+        "author": "james7132",
+        "timestamp": "2022-11-07T09:51:57Z"
+      },
+      {
+        "sha": "acddae3",
+        "message": "Make post_process safe",
+        "author": "james7132",
+        "timestamp": "2022-11-07T09:55:14Z"
+      },
+      {
+        "sha": "77eb93f",
+        "message": "Remove the inline(always) that are unnecessary",
+        "author": "james7132",
+        "timestamp": "2022-11-07T09:57:42Z"
+      },
+      {
+        "sha": "08fe08a",
+        "message": "Fix CI",
+        "author": "james7132",
+        "timestamp": "2022-11-07T10:07:36Z"
+      },
+      {
+        "sha": "8e69ca9",
+        "message": "Fix docs.\n\nCo-authored-by: François <mockersf@gmail.com>",
+        "author": "James Liu",
+        "timestamp": "2022-11-07T10:50:46Z"
+      },
+      {
+        "sha": "37eaee7",
+        "message": "Remove \"always\" from inline.\n\nCo-authored-by: Kirillov Kirill <kirusfg@gmail.com>",
+        "author": "James Liu",
+        "timestamp": "2022-11-19T13:14:51Z"
+      },
+      {
+        "sha": "dccb459",
+        "message": "Remove \"always\" from inline.\n\nCo-authored-by: Kirillov Kirill <kirusfg@gmail.com>",
+        "author": "James Liu",
+        "timestamp": "2022-11-19T13:14:58Z"
+      },
+      {
+        "sha": "dd64910",
+        "message": "Fix step_unclamped\n\nCo-authored-by: irate <JustTheCoolDude@gmail.com>",
+        "author": "James Liu",
+        "timestamp": "2023-12-23T16:25:46Z"
+      },
+      {
+        "sha": "8737d12",
+        "message": "Merge branch 'main' into animatable",
+        "author": "james7132",
+        "timestamp": "2023-12-23T16:27:33Z"
+      },
+      {
+        "sha": "ebfa909",
+        "message": "Merge branch 'main' into animatable",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T20:35:51Z"
+      },
+      {
+        "sha": "9236d4b",
+        "message": "Remove impl Animatible for HandleID (removed)",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T20:50:18Z"
+      },
+      {
+        "sha": "f1120d6",
+        "message": "Remove Animatible for Handle",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T21:05:59Z"
+      },
+      {
+        "sha": "13fc838",
+        "message": "Use slerp rather than a handrolled lerp for Quats",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T21:46:02Z"
+      },
+      {
+        "sha": "195e830",
+        "message": "Use slerp for additive Transform blending",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T21:51:01Z"
+      },
+      {
+        "sha": "a7e464a",
+        "message": "Remove handrolled inverse sqrt",
+        "author": "Alice Cecile",
+        "timestamp": "2024-01-11T21:53:53Z"
+      },
+      {
+        "sha": "4c15f13",
+        "message": "Merge pull request #6 from alice-i-cecile/compile_fixes\n\nEnsure that `animatable` branch compiles",
+        "author": "James Liu",
+        "timestamp": "2024-01-14T22:57:39Z"
+      },
+      {
+        "sha": "71d3dfc",
+        "message": "Merge pull request #8 from alice-i-cecile/quat-interpolation\n\nUse slerp for Quat interpolation",
+        "author": "James Liu",
+        "timestamp": "2024-01-14T23:02:32Z"
+      },
+      {
+        "sha": "c6876cc",
+        "message": "Merge branch 'main' into animatable",
+        "author": "Alice Cecile",
+        "timestamp": "2024-02-02T21:01:27Z"
+      },
+      {
+        "sha": "da5f7a9",
+        "message": "Cargo fmt",
+        "author": "Alice Cecile",
+        "timestamp": "2024-02-02T21:06:52Z"
+      }
+    ]
+  }
+]

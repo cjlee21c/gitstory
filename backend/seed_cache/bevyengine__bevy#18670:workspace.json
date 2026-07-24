@@ -1,0 +1,89 @@
+{
+  "story_id": "bevyengine/bevy#18670",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Nine Versions in the Making: The Remote Entity Reservation Problem",
+      "body": "Bevy's asset system needs to assign entity identifiers to assets from any thread, at any time, without blocking, without waiting for an async context, and without depending on the main thread's update cycle. The existing entity allocator requires mutable exclusive access to hand out new entity IDs, which makes it fundamentally incompatible with a fully non-blocking, multi-threaded asset pipeline. This pull request is the ninth iteration of an attempt to solve that problem. Previous versions explored splitting entity storage between local and remote allocators, using two-way channels, using read-write locks over resizable vectors, and pre-filling a concurrent 'ready' queue that gets topped off during each world flush. Each approach ran into either correctness problems, blocking behavior, or unacceptable performance costs. Version 9 introduces a pinned, chunked free-list data structure — inspired by split-vector designs — that allows allocation, freeing, and remote allocation all without requiring mutable access, and without any of the blocking or locking that plagued earlier designs.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "The Core Tension: Non-Blocking Remote Allocation vs. Allocation Performance",
+      "body": "The fundamental dilemma is that making entity allocation safe from any thread at any time requires some form of concurrent data structure — and concurrent data structures almost always impose overhead compared to simple sequential ones. The existing allocator is fast precisely because it has exclusive mutable access and can use plain memory operations with no atomic overhead. Any solution that introduces atomics, locks, or queues into the hot path of entity allocation risks regressing the performance of common operations like batch spawning and despawning. Early benchmark results in this PR showed alarming regressions — at one point appearing to show batch spawning becoming 48% slower — though this turned out to be a measurement artifact. The real question is: how much performance regression in the common case is acceptable in exchange for the ability to allocate entities from remote threads without any blocking? And is the pinned-chunk free-list approach the right tradeoff, or would a simpler design — like a pre-filled queue drained during flush — be preferable even if it occasionally forces remote threads to wait?",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[1]",
+        "discussion_timeline[5]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — chescock",
+      "body": "chescock raised the concern that any approach requiring atomic operations in the core allocation and free paths would be a hard blocker, because the efficiency of batch entity spawning today comes entirely from having exclusive mutable access and using plain memory operations. When early benchmarks appeared to show a significant regression in batch spawning, chescock suggested that the only viable path forward might be the earlier version-6 approach: maintaining a separate queue of pre-reserved entity IDs that remote threads can draw from, with the queue being refilled during the world's flush phase. This design keeps the hot path free of atomics entirely, at the cost of occasionally forcing remote threads to block or wait when the queue runs dry. The implicit argument is that a modest, bounded wait for remote threads is a more acceptable tradeoff than a permanent performance tax on every local entity allocation.",
+      "author": "chescock",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — ElliottjPierce",
+      "body": "ElliottjPierce, the PR author, argued that the version-6 queue-based approach is fundamentally flawed for the asset use case because it cannot guarantee that remote threads never block. If the pre-filled queue runs dry between flush cycles, a remote thread either has to block and wait for the next flush, allocate a brand-new entity index that can never be reclaimed (effectively a memory leak), or stall asset loading while waiting for the main thread. None of these outcomes are acceptable for a system that is supposed to be completely non-blocking. The pinned-chunk free-list design in version 9 avoids all of these problems: remote allocation uses a compare-and-swap operation that either succeeds immediately or retries, and it never needs to wait for the main thread. The performance cost of atomics in the free path is real but bounded, and the overall entity workflow — which includes much more than just the allocator — sees only modest regression. Furthermore, the new design actually improves some operations by decoupling allocation from spawning, enabling better cache behavior, and opening the door to future optimizations like never flushing at all.",
+      "author": "ElliottjPierce",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[11]",
+        "discussion_timeline[12]",
+        "discussion_timeline[19]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing the final decision: given that the pinned-chunk free-list approach introduces measurable overhead in the entity free path (roughly 20-55% slower for reuse-heavy workloads in micro-benchmarks, but modest impact on full entity workflows), while the queue-based alternative avoids atomic overhead but cannot guarantee non-blocking behavior for remote threads — which tradeoff would you accept, and what evidence from the discussion would you weigh most heavily in making that call?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: The Pinned-Chunk Free-List Approach Accepted After Final Benchmark Review",
+      "body": "The pull request was merged on January 23, 2026, after a final round of benchmarking by cart (a core Bevy maintainer) using newly added allocator-specific benchmarks that tested both fresh allocation and reuse-heavy scenarios. The results confirmed the expected pattern: fresh allocation overhead was modest (roughly 2-30% slower depending on batch size), while reuse-heavy allocation — where the free list is actually exercised — showed more significant regression (roughly 55-155% slower in micro-benchmarks for single-entity cases, converging toward 10-20% for large batches). Despawn benchmarks regressed by roughly 20-30% compared to the immediately preceding state, but cart and the team judged this acceptable given that a prior preparatory PR had already improved despawn performance by a similar margin, meaning the net change relative to the 0.17 release baseline was roughly neutral. Spawn benchmarks were within noise. The team acknowledged that existing benchmarks do not fully exercise the free list because they start from a fresh world, and agreed to address benchmark coverage in follow-up work. The non-blocking guarantee for remote threads was treated as a hard requirement that justified the performance tradeoff.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[22]",
+        "discussion_timeline[20]",
+        "discussion_timeline[21]",
+        "discussion_timeline[19]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When a hard correctness or behavioral requirement — such as never blocking a remote thread — conflicts with a performance goal, it is worth exhaustively exploring the design space (nine iterations here) before concluding that the requirement must be relaxed. Each failed attempt clarified exactly which constraints were non-negotiable and which tradeoffs were actually acceptable.",
+        "Benchmark infrastructure can be a silent blocker: this PR was held up in part because existing benchmarks did not exercise the code path that mattered most (the free list under reuse-heavy conditions). Investing in realistic, scenario-specific benchmarks early — rather than relying solely on fresh-world microbenchmarks — would have given the team confidence to merge sooner and would have made the performance story clearer throughout the review.",
+        "Decoupling a subsystem's internal structure from its public interface (here, separating the entity allocator from the higher-level entity management layer) pays dividends beyond the immediate feature: it made the allocation semantics clearer, enabled independent optimization of the hot path, and opened architectural doors for future work like eliminating flush entirely or supporting components-as-entities — benefits that were not the original motivation for the refactor."
+      ]
+    }
+  ]
+}

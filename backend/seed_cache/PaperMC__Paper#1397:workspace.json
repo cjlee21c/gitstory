@@ -1,0 +1,94 @@
+{
+  "story_id": "PaperMC/Paper#1397",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: Minecraft 1.13 Chunk Loading Blocks the Main Thread",
+      "body": "With the release of Minecraft 1.13, the Paper project faced a significant performance regression. Chunk loading and generation — the process of reading world data from disk and creating new terrain — had to happen on the server's single main thread. This meant that whenever a player explored new territory or teleported, the entire server would stall while chunks were prepared. The situation was made worse by Mojang introducing a chunk conversion step for upgrading pre-1.13 worlds, adding even more work to the main thread. The goal of this pull request was to move chunk loading and generation off the main thread entirely, allowing the server to continue ticking normally while the background work completed. The author, aikar, labeled the effort a beta and explicitly warned that while data loss was unlikely, crashes were still possible, and testers should maintain backups.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "The Core Tension: Safety vs. Speed in a Thread-Unsafe Codebase",
+      "body": "The fundamental dilemma was that Mojang's world generation code was not designed to be thread-safe. Running it on background threads risked data corruption, crashes from concurrent writes, and subtle race conditions that only appeared under specific timing conditions. The team had to decide how aggressively to parallelize. On one extreme, they could run all chunk operations — loading, conversion, and generation — fully in parallel across many threads, maximizing throughput but accepting a high risk of crashes. On the other extreme, they could keep generation strictly single-threaded per world, sacrificing some performance gain but dramatically reducing concurrency hazards. A middle path involved carefully identifying which operations were safe to parallelize and which were not, using priority queues to ensure that chunks urgently needed by the main thread jumped to the front of the line. The team also had to decide when the feature was 'good enough' to merge into the main branch, balancing the risk of shipping known edge-case bugs against the benefit of getting the improvement to all users.",
+      "source_refs": [
+        "commit_history",
+        "discussion_timeline[35]",
+        "discussion_timeline[36]",
+        "issue_payload.body"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — aikar",
+      "body": "aikar, as the primary author and a project member, argued for an iterative, pragmatic approach. His position was that the feature should be tested in production incrementally, with each discovered bug fixed before the next wave of testers was invited. He initially attempted to enable fully parallel chunk generation across multiple threads simultaneously, but quickly reverted this when it caused crashes he believed could not be fixed without Mojang rewriting their world generation code to be thread-safe. Instead, he settled on a design where chunk loading could happen in parallel across a shared thread pool, but chunk conversion and generation were serialized per world on a dedicated single-thread executor. He also introduced a priority queue system so that chunks urgently needed by the main thread — such as those a player was about to enter — would be processed before lower-priority background requests. His view was that this design captured most of the performance benefit while keeping the risk of data corruption acceptably low, and that the feature was ready to merge once no new critical bugs had been reported for several days.",
+      "author": "aikar",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "commit_history",
+        "discussion_timeline[35]",
+        "discussion_timeline[36]",
+        "discussion_timeline[46]",
+        "discussion_timeline[47]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — DefinePvP and community testers",
+      "body": "Several community testers, most vocally DefinePvP, pushed back on the readiness assessment. DefinePvP reported that even on what they believed to be the latest build, they were experiencing crashes when generating large numbers of new chunks — specifically when flying around with an elytra in the End dimension. Their position was that the feature was not yet ready to merge into the main branch, citing reproducible crashes under realistic production conditions. Other testers such as tlaundal and egg82 reported server hangs and a memory leak during aggressive chunk pre-generation. The broader tester community's implicit position was that the bar for merging should be the absence of reproducible crashes under normal gameplay, not just the absence of reported data loss. This created a tension with aikar's more optimistic readiness assessment, though in several cases the reported issues turned out to be caused by testers running outdated builds rather than the latest beta.",
+      "author": "DefinePvP",
+      "author_role": "NONE",
+      "source_refs": [
+        "discussion_timeline[48]",
+        "discussion_timeline[14]",
+        "discussion_timeline[29]",
+        "discussion_timeline[50]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that Mojang's world generation code is fundamentally not thread-safe, and that fully parallel generation caused immediate crashes, was aikar's chosen design — parallel loading but serialized generation per world, with a priority queue for urgent requests — the right tradeoff? What criteria should determine when a beta feature with known edge-case risks is ready to merge into a production server software's main branch?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: Async Chunk Loading and Generation Lands in Paper Build 302",
+      "body": "On September 26, 2018, aikar merged the async chunk loading and generation feature into Paper's master branch, making it available in Paper build 302 and all subsequent builds. The final design kept chunk loading parallelized across a shared thread pool while restricting chunk conversion and generation to a single-thread executor per world, respecting Mojang's thread-safety limitations. A custom priority queue executor was used to ensure that chunks urgently needed by the main thread were always processed first, minimizing the cases where the main thread had to block and wait. Fully parallel world generation was attempted and then reverted during the beta period after it caused crashes that were attributed to Mojang's non-thread-safe generation code. The merge came after roughly four weeks of public beta testing, iterative bug fixes, and confirmation from multiple production server operators that the build was stable under real workloads. The commit message explicitly noted that while the chunk lookup mechanism was made thread-safe, plugins should still not read or write chunk data from background threads.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[72]",
+        "commit_history",
+        "discussion_timeline[35]",
+        "discussion_timeline[36]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When introducing concurrency into a system built without thread-safety in mind, it is often necessary to accept a partial parallelism model — parallelizing only the operations that can be made safe — rather than attempting full parallelism all at once. Attempting full parallelism prematurely can introduce crashes that are impossible to fix without upstream cooperation.",
+        "A priority queue abstraction is a powerful tool when bridging synchronous and asynchronous execution models: by allowing urgent requests to jump ahead of background work, you can preserve the responsiveness of the synchronous caller while still gaining the throughput benefits of background processing.",
+        "Public beta testing with real production workloads is essential for concurrency bugs, because race conditions are often non-deterministic and only surface under specific timing conditions that are difficult to reproduce in controlled testing. Iterating rapidly on bug reports from beta testers — while being careful to distinguish outdated builds from genuine regressions — is a practical strategy for converging on a stable implementation."
+      ]
+    }
+  ]
+}

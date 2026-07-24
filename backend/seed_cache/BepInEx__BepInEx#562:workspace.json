@@ -1,0 +1,85 @@
+{
+  "story_id": "BepInEx/BepInEx#562",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Steam on Linux Changes How It Passes Arguments to Games",
+      "body": "A contributor discovered that a recent change in how Steam on Linux launches applications broke BepInEx's ability to relaunch games correctly. Steam now injects additional separator arguments into the launch command sequence, shifting the position of the actual game executable in the argument list. The original BepInEx launcher script was written assuming a fixed, shorter argument layout, so it was reading the wrong positional arguments when constructing the relaunch command. The contributor traced the issue, identified the new argument layout Steam provides, and submitted a fix that accounts for the extra arguments by adjusting which positional parameters are passed and in what order.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[1]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Fix the New Layout or Support Both Old and New?",
+      "body": "The proposed fix hardcodes the new Steam argument layout, which resolves the problem for users on current Steam. However, this raises a backward compatibility question: Steam can be run in offline mode indefinitely, meaning some users may never update and still have the old argument layout. If the fix simply replaces the old layout assumption with the new one, those users would break. The team must decide whether to accept a targeted fix for the new layout only, or invest in a more defensive approach that detects which layout is in use at runtime and branches accordingly — at the cost of added complexity.",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[3]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — zeroepoch",
+      "body": "The contributor who submitted the fix acknowledged that the change would not work with an older version of Steam, but argued this is acceptable in practice because Steam updates continuously and users rarely stay on old versions. They also noted that detecting the argument count at runtime and branching on it should be feasible — the presence or absence of the extra separator arguments would make the two layouts distinguishable — but admitted they no longer had the environment available to test such an approach. Their primary motivation was ensuring the fix was not lost and that others would not have to rediscover the same root cause independently.",
+      "author": "zeroepoch",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — ManlyMarco",
+      "body": "A project member pushed back on simply dropping support for the old Steam argument layout. They pointed out that Steam's offline mode allows users to remain on an older version indefinitely without any forced update, and that BepInEx itself works fully offline, making this a realistic scenario. They suggested the script could be made to detect how many arguments it received and branch between the old and new layouts accordingly, avoiding a hard break for users on older Steam builds. They also requested that whatever solution is adopted include explanatory comments documenting the argument layout, to make future maintenance easier.",
+      "author": "ManlyMarco",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that Steam can be run offline indefinitely and some users may never update, how would you balance fixing the broken new-layout case against preserving support for the old layout? Would you accept a targeted fix, implement runtime detection, or take a different approach entirely — and what factors most influence your reasoning?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged: Fix Applied for New Steam Argument Layout",
+      "body": "The pull request was merged on August 29, 2023, after a community member confirmed it allowed native Linux games to start again. The fix adjusts the launcher script to correctly handle the new Steam argument layout that includes additional separator entries. The merge was carried out after review by both a project member and an external reviewer. The final merged change addresses the broken new-layout case; the discussion about runtime detection of old versus new layouts did not result in a separate implementation before merge, and the single-commit fix was accepted as the resolution.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline[5]",
+        "pr_metadata.reviewers"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "External platform changes — such as a launcher altering how it passes arguments — can silently break downstream tools that assume a fixed interface contract. Defensive argument parsing that validates structure rather than relying on fixed positional offsets makes scripts more resilient to such upstream drift.",
+        "Backward compatibility deserves explicit consideration even when the breaking change comes from an external dependency. Users who run software in offline or isolated environments may never receive the upstream update, so 'everyone will update eventually' is not a safe assumption for open-source tooling with diverse deployment contexts.",
+        "When a contributor no longer has the environment to test a more robust solution, merging a targeted fix with clear documentation of the known limitation is often preferable to blocking progress indefinitely — provided reviewers understand and accept the tradeoff being made."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "story_id": "PaperMC/Paper#1397",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Moving Chunk Loading Off the Main Thread in Minecraft 1.13",
+      "body": "Paper's lead developer proposed offloading chunk loading and generation from the server's main thread to background threads, restoring a performance characteristic that existed in older versions. Minecraft 1.13 introduced chunk conversion logic that made this significantly harder, as Mojang's own code lacked meaningful concurrency support. The feature entered a public beta with real servers testing it in production.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Safety vs. Performance: How Far Can Async Go?",
+      "body": "The core tension is between aggressively moving work off the main thread for performance gains and the risk of data corruption or crashes when game state is mutated concurrently. Mojang's engine was not designed for multi-threaded chunk access, so every async boundary required careful synchronization decisions. Bugs discovered during beta—including memory leaks and entity-handling errors—illustrated that the safety boundary was hard to define and enforce.",
+      "source_refs": [
+        "commit_history[0]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — aikar",
+      "body": "Aikar argued the feature was mature enough for production use, citing no reported data loss and a priority-queue design that minimizes main-thread blocking by promoting urgent tasks to the front of the work queue. He acknowledged remaining edge cases—particularly around entities created during generation—but treated them as post-merge polish rather than blockers. Iterative beta builds addressed each reported crash quickly.",
+      "author": "aikar",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[7]",
+        "commit_history[14]",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — egg82",
+      "body": "egg82 identified a reproducible memory leak under sustained bulk chunk generation, suggesting the async infrastructure had resource-management problems that could destabilize servers under real workloads. This raised the question of whether the feature's concurrency model was sound enough for merge, or whether it needed deeper fixes before being shipped to all Paper users.",
+      "author": "egg82",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[5]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given the known edge cases and the memory leak report, would you merge this async chunk system now or require further stabilization before it ships to all users?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

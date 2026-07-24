@@ -1,0 +1,499 @@
+[
+  {
+    "story_id": "pedroSG94/RootEncoder#54",
+    "metadata": {
+      "title": "Adding Preview & setting texture aspect ratio",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-09-30T13:48:29Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "startPreview and stopPreview are not tested on multiple devices so I can't add this for now. I will let it open for now and test more this week.",
+        "timestamp": "2017-09-20T14:00:33Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "That is fine, I presumed it was a WIP, however, it seems that the `AutoFitTextureView` does need its aspect ratio set for preview to render correctly (it seems that this issue is present across all the sample Activities)\r\n\r\n### Update\r\nplease test camera switching too... the preview is not correct ",
+        "timestamp": "2017-09-20T14:14:42Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "If the preview problem is with front camera with a mirror preview. That is normal, open your camera app and see this. If you take a object with letters and put in the camera you can see that is mirror preview, now take a photo and you will see all ok same with a video.\r\n\r\nIf you say other problem then specify me because I don't see other thing.",
+        "timestamp": "2017-09-22T16:58:24Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "@pedroSG94 is this example OK to be merged, or do you envisage `preview` being activated in another manner?",
+        "timestamp": "2017-09-28T11:27:03Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "@pedroSG94 \r\nI have also spotted an issue.\r\nI can start a preview, then start a stream, then stop a stream, expected behaviour is for preview to continue, and _only_ stop when `stopPreview()` is called\r\n",
+        "timestamp": "2017-09-29T15:47:26Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Ah no that was intentional. Do you think that is better continue preview?\r\nAdd start preview to rtsp activity too and I merge the pull request, only on rtmp look so rare",
+        "timestamp": "2017-09-29T16:45:35Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "@pedroSG94 \r\nYes, I do - look at other apps for example, take a normal camera app:\r\n  * open app\r\n    * shows preview\r\n  * press record video\r\n  * press stop record\r\n    * preview continues\r\n  * user can loop back to the 2nd point \r\n\r\nThe app idea I am working on would have similar functionality. With the current configuration the _user_ would need to restart the app each time",
+        "timestamp": "2017-09-30T07:55:14Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "I have added the `TextureModeRtspActivity` example\r\n\r\nBy the way, I was trying to figure out how to maintain _preview_ with a colleague but could not see a solution. We kept seeing a busy-surface. I'll be interested in seeing what you change :)",
+        "timestamp": "2017-09-30T08:04:45Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Merge pull. I will update no stop preview when press stopStream today if I can",
+        "timestamp": "2017-09-30T13:47:18Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "no stop preview feature added",
+        "timestamp": "2017-09-30T16:09:53Z"
+      },
+      {
+        "author": "MikeMannox",
+        "role": "CONTRIBUTOR",
+        "body": "👍  great",
+        "timestamp": "2017-09-30T17:29:57Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "53eef72",
+        "message": "Adding Preview & setting texture aspect ratio",
+        "author": "MikeMannox",
+        "timestamp": "2017-09-20T11:47:17Z"
+      },
+      {
+        "sha": "667e8de",
+        "message": "Merge branch 'master' into patch-2",
+        "author": "MikeMannox",
+        "timestamp": "2017-09-28T11:25:57Z"
+      },
+      {
+        "sha": "62484be",
+        "message": "+= surfaceTextureListener && preview to RTSP eg",
+        "author": "MikeMannox",
+        "timestamp": "2017-09-30T08:02:28Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pedroSG94/RootEncoder#1081",
+    "metadata": {
+      "title": "BaseRecordController",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-04-03T15:27:12Z",
+      "reviewers": [],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "Created the BaseRecordController component to allow setting up a custom RecordController to record video in other formats that accept h264 and aac or in mp4 using something different from AndroidMuxer (Xuggler or JCodec for example)\r\nBy default the AndroidMuxerRecordController class is used."
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "I like it.\r\nI will modify it a bit to fix a bug found and merge.\r\n\r\nI added comments to the possible bugs. You can fix it too if you have time",
+        "timestamp": "2022-04-01T12:25:10Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "I fixed all and refactored the code.\r\nThank you for sharing :)",
+        "timestamp": "2022-04-03T15:28:29Z"
+      },
+      {
+        "author": "FunnyDevs",
+        "role": "NONE",
+        "body": "Thank you pedro for your library :)!\r\nAs soon as possibile i create a repo with 2-3 recordcontrollers i wrote (i must refactor some code) so then you'll decide if create a new repo as [RTSP-Server](https://github.com/pedroSG94/RTSP-Server) with them",
+        "timestamp": "2022-04-04T07:22:55Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "I will add it to README for sure but I'm not sure if create my own repo or only fork it.\r\nI think the fork is the best solution because the code is yours.\r\nRemember indicate your desired License in the repo to let know users how to use it.",
+        "timestamp": "2022-04-04T08:54:54Z"
+      },
+      {
+        "author": "FunnyDevs",
+        "role": "NONE",
+        "body": "Hello pedro! \r\nI have created a repo with two recordcontrollers ;).\r\n\r\nhttps://github.com/FunnyDevs/rtmp-rtsp-stream-client-java-recordcontrollers",
+        "timestamp": "2022-04-15T14:51:46Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "> Hello pedro! I have created a repo with two recordcontrollers ;).\r\n> \r\n> https://github.com/FunnyDevs/rtmp-rtsp-stream-client-java-recordcontrollers\r\n\r\n\r\nI like it but only one hint.\r\nInstead of set video configuration in constructor you can get it from MediaFormat like this:\r\n```java\r\n    @Override\r\n    public void setVideoFormat(MediaFormat videoFormat, boolean isOnlyVideo) {\r\n        int width = videoFormat.getInteger(MediaFormat.KEY_WIDTH);\r\n        int height = videoFormat.getInteger(MediaFormat.KEY_HEIGHT);\r\n        int fps = videoFormat.getInteger(MediaFormat.KEY_FRAME_RATE);\r\n        int videoBitrate = videoFormat.getInteger(MediaFormat.KEY_BIT_RATE);\r\n    }\r\n\r\n    @Override\r\n    public void setAudioFormat(MediaFormat audioFormat, boolean isOnlyVideo) {\r\n        int sampleRate = audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);\r\n        int channels = audioFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);\r\n        int audioBitrate = audioFormat.getInteger(MediaFormat.KEY_BIT_RATE);\r\n        //I should get a way to notify you this if necessary. It isn't a proper way to do it.\r\n        int sampleSize = new MicrophoneManager(null).getMaxInputSize();\r\n    }\r\n```\r\n\r\nThis is the real usage of this methods and by this way you can make it really easy to use because you don't need know anything about your configuration. It is configured with stream object parameters.\r\n\r\nYou will get this info after start is called so the idea is wait until you have all configuration to start record. For that reason I have STARTED state.\r\nYou will need set state STARTED waiting for configuration and RECORDING after get configuration and start the real record.",
+        "timestamp": "2022-04-15T21:40:27Z"
+      },
+      {
+        "author": "FunnyDevs",
+        "role": "NONE",
+        "body": "a ok, you are right.\r\nI've seen that `setVideoFormat ` is called before `setAudioFormat`, so could be `setAudioFormat` the candidate to change the record status?",
+        "timestamp": "2022-04-19T10:00:24Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "I don't recommend it. \r\n\r\nStream without audio or without video are supported so I recommend you change record status when the last of both is called.\r\nOne way is use 2 bolleans to know if that method was called and start record when both boolean are true .\r\n\r\nAlso, If you can, support record only video or only audio it is better to fully support all record modes.\r\nYou can know it using \"boolean isOnlyVideo\" (in setAudioFormat it should be named isOnlyAudio, it is a typo)",
+        "timestamp": "2022-04-19T10:16:02Z"
+      },
+      {
+        "author": "FunnyDevs",
+        "role": "NONE",
+        "body": "Ok, i should have modified the files but, before pushing them, i would like to finish testing onlyVideo and onlyAudio conditions. \r\nTo test onlyVideo i have called only `prepareVideo()`, but how could i test onlyAudio? If I call `prepareAudio()` without `prepareVideo()` i obtain a crash \r\n\r\n```\r\n java.lang.NullPointerException: Attempt to invoke virtual method 'void android.media.MediaCodec.setCallback(android.media.MediaCodec$Callback, android.os.Handler)' on a null object reference\r\n        at com.pedro.encoder.BaseEncoder.initCodec(BaseEncoder.java:70)\r\n        at com.pedro.encoder.BaseEncoder.start(BaseEncoder.java:61)\r\n```",
+        "timestamp": "2022-04-22T11:23:27Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "You can use RtmpOnlyAudio class",
+        "timestamp": "2022-04-22T17:12:11Z"
+      },
+      {
+        "author": "FunnyDevs",
+        "role": "NONE",
+        "body": "Ok, i've pushed new code using video and audio formats",
+        "timestamp": "2022-05-18T15:31:49Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "c5ba5b7",
+        "message": "BaseRecordController\n\nCreated the BaseRecordController component to allow setting up a custom RecordController to record video in other formats that accept h264 and aac.\nBy default the AndroidMuxerRecordController is used.",
+        "author": "Pierfrancesco Gulinelli",
+        "timestamp": "2022-03-31T09:28:03Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pedroSG94/RootEncoder#1912",
+    "metadata": {
+      "title": "add support for custom AMF object in streaming clients",
+      "labels": [],
+      "qualities": [
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-09-04T20:13:20Z",
+      "reviewers": [],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "Summary\r\nThis PR adds an optional custom AMF object that is injected during the RTMP connect handshake. It’s designed for large CDN deployments to run targeted stream connectivity checks and diagnostics against specific IPs/nodes by tagging probe metadata in the handshake. Non-RTMP clients safely ignore this parameter.\r\n\r\nChanges\r\n\t•\tAdd customAmfObject to StreamBase.startStream(...) and propagate to clients.\r\n\t•\tRTMP: RtmpClient/CommandsManager merge the custom AMF into the connect object (supports optional tcUrl override).\r\n\t•\tAmfObject supports dynamic properties.\r\n\t•\tMultiStream updated; RTSP/SRT/UDP are no-ops.\r\n\r\nCompatibility\r\n\t•\tBackward-compatible: when customAmfObject is null, behavior is unchanged; non-RTMP paths ignore it."
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nThank you for the PR, but It will need a refactor because the way you did to insert new methods to RtmpClient is not correct.\r\n\r\n- Only rtmp module and RtmpStreamClient class should be affected by this PR. (create a method in RtmpStreamClient is enougth to get access to the new methods of RtmpClient class).\r\n- In rtmp module change the tcUrl variable is redundant because you already do it using the custom amfObject\r\n- Remove debug logs\r\n\r\nLet me know if you have any question or even if you prefer let me do this modifications.",
+        "timestamp": "2025-09-02T13:42:03Z"
+      },
+      {
+        "author": "xiuminga",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you for the review. I’ve updated the PR according to your suggestions, though there may still be issues. If you consider the feature valuable and are willing to make further changes, I’d really appreciate it. Please feel free to modify or close the PR at your discretion.Maybe I should start with an issue🤔",
+        "timestamp": "2025-09-03T08:41:26Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nNow, the code is close to be fine but I feel that the last commit is not necessary:\r\nhttps://github.com/pedroSG94/RootEncoder/pull/1912/commits/da5e4be01e2290c1ab53e5a9b017e2592acc3e3a\r\n\r\n- In RtmpClient modify all values has no sense, if you want do it. The way is set an endpoint in startStream with the desired values instead of modify the code that way.\r\n- In CommandsManagerAmf0 you are adding a code logic that is not necessary. You can let the previous way to do it and still get the same result. For example: If you want a custom tcUrl + auth, you can get the auth easy.\r\nThe auth in most of cases is empty, if you set user + password values, you can hardcode it like this:\r\nhttps://github.com/pedroSG94/RootEncoder/blob/master/rtmp/src/main/java/com/pedro/rtmp/rtmp/RtmpClient.kt#L452\r\nhttps://github.com/pedroSG94/RootEncoder/blob/master/rtmp/src/main/java/com/pedro/rtmp/rtmp/RtmpClient.kt#L455",
+        "timestamp": "2025-09-03T09:19:45Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "My code suggestion is this:\r\nhttps://github.com/pedroSG94/RootEncoder/pull/1917/files\r\n\r\nIf you are fine with this, let me know it and I can do the merge",
+        "timestamp": "2025-09-03T14:14:50Z"
+      },
+      {
+        "author": "xiuminga",
+        "role": "CONTRIBUTOR",
+        "body": "LGTM. Thanks for the patient guidance and fixes—feel free to merge.",
+        "timestamp": "2025-09-04T01:42:31Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Merged, thank you for the PR",
+        "timestamp": "2025-09-04T20:13:43Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "53959fa",
+        "message": "add support for custom AMF object in streaming clients",
+        "author": "Xiu",
+        "timestamp": "2025-09-01T08:38:55Z"
+      },
+      {
+        "sha": "a484758",
+        "message": "remove unused custom AMF object handling from streaming clients",
+        "author": "xiu",
+        "timestamp": "2025-09-02T17:49:59Z"
+      },
+      {
+        "sha": "da5e4be",
+        "message": "add support for custom AMF object in RTMP clients",
+        "author": "Xiu",
+        "timestamp": "2025-09-03T08:09:55Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pedroSG94/RootEncoder#1944",
+    "metadata": {
+      "title": "Implement multi-preview surface rendering",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-10-13T09:20:33Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nThank you for the PR. I was looking about this change and the code look fine but produce few errors that affect compatibility.\r\n\r\nThis methods of GlStreamInterface is not working anymore:\r\n- setPreviewResolution\r\n- setIsPortrait (only affect to stream, preview not working)\r\n- setPreviewIsPortrait\r\n- setIsPreviewHorizontalFlip\r\n- setIsPreviewVerticalFlip\r\n- setAspectRatioMode\r\n- setPreviewViewPort\r\n\r\nBefore this PR all this methods change the preview while the preview is working, now, it only has effect if you use it before you add the preview.",
+        "timestamp": "2025-10-08T11:24:33Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "> Hello,\r\n> \r\n> Thank you for the PR. I was looking about this change and the code look fine but produce few errors that affect compatibility.\r\n> \r\n> This methods of GlStreamInterface is not working anymore:\r\n> \r\n> * setPreviewResolution\r\n> * setIsPortrait (only affect to stream, preview not working)\r\n> * setPreviewIsPortrait\r\n> * setIsPreviewHorizontalFlip\r\n> * setIsPreviewVerticalFlip\r\n> * setAspectRatioMode\r\n> * setPreviewViewPort\r\n> \r\n> Before this PR all this methods change the preview while the preview is working, now, it only has effect if you use it before you add the preview.\r\n\r\nA possible solution is keep the actual preview without changes, separated of the HashMap created in this PR to keep the compatibility and only use the HashMap for extra previews.",
+        "timestamp": "2025-10-08T11:29:13Z"
+      },
+      {
+        "author": "chenqinggang001",
+        "role": "CONTRIBUTOR",
+        "body": "Keep the original logic, use `var` to declare variables, and dynamically retrieve variables from `PreviewSurfaceInfo` during `drawScreenPreview` to support the configuration of attached previews. How about that?\r\n\r\n```\r\n  private data class PreviewSurfaceInfo(\r\n      val surfaceManager: SurfaceManager,\r\n      var width: Int,\r\n      var height: Int,\r\n      var horizontalFlip: Boolean = false,\r\n      var verticalFlip: Boolean = false,\r\n      var aspectRatioMode: AspectRatioMode = AspectRatioMode.Adjust\r\n  )\r\n\r\nfun addMultiPreviewSurface(\r\n      surface: Surface,\r\n      width: Int,\r\n      height: Int,\r\n      horizontalFlip: Boolean = isPreviewHorizontalFlip,\r\n      verticalFlip: Boolean = isPreviewVerticalFlip,\r\n      aspectRatioMode: AspectRatioMode = this.aspectRatioMode\r\n  ) \r\n\r\nfun updateMultiPreviewConfig(\r\n      surface: Surface,\r\n      width: Int? = null,\r\n      height: Int? = null,\r\n      horizontalFlip: Boolean? = null,\r\n      verticalFlip: Boolean? = null,\r\n      aspectRatioMode: AspectRatioMode? = null\r\n  )\r\n```",
+        "timestamp": "2025-10-09T06:04:29Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "If the code has no effect to the current features that way is valid.\r\nBasically the requirement is that the surface from attachPreview(surface: Surface) method must be updated on fly by the methods listed in my last post.",
+        "timestamp": "2025-10-09T07:21:54Z"
+      },
+      {
+        "author": "chenqinggang001",
+        "role": "CONTRIBUTOR",
+        "body": "I have updated the code. Please check it",
+        "timestamp": "2025-10-09T14:16:25Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Merged. Thank you for the PR.\r\nI will do a minimal change for optimization and expose all methods in StreamBase",
+        "timestamp": "2025-10-13T09:20:19Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5b3aae7",
+        "message": "Implement multi-preview surface rendering",
+        "author": "chenqg",
+        "timestamp": "2025-10-06T12:25:57Z"
+      },
+      {
+        "sha": "4489702",
+        "message": "Downward compatibility processing of the multi-preview rendering interface",
+        "author": "chenqg",
+        "timestamp": "2025-10-09T14:01:36Z"
+      },
+      {
+        "sha": "727a76b",
+        "message": "Fix the encoding format error",
+        "author": "chenqg",
+        "timestamp": "2025-10-09T14:11:50Z"
+      },
+      {
+        "sha": "e6c84ff",
+        "message": "Fix the encoding format error",
+        "author": "chenqg",
+        "timestamp": "2025-10-09T14:14:07Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pedroSG94/RootEncoder#2046",
+    "metadata": {
+      "title": "Various performance improvements",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-03-12T22:53:45Z",
+      "reviewers": [],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "These are the performance improvements I mentioned in the following issues\r\n\r\nhttps://github.com/pedroSG94/RootEncoder/issues/2044\r\nhttps://github.com/pedroSG94/RootEncoder/issues/2043\r\nhttps://github.com/pedroSG94/RootEncoder/issues/2040\r\n\r\nFor `AndroidViewFilterRender` I also add a `render` flag, so if this flag is false then this view will not be rendered at all, so if we have more than one view filters we can turn it on or off easily.\r\n\r\nThanks!"
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nThank you for the PR!\r\n\r\nI was doing tests and all seems good except the AndroidViewFilterRender and that you need move ObservableWebView to common module because you can't use it from encoder module.\r\nAndroidViewFilterRender stopped to work with the default code example. I'm not sure if the way to use it changed but with the old example in the rotation activty using the menu, you should see 4 buttons but nothing is renderer:\r\nhttps://github.com/pedroSG94/RootEncoder/blob/master/app/src/main/java/com/pedro/streamer/utils/FilterMenu.kt#L101\r\n\r\nAlso, I'm not sure if the color change in the VideoEncoder is secure for old devices (encoders and players that will reproduce the video) and should be disabled by default, but Anyway, I think that the code should check that if the version is older than Android N and the patch never should be done because you can't change it in the MediaFormat anyway:\r\nhttps://github.com/pedroSG94/RootEncoder/pull/2046/changes#diff-69c1199aafc51d208f38b0aca826b15f07117951962299d31c6b456b8824f8bcR175\r\n\r\nWhat do you think about it?",
+        "timestamp": "2026-03-06T23:22:40Z"
+      },
+      {
+        "author": "Mike-the-one",
+        "role": "NONE",
+        "body": "Yes, I completely agree to have the color profile set to false by default, I think the best is to have a flag and turn it on by the user? \r\n\r\nYes, if the ObservableWebView should be in a different module then sure.  \r\n\r\nI am wondering if you can do it?\r\n\r\nthanks",
+        "timestamp": "2026-03-06T23:48:16Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\n\nOk, I will do it.",
+        "timestamp": "2026-03-07T00:11:34Z"
+      },
+      {
+        "author": "Mike-the-one",
+        "role": "NONE",
+        "body": "Thanks!  Once this is in I will try it out in my app, and let you know.\r\n\r\nThanks again!!!",
+        "timestamp": "2026-03-07T01:12:19Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nThis took me a bit of time but finally I have the final version code for this changes:\r\nhttps://github.com/pedroSG94/RootEncoder/pull/2050\r\n\r\nI included this:\r\n- Bt709 is optional and disabled by default\r\n- Removed unnecessary changes in gl renders like logs\r\n- Removed AndroidViewFilterRender changes to keep retro compatibility\r\n- Add a new filter ViewSurfaceFilterRender. This filter do the same than AndroidViewFilterRender but in a better way because canvas is not longer used and now use Presentation and VirtualDisplay. This allow a really good performance.",
+        "timestamp": "2026-03-10T23:09:35Z"
+      },
+      {
+        "author": "Mike-the-one",
+        "role": "NONE",
+        "body": "Thanks, please let know once your changes are in a release, and I can give it a try, thanks!",
+        "timestamp": "2026-03-12T22:16:50Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "1671850",
+        "message": "Various performance improvements",
+        "author": "Mike W",
+        "timestamp": "2026-03-04T11:53:57Z"
+      }
+    ]
+  },
+  {
+    "story_id": "pedroSG94/RootEncoder#821",
+    "metadata": {
+      "title": "Tap to focus functionality to Camera1",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-04-25T15:35:51Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Not very sensitive and need to little long press but we can tweak it later."
+    },
+    "discussion_timeline": [
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "Hello,\r\n\r\nThis a good funcionality and is working for camera1. \r\nAlso, this value, I'm not sure if this should be constant (I wrote it only for testing purposes):\r\nhttps://github.com/pedroSG94/rtmp-rtsp-stream-client-java/blob/master/encoder/src/main/java/com/pedro/encoder/input/video/Camera1ApiManager.java#L485 \r\nAfter that, the only problem is camera2.",
+        "timestamp": "2021-04-06T14:43:01Z"
+      },
+      {
+        "author": "Void-Spectra",
+        "role": "CONTRIBUTOR",
+        "body": "I am currently working on camera2, then we will discuss about the correct weight of Camera.area",
+        "timestamp": "2021-04-06T16:31:54Z"
+      },
+      {
+        "author": "iqiluwxy",
+        "role": "NONE",
+        "body": "Why do I run demo tips Disconnect",
+        "timestamp": "2021-04-12T09:27:17Z"
+      },
+      {
+        "author": "iqiluwxy",
+        "role": "NONE",
+        "body": "Do I have to write my user name and password\r\n\r\n",
+        "timestamp": "2021-04-12T09:28:33Z"
+      },
+      {
+        "author": "pedroSG94",
+        "role": "OWNER",
+        "body": "I merged this because it is 20 days without update. Please, open other MR if you finally update it for camera2",
+        "timestamp": "2021-04-25T15:36:57Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "00cb8b2",
+        "message": "Add tap to focus functionality to Camera1",
+        "author": "Mustafa BOLEKEN",
+        "timestamp": "2021-04-06T02:10:52Z"
+      },
+      {
+        "sha": "086962e",
+        "message": "Add tap to focus functionality to Camera1",
+        "author": "Mustafa BOLEKEN",
+        "timestamp": "2021-04-06T02:15:59Z"
+      },
+      {
+        "sha": "379a8c5",
+        "message": "Fix set parameters failed error.",
+        "author": "Mustafa BOLEKEN",
+        "timestamp": "2021-04-10T17:18:30Z"
+      }
+    ]
+  }
+]

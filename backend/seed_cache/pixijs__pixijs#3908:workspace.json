@@ -1,0 +1,94 @@
+{
+  "story_id": "pixijs/pixijs#3908",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: No Public API for Measuring Text Without Rendering It",
+      "body": "PixiJS had no built-in way for developers to measure how much space a styled text string would occupy without actually creating and rendering a full Text object. This was a real usability gap: game developers and UI builders often need to know text dimensions ahead of time for layout purposes. A contributor opened this pull request to address that gap by adding a measurement capability tied to the existing TextStyle system. The contributor acknowledged being somewhat rusty with JavaScript and explicitly invited feedback, including on how to reduce the need for a canvas context parameter that the measurement logic required.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Where Should Text Measurement Live, and What Should It Return?",
+      "body": "The core architectural tension was about ownership and shape of the measurement API. The contributor initially placed the measurement function directly on the TextStyle class as an instance method, which felt natural since style drives how text renders. But this raised questions: should measurement logic belong to the style object, or to the Text rendering class? And should the function return a simple bounding rectangle, or a richer object capturing intermediate data like line widths, line counts, and font properties that the rendering pipeline also needs? A second tension emerged around utility methods — should helper functions like word-wrapping be made static and shared, or kept encapsulated? Finally, reviewers questioned whether convenience methods like cloning and equality-checking belonged in the public API at all, or whether they added surface area without clear benefit.",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[1]",
+        "discussion_timeline[3]",
+        "discussion_timeline[8]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — darkfrog26",
+      "body": "The contributor's initial instinct was to attach measurement as an instance method on TextStyle, since the style object already encapsulates all the parameters that affect how text is rendered and sized. When reviewers pushed back, the contributor was open to moving the function but raised a practical concern: the measurement logic internally depends on several intermediate values — line data, font properties, maximum line width — that are also needed by the rendering pipeline. Simply returning a bounding rectangle would discard that information. The contributor proposed either returning a richer result object or finding a way to share that data. The contributor also added clone and equals methods to the result type, reasoning that consumers comparing or copying measurement results would find them useful. After reviewer feedback, the contributor acknowledged that a dedicated class capturing all measurement outputs was the right abstraction, and that the clone and equals methods were unnecessary overhead.",
+      "author": "darkfrog26",
+      "author_role": "NONE",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[3]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — bigtimebuddy",
+      "body": "The core team member pushed the design toward a standalone, dedicated class rather than a method bolted onto an existing object. The argument was that measurement is a distinct concern from style configuration, and grouping all measurement outputs — including intermediate rendering data — into a single named type would make the API cleaner and more discoverable. This reviewer also flagged that any new public type needs to be explicitly exported from the library's core module to be usable by consumers, a detail the contributor had missed. On the clone and equals methods, the reviewer was skeptical: these methods were not used internally, added public API surface that would need to be maintained, and could be replaced by general-purpose utilities if a consumer truly needed them. The reviewer also asked for validation against existing live examples to ensure nothing regressed.",
+      "author": "bigtimebuddy",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[7]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what was actually merged: given the tension between attaching measurement to an existing class versus creating a new dedicated type, and the debate over how much surface area the public API should expose, what design would you have chosen and why? What criteria would you use to decide whether a convenience method belongs in a public API?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged: A Dedicated TextMetrics Class Owning Both Measurement and Word-Wrap Logic",
+      "body": "The pull request was merged on April 8, 2017. The final design introduced a new dedicated class called TextMetrics that owns the measurement function as a static method and also absorbed the word-wrap helper that had previously lived on the Text rendering class. The measurement function returns an instance of TextMetrics, which captures not just the bounding dimensions but all the intermediate data the rendering pipeline needs — line information, font properties, and related metrics. The clone and equals convenience methods were removed before merge after the reviewer made clear they added API surface without internal justification. The new type was also properly registered in the library's public exports. The contributor went through roughly a dozen iterative commits responding to reviewer feedback before the design stabilized, reflecting a collaborative refinement process rather than a single upfront design.",
+      "source_refs": [
+        "commit_history",
+        "pr_metadata.merged_at",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]",
+        "discussion_timeline[8]"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When a computation produces multiple related outputs that are consumed together, grouping them into a dedicated result type is usually cleaner than returning a minimal value and discarding the rest — it makes the data model explicit and reusable across both the public API and internal rendering logic.",
+        "Convenience methods on a public type should be justified by actual use cases, not added speculatively. Every method added to a public API becomes a maintenance commitment; if a utility library or a few lines of user code can substitute, the method probably does not belong in the library itself.",
+        "Ownership of a capability should follow the single-responsibility principle: measurement is a behavior distinct from style configuration, so housing it in a class named for measurement rather than for style makes the API more discoverable and the codebase easier to reason about. When a new public type is introduced, ensuring it is properly exported is a non-negotiable step that is easy to overlook."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "story_id": "PaperMC/Paper#1397",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged After Extended Beta Validation",
+      "body": "The async chunk loading and generation feature was merged into master on September 26, 2018, after a multi-week public beta period where real production servers stress-tested the implementation. Key concurrency hazards — including unsafe entity additions during generation, lock contention on region saving, and non-thread-safe data converters — were resolved iteratively before merge. A custom priority-queue executor was built to minimize main-thread blocking while keeping generation operations world-local and single-threaded.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "commit_history",
+        "discussion_timeline"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When integrating concurrency into a system not designed for it, isolate unsafe subsystems behind single-threaded executors rather than forcing full thread-safety everywhere at once.",
+        "Public beta testing with real production workloads surfaces concurrency bugs — like memory leaks under bulk generation — that synthetic tests rarely expose.",
+        "A priority-aware work queue lets you defer non-urgent work asynchronously while still meeting latency requirements when the main thread urgently needs a result."
+      ]
+    }
+  ]
+}

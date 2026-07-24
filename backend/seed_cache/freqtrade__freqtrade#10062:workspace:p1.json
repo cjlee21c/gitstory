@@ -1,0 +1,64 @@
+{
+  "story_id": "freqtrade/freqtrade#10062",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "The Problem: Trades Frozen While Waiting for Order Fills",
+      "body": "When a trading bot has an open, unfilled order (e.g., a position-increase order), it currently blocks all exit logic from running. This means a trade cannot be exited even if exit conditions are met, leaving capital stuck until the pending order resolves.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Far Should the Unblocking Go?",
+      "body": "Allowing exits while an open order exists is straightforward in principle, but the scope is contested: should position-adjustment callbacks also be unblocked, and if so, how do you prevent the bot from endlessly canceling and replacing an unfilled order on every iteration? The fix risks introducing an infinite replacement loop if not carefully bounded.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[3]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — xmatthias",
+      "body": "The maintainer argues the PR should stay narrowly scoped: unblock exit signals but avoid also unblocking position-adjustment callbacks without a guard, because doing so causes the bot to replace an unfilled adjustment order on every cycle. He proposes using order direction and amount as a fingerprint to detect a \"similar\" open order and skip replacement.",
+      "author": "xmatthias",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[4]",
+        "discussion_timeline[5]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — Axel-CH",
+      "body": "The contributor initially proposed using an order tag as the deduplication key so strategies could explicitly signal intent, but accepted that this would be a breaking change requiring updates to every strategy. He then converged toward using direction and amount as an automatic similarity check, while flagging uncertainty about whether the exchange-reported amount always matches the user-requested amount.",
+      "author": "Axel-CH",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given the risk of infinite order replacement, would you use order direction and amount as an automatic similarity guard, require an explicit strategy-supplied tag, or keep position-adjustment callbacks fully blocked while open orders exist?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

@@ -1,0 +1,935 @@
+[
+  {
+    "story_id": "tubearchivist/tubearchivist#1000",
+    "metadata": {
+      "title": "Configurable LDAP user promotion to superuser or staff",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-07-11T10:36:00Z",
+      "reviewers": [
+        "joshrivers",
+        "oblivioncth"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "### Pull Request Description\r\n\r\n**Overview:**\r\nThis pull request refactors settings for LDAP and forward authentication settings in the Django backend. It adds two new files, `fwd_auth_settings.py` and `ldap_settings.py`, to manage authentication-related environment variables and settings based on conditional imports. Additionally, it updates the existing environment check validator to include expectations for the authentication configurations.\r\n\r\nThe core change here is to allow the administrator to pre-name specific users who need higher permissions on their instance which will be added to their accounts as they log in using LDAP. This should solve for #591 \r\n\r\n**Changes Made:**\r\n\r\n1. **New File: ```fwd_auth_settings.py```**\r\n   - Moved forward-auth settings from main settings.py\r\n\r\n2. **New File: ```ldap_settings.py```**\r\n   - Moved LDAP settings from main settings.py\r\n   - Defines various LDAP-related configurations, including:\r\n   - Conditional promotion of specific usernames to staff or superuser levels, configured using new environment variables:\r\n      - TA_LDAP_PROMOTE_USERNAMES_TO_SUPERUSER allows a comma-separated list of usernames which will be given staff and superuser permission\r\n      - TA_LDAP_PROMOTE_USERNAMES_TO_STAFF allows a comma-separated list of usernames which will be given only staff permission\r\n\r\n3. **Updates to ```ta_envcheck.py```**\r\n   - Added a method ```_additional_vars_expectations()``` to check for the presence of required LDAP environment variables based on the current authentication mode.\r\n   - Adjusts expected and unexpected environment variable checks based on the selected authentication mode.\r\n\r\n4. **Modifications to ```settings.py```**\r\n   - Removed the inline LDAP configuration and instead imported settings from ```ldap_settings.py``` when LDAP authentication is enabled.\r\n   - Similarly, imports from ```fwd_auth_settings.py``` when forward authentication is enabled.\r\n   - Fix for edge case where `TA_LOGIN_AUTH_MODE` was set to use LDAP, but `TA_LDAP` was not set.\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "joshrivers",
+        "role": "CONTRIBUTOR",
+        "body": "I have been using this compose file as a test harness for standalone validation of the auth settings:\r\n```\r\nname: tubearchivist-testharness\r\nservices:\r\n  tubearchivist:\r\n    container_name: tubearchivist\r\n    restart: unless-stopped\r\n    build: .\r\n    ports:\r\n      - 8000:8000\r\n    volumes:\r\n      - media:/youtube\r\n      - cache:/cache\r\n    environment:\r\n      - ES_URL=http://archivist-es:9200 # needs protocol e.g. http and port\r\n      - REDIS_CON=redis://archivist-redis:6379\r\n      - TA_HOST=http://localhost:8000 # set your host name\r\n      - TA_USERNAME=admin\r\n      - TA_PASSWORD=localadminpassword\r\n      - ELASTIC_PASSWORD=vMgTMmpSpCv3kw0LaRbqTXi2kJv4LWa1eCeV9NNZnpNioHS76A5U9qh07 # set password for Elasticsearch\r\n      - TZ=America/New_York\r\n      # - DJANGO_LOG_LEVEL=DEBUG\r\n      # LDAP Settings Block\r\n      - TA_LOGIN_AUTH_MODE=ldap_local\r\n      - TA_LDAP=true\r\n      - TA_LDAP_SERVER_URI=ldap://openldap:1389\r\n      - TA_LDAP_BIND_DN=CN=binduser,ou=users,dc=example,dc=com\r\n      - TA_LDAP_BIND_PASSWORD=bindme\r\n      - TA_LDAP_USER_ATTR_MAP_USERNAME=uid\r\n      - TA_LDAP_USER_BASE=ou=users,dc=example,dc=com\r\n      - TA_LDAP_USER_FILTER=(objectClass=inetOrgPerson)\r\n      - TA_LDAP_PROMOTE_USERNAMES_TO_STAFF=staff01,staff02\r\n      - TA_LDAP_PROMOTE_USERNAMES_TO_SUPERUSER=super01,super02\r\n      - TA_LDAP_USER_ATTR_MAP_PERSONALNAME=displayName\r\n    healthcheck:\r\n      test: [ \"CMD\", \"curl\", \"-f\", \"http://localhost:8000/health\" ]\r\n      interval: 2m\r\n      timeout: 10s\r\n      retries: 3\r\n      start_period: 30s\r\n    depends_on:\r\n      - archivist-es\r\n      - archivist-redis\r\n    logging:\r\n      options:\r\n        max-size: \"100m\"\r\n        max-file: \"3\"\r\n  archivist-redis:\r\n    image: redis\r\n    container_name: archivist-redis\r\n    restart: unless-stopped\r\n    expose:\r\n      - \"6379\"\r\n    volumes:\r\n      - redis:/data\r\n    depends_on:\r\n      - archivist-es\r\n    logging:\r\n      options:\r\n        max-size: \"10m\"\r\n        max-file: \"3\"\r\n  archivist-es:\r\n    image: bbilly1/tubearchivist-es # only for amd64, or use official es 8.13.2\r\n    container_name: archivist-es\r\n    restart: unless-stopped\r\n    environment:\r\n      - \"ELASTIC_PASSWORD=vMgTMmpSpCv3kw0LaRbqTXi2kJv4LWa1eCeV9NNZnpNioHS76A5U9qh07\" # matching Elasticsearch password\r\n      - \"ES_JAVA_OPTS=-Xms1g -Xmx1g\"\r\n      - \"xpack.security.enabled=true\"\r\n      - \"discovery.type=single-node\"\r\n      - \"path.repo=/usr/share/elasticsearch/data/snapshot\"\r\n    ulimits:\r\n      memlock:\r\n        soft: -1\r\n        hard: -1\r\n    volumes:\r\n      - es:/usr/share/elasticsearch/data # check for permission error when using bind mount, see readme\r\n    expose:\r\n      - \"9200\"\r\n    logging:\r\n      options:\r\n        max-size: \"50m\"\r\n        max-file: \"3\"\r\n  openldap: # https://hub.docker.com/r/bitnami/openldap\r\n    image: bitnami/openldap:2\r\n    restart: unless-stopped\r\n    configs:\r\n      - source: ldap_bootstrap_ldif\r\n        target: /ldif/bootstrap.ldif\r\n    environment:\r\n      - LDAP_ADMIN_USERNAME=ldapadmin\r\n      - LDAP_ADMIN_PASSWORD=ldapadminpassword\r\n      - LDAP_ROOT=dc=example,dc=com\r\n      - LDAP_CUSTOM_LDIF_DIR=/ldif\r\n\r\nconfigs:\r\n  ldap_bootstrap_ldif:\r\n    content: |\r\n      # Root creation\r\n      dn: dc=example,dc=com\r\n      objectClass: dcObject\r\n      objectClass: organization\r\n      dc: example\r\n      o: example\r\n\r\n      dn: ou=users,dc=example,dc=com\r\n      objectClass: organizationalUnit\r\n      ou: users\r\n\r\n      # User binduser creation\r\n      dn: cn=binduser,ou=users,dc=example,dc=com\r\n      cn: LDAP Bind User\r\n      sn: Bind\r\n      displayName: Bind User\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: bindme\r\n      uid: binduser\r\n      uidNumber: 1000\r\n      gidNumber: 1000\r\n      homeDirectory: /home/binduser\r\n\r\n      # User admin creation\r\n      dn: cn=admin,ou=users,dc=example,dc=com\r\n      cn: Common Admin\r\n      sn: Admin\r\n      displayName: Admin Account\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: adminpassword\r\n      uid: admin\r\n      uidNumber: 1001\r\n      gidNumber: 1001\r\n      homeDirectory: /home/admin\r\n\r\n      # User user01 creation\r\n      dn: cn=user01,ou=users,dc=example,dc=com\r\n      cn: User 01\r\n      sn: User\r\n      displayName: Standard User 01\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password1\r\n      uid: user01\r\n      uidNumber: 1002\r\n      gidNumber: 1002\r\n      homeDirectory: /home/user01\r\n\r\n      # User user02 creation\r\n      dn: cn=user02,ou=users,dc=example,dc=com\r\n      cn: User 02\r\n      sn: User\r\n      displayName: Standard User 02\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password2\r\n      uid: user02\r\n      uidNumber: 1003\r\n      gidNumber: 1003\r\n      homeDirectory: /home/user02\r\n\r\n      # User staff01 creation\r\n      dn: cn=staff01,ou=users,dc=example,dc=com\r\n      cn: Staff 01\r\n      sn: Staff\r\n      displayName: Staff User 01\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password1\r\n      uid: staff01\r\n      uidNumber: 1004\r\n      gidNumber: 1004\r\n      homeDirectory: /home/staff01\r\n\r\n      # User staff02 creation\r\n      dn: cn=staff02,ou=users,dc=example,dc=com\r\n      cn: Staff 02\r\n      sn: Staff\r\n      displayName: Staff User 02\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password2\r\n      uid: staff02\r\n      uidNumber: 1005\r\n      gidNumber: 1005\r\n      homeDirectory: /home/staff02\r\n\r\n      # User super01 creation\r\n      dn: cn=super01,ou=users,dc=example,dc=com\r\n      cn: Super 01\r\n      sn: Super\r\n      displayName: Super User 01\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password1\r\n      uid: super01\r\n      uidNumber: 1006\r\n      gidNumber: 1006\r\n      homeDirectory: /home/super01\r\n\r\n      # User super02 creation\r\n      dn: cn=super02,ou=users,dc=example,dc=com\r\n      cn: Super 02\r\n      sn: Super\r\n      displayName: Super User 02\r\n      objectClass: inetOrgPerson\r\n      objectClass: posixAccount\r\n      objectClass: shadowAccount\r\n      userPassword: password2\r\n      uid: super02\r\n      uidNumber: 1007\r\n      gidNumber: 1007\r\n      homeDirectory: /home/super02\r\n\r\n      # Viewers Group creation\r\n      dn: cn=viewers,ou=users,dc=example,dc=com\r\n      cn: viewers\r\n      objectClass: groupOfNames\r\n      # User group membership\r\n      member: cn=binduser,ou=users,dc=example,dc=com\r\n      member: cn=admin,ou=users,dc=example,dc=com\r\n      member: cn=user01,ou=users,dc=example,dc=com\r\n      member: cn=user02,ou=users,dc=example,dc=com\r\n      member: cn=staff01,ou=users,dc=example,dc=com\r\n      member: cn=staff02,ou=users,dc=example,dc=com\r\n      member: cn=super01,ou=users,dc=example,dc=com\r\n      member: cn=super02,ou=users,dc=example,dc=com\r\n\r\n      # Staff Group creation\r\n      dn: cn=staff,ou=users,dc=example,dc=com\r\n      cn: staff\r\n      objectClass: groupOfNames\r\n      # User group membership\r\n      member: cn=staff01,ou=users,dc=example,dc=com\r\n      member: cn=staff02,ou=users,dc=example,dc=com\r\n      member: cn=super01,ou=users,dc=example,dc=com\r\n      member: cn=super02,ou=users,dc=example,dc=com\r\n\r\n      # SuperUser Group creation\r\n      dn: cn=superuser,ou=users,dc=example,dc=com\r\n      cn: superuser\r\n      objectClass: groupOfNames\r\n      # User group membership\r\n      member: cn=super01,ou=users,dc=example,dc=com\r\n      member: cn=super02,ou=users,dc=example,dc=com\r\n\r\nvolumes:\r\n  cache:\r\n  es:\r\n  media:\r\n  redis:\r\n```\r\nIf you down the compose stack and delete volumes between test sessions, you can check the behavior with each set of auth modes and combinations of privilege promotions.",
+        "timestamp": "2025-06-20T21:38:35Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "my 2 cents, I'm happy to merge whatever change you suggest here. I honestly don't plan to setup alternative authentication for my selfhosted stuff, but I see how that can be useful.\r\n\r\nAs long as it doesn't interfere with regular password authentication and there is consensus, I'll merge. \r\n\r\nMy recommendations, with lessons learned: \r\n- Maintainability should be the top priority, not being able to cover all possible edge cases.\r\n- Documentation is another top priority, but looks like you are on track there.\r\n\r\nAlso I know, we don't have a proper logging setup, something I've been meaning to do, but please let's not mix this in here, that should be a separate thing.",
+        "timestamp": "2025-07-01T03:53:12Z"
+      },
+      {
+        "author": "joshrivers",
+        "role": "CONTRIBUTOR",
+        "body": "I can pull the logging code and keep it on my dev branches when I need it.\r\n\r\nI've been wondering if I should create a testing folder to contain test harnesses like the docker-compose I put in the discussion above. No strong feeling either way here, but I wondered if it would be useful to you to be able to quickly establish whether the auth configs were broken in code, or just in someone else's configuration.",
+        "timestamp": "2025-07-01T04:01:43Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "I'm going to rely on you fine folks with everything relating to forward auth or LDAP. :-)\r\n\r\non the repo here, I prefer not to have duplicates with compose files, less maintenance needed. \r\n\r\nI also have a separate compose file I use for myself when working on things, I think that's quite common, you can tailor it to your setup and preference. ",
+        "timestamp": "2025-07-01T04:21:58Z"
+      },
+      {
+        "author": "joshrivers",
+        "role": "CONTRIBUTOR",
+        "body": "I have removed the logging code and this PR is ready to merge",
+        "timestamp": "2025-07-02T03:14:53Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f6c065e",
+        "message": "refactor: segregated ldap and fwd auth settings into imports and added variable validations",
+        "author": "Josh Rivers",
+        "timestamp": "2025-06-18T04:46:45Z"
+      },
+      {
+        "sha": "c3eae6e",
+        "message": "added: LDAP users listed in configuration variables are promoted to staff or superuser",
+        "author": "Josh Rivers",
+        "timestamp": "2025-06-19T04:33:54Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#539",
+    "metadata": {
+      "title": "View only user",
+      "labels": [],
+      "qualities": [
+        "security",
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-10-15T06:58:06Z",
+      "reviewers": [],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "This PR makes some small changes to the `base.html` `video.html` and `channel.html`.\r\n\r\nThe purpose of this is to allow for essentially a view-only user so that videos cannot be deleted, channels cannot be added or other destructive actions.\r\n\r\nThis is accomplished by simply hiding the UI elements that get displayed depending on the following conditions\r\n\r\nA) the user is apart of the \"staff\" built in Django option in the `/admin` page\r\nB) is part of a group called \"admin\"\r\n\r\nThe `auth_extras` custom template tag was added in order to facilitate this. \r\n\r\nThis PR is part of several smaller PRs that aim to make Tubearchivist a multi-user capable project\r\n\r\n### Testing Criteria. \r\n\r\n1. Setup users similar to the following\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/a4ccd07f-4561-4c69-b4d4-1d0c798f3428)\r\n\r\n2. Create the admin group:\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/1a58f14b-fce4-452b-8965-c1bdb7136b19)\r\n\r\n3. Using private browsing for testing is recommended, log in as the admin user, you should see the download menu item:\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/29fc8385-9a3b-46f6-8d24-f9669afb1623)\r\n\r\nThe videos themselves should display index, delete and download options:\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/ea46a53a-80f6-4221-82e2-63ef6ddad0ab)\r\n\r\n\r\n4. Login as a normal user, the download menu is gone:\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/3a54bee3-6233-4ec7-9b65-ee2b7ffb6d70)\r\n\r\nThe Channels menu should see the \"+\" sign removed indicating you cannot add a channel\r\n\r\n![image](https://github.com/tubearchivist/tubearchivist/assets/8162705/ec39758f-5e45-4239-9cd4-57de653e1bc3)\r\n\r\n\r\nNOTE: for this I am not using any special permissions in Django, it is enough that the group \"admin\" or the \"is staff\" are present in order to unlock the proper options\r\n\r\n\r\n\r\nTODO: In another, smaller PR, add an indication as to which user you are logged in as currently"
+    },
+    "discussion_timeline": [
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks, that's great progress! If I may ask, what's the case for the admin group? With the default django functionality you have:\r\n\r\n- Superuser: Can do everything, including creating/modifying users\r\n- Staff: Is a read/write user from the TA point of view, as in can create and modify channels etc...\r\n- none of the above: Is a read only user.\r\n\r\nFrom what I can see, this should cover all use cases? Or am I missing something?\r\n\r\nAnd then this will also have to be verified server side too. I don't think we strive for a high security application, but functionality like that should also be handled in the API as well, while the markup changes is the UI/UX part of that.",
+        "timestamp": "2023-09-06T17:38:23Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "> Thanks, that's great progress! If I may ask, what's the case for the admin group? \r\n> \r\n> \r\n> From what I can see, this should cover all use cases? Or am I missing something?\r\n\r\nThe thought was due to the SSO (LDAP) functionality you dont really want to manage users in LDAP and then in the application if you can. Even still if you are using LDAP you are more likely to just want to organize in groups as opposed to editing each user.\r\n\r\nRegarding the API, can you point me at where I could find this code. I am sure I could dig it up, but if you happen to know where this might be implemented I can get started on that",
+        "timestamp": "2023-09-06T18:14:53Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "ah, yeah, SSO you are right, thanks for reminding me. :-)\r\n\r\nAPI views are in a separate django app: https://github.com/tubearchivist/tubearchivist/blob/master/tubearchivist/api/views.py, to have them separate from the regular views. \r\n\r\nYou could create a mixin that checks for permissions and raises a 403 Forbidden? Or implement this in the Baseview and a class attribute? Instinctive I'd suggest the second approach but both could work.",
+        "timestamp": "2023-09-06T20:24:25Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "I started poking at this and what I came up with was to create a function outside the class definition in `views.py`. The reason is that way all of the classes can make use of it. \r\n\r\nCurrently looks like this:\r\n\r\n```\r\n\r\ndef is_user_authorized(request, group_name):\r\n        \"\"\"Returns a bool after checking if request.user is either part of \r\n        the specified group OR has the is_staff django builtin\r\n\r\n        Args:\r\n            group_name (string): The name of the group to check for membership of\r\n\r\n        Returns:\r\n            bool: Returns true if user is part of group or is_staff django builtin\r\n        \"\"\"\r\n        if request.user.groups.filter(name=group_name).exists() or request.user.is_staff:\r\n            return True\r\n        else:\r\n            return False\r\n```\r\n\r\nIt's possible this could be turned into a decorator if desired. I was having some problems with a decorator that was taking 'admin' as an argument due to the fact that `views.py` is being imported by `urls.py`. When this happens the class and method creating the decorator are not instantiated before they are referenced by the import. This was causing a \"missing 1 positional argument error\". I suppose it's possible to have the decorator hardcoded to just check for an `admin` group and thus would not need an argument.\r\n\r\nI am currently applying the function at the top of certain methods like this:\r\n\r\n```\r\n    def delete(self, request, channel_id):\r\n        # pylint: disable=unused-argument\r\n        \"\"\"delete channel\"\"\"\r\n        if not is_user_authorized(request, 'admin'):\r\n            raise PermissionDenied()\r\n````\r\n\r\nI decided against using a mixin for a few reasons. Thoughts on this approach? ",
+        "timestamp": "2023-09-08T01:52:29Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "I've been doing some research. I think decorators would be a more strait forward approach and will avoid code duplication and help with future maintainability. Django has this nifty shortcut decorator [user_passes_test](https://docs.djangoproject.com/en/4.2/topics/auth/default/#django.contrib.auth.decorators.user_passes_test) where you can pass it a function that takes the user object as a first argument and should return a boolean depending if the user passes. E.g. from your example above that function could look like:\r\n\r\n```python\r\ndef check_admin(user):\r\n    \"\"\"if user has access to restricted views\"\"\"\r\n    return user.is_staff or user.groups.filter(name=\"admin\").exists()\r\n```\r\n\r\nThen to use decorators on class based views you'll have to wrap them in [method_decorator](https://docs.djangoproject.com/en/4.2/topics/class-based-views/intro/#decorating-the-class) then you can decorate the class itself to restrict all methods of that class, or a specific method alone, e.g. restrict only POST requests.\r\n\r\nSo your decorator could look something like this:\r\n\r\n```python\r\n@method_decorator(user_passes_test(check_admin), name='dispatch')\r\n```\r\n\r\nThis would make things easier to extend, maybe at some point in the future we'll have to tweak the `check_admin` function there to pass additional groups, so we'll only have to do this in one place. Or maybe we'll want to add an additional level of restriction, so we can just easily create another decorator. \r\n\r\nAdditionally same would also apply to the API views, so you can reuse that functionality. AFAIK, API requests will return 403, and regular view requests will redirect to the login page where you could login with a user that has access. \r\n",
+        "timestamp": "2023-09-09T12:15:15Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "In the interest of being able to extend things in the future, I wonder if the right approach isnt putting this in a wrapper function like so:\r\n\r\n```\r\ndef admin_only(function):\r\n    @login_required\r\n    @user_passes_test(lambda user: user.is_staff or user.groups.filter(name='admin').exists())\r\n    def wrapper(*args, **kwargs):\r\n        return function(*args, **kwargs)\r\n    return wrapper\r\n ```\r\n\r\nParticularly because that moves the `user_passes_test` into the function itself while at the same time allowing for more easy code refactor in the future...\r\n\r\nThoughts? ",
+        "timestamp": "2023-09-14T00:56:16Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "I think that would be overkill, at least for what I can foresee how this could be used and extended in the future. I'd say stick to the `check_admin` function as above and we should be good, even if we need to extend this in the future.",
+        "timestamp": "2023-09-21T14:56:53Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "this is being held up by https://github.com/tubearchivist/tubearchivist/issues/564",
+        "timestamp": "2023-10-03T15:39:36Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "@bbilly1 maybe we should merge this and I can work on the unittests anyways that way this gets in before there are more MCs. Thoughts?",
+        "timestamp": "2023-10-07T20:31:10Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Sounds good, I'll wont be able to review things before the weekend though...",
+        "timestamp": "2023-10-10T04:26:39Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "@bbilly1 Can you explain the linting failure on the views.py? I don't understand what I am looking at here. The other linting is obvious there needs to be a newline inserted",
+        "timestamp": "2023-10-11T14:28:52Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "The other one wants double-quotes instead of single-quotes.",
+        "timestamp": "2023-10-11T15:11:01Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "thanks i missed that!",
+        "timestamp": "2023-10-11T15:12:17Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "you can run the linter locally too: https://github.com/tubearchivist/tubearchivist/blob/master/CONTRIBUTING.md#code-formatting-and-linting\r\n\r\nUnfortunately I need to trigger it manually here.",
+        "timestamp": "2023-10-12T01:19:53Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Please run:\r\n\r\n```bash\r\ndeploy.sh validate\r\n```\r\n\r\nUntil that doesn't throw any errors any more. \r\n\r\nThis executes this: https://github.com/tubearchivist/tubearchivist/blob/master/deploy.sh#L79-L102. So you can lint everything correctly.",
+        "timestamp": "2023-10-14T07:54:53Z"
+      },
+      {
+        "author": "stratus-ss",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry about that. Too many things going on this week and I didn't devote the attention this needed\r\n\r\n```\r\nstratus@stratus-laptop ~/git_projects/tubearchivist  $ ./deploy.sh validate\r\nrun validate on .\r\nrunning black\r\nAll done! ✨ 🍰 ✨\r\n74 files would be left unchanged.\r\nrunning codespell\r\nrunning flake8\r\n0\r\nrunning isort\r\nSkipped 2 files\r\n    \r\n> all validations passed\r\n```",
+        "timestamp": "2023-10-14T14:33:38Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "OK, I'd say let's merge this and I'll do some fine tuning.\r\n\r\nThanks a lot for your addition, I'm sure many people will appreciate this.",
+        "timestamp": "2023-10-15T06:57:51Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "148656c",
+        "message": "Remove repo docs in favor of hosted docs (#537)\n\n* updated base, channel, video htmls to hide elements based on if user is staff or in the group 'admin'\n\n* added the load auth_extras\n\n* updated auth_extras\n\n* updated views.py to block api calls from deleting files from unprivileged users; The Templates needed to be updated to support the various group checks related to removing buttons an unprivileged user should not see\n\n* bumped the channel templates to remove conflict",
+        "author": "Merlin",
+        "timestamp": "2023-09-04T09:59:36Z"
+      },
+      {
+        "sha": "891e2a2",
+        "message": "Merge branch 'testing' into view-only-user",
+        "author": "Steve Ovens",
+        "timestamp": "2023-10-07T20:32:48Z"
+      },
+      {
+        "sha": "dae2cbb",
+        "message": "fix linting issues",
+        "author": "stratus-ss",
+        "timestamp": "2023-10-11T15:16:24Z"
+      },
+      {
+        "sha": "ca85de5",
+        "message": "Merge branch 'testing' into view-only-user",
+        "author": "Steve Ovens",
+        "timestamp": "2023-10-13T23:09:51Z"
+      },
+      {
+        "sha": "bf02ffb",
+        "message": "more linting",
+        "author": "stratus-ss",
+        "timestamp": "2023-10-14T14:32:05Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#203",
+    "metadata": {
+      "title": "Modify Dockerfile and the nginx.conf file to avoid Nginx default conf…",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-04-01T04:43:25Z",
+      "reviewers": [],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "…ig IPv6 conflict."
+    },
+    "discussion_timeline": [
+      {
+        "author": "insuusvenerati",
+        "role": "CONTRIBUTOR",
+        "body": "Why are we wanting to avoid `default.conf`? The `default` config lives in `/etc/nginx/sites-available` \r\n```\r\nroot@b84a9f2ee261:/etc/nginx# tree\r\n.\r\n├── conf.d\r\n├── fastcgi.conf\r\n├── fastcgi_params\r\n├── koi-utf\r\n├── koi-win\r\n├── mime.types\r\n├── modules-available\r\n├── modules-enabled\r\n│   ├── 50-mod-http-geoip.conf -> /usr/share/nginx/modules-available/mod-http-geoip.conf\r\n│   ├── 50-mod-http-image-filter.conf -> /usr/share/nginx/modules-available/mod-http-image-filter.conf\r\n│   ├── 50-mod-http-xslt-filter.conf -> /usr/share/nginx/modules-available/mod-http-xslt-filter.conf\r\n│   ├── 50-mod-mail.conf -> /usr/share/nginx/modules-available/mod-mail.conf\r\n│   ├── 50-mod-stream.conf -> /usr/share/nginx/modules-available/mod-stream.conf\r\n│   └── 70-mod-stream-geoip.conf -> /usr/share/nginx/modules-available/mod-stream-geoip.conf\r\n├── nginx.conf\r\n├── proxy_params\r\n├── scgi_params\r\n├── sites-available\r\n│   └── default\r\n├── sites-enabled\r\n│   └── default -> /etc/nginx/sites-available/default\r\n├── snippets\r\n│   ├── fastcgi-php.conf\r\n│   └── snakeoil.conf\r\n├── uwsgi_params\r\n└── win-utf\r\n```",
+        "timestamp": "2022-03-29T22:40:04Z"
+      },
+      {
+        "author": "insuusvenerati",
+        "role": "CONTRIBUTOR",
+        "body": "Ah, just read the rest of the title in the comment. I'm still unsure though, where is the ipv6 conflict?",
+        "timestamp": "2022-03-29T22:41:29Z"
+      },
+      {
+        "author": "Lickitysplitted",
+        "role": "CONTRIBUTOR",
+        "body": "In my testing when a host doesn't have IPv6 stack enabled Nginx will fail as the default config listens on IPv6 port 80.",
+        "timestamp": "2022-03-29T22:42:48Z"
+      },
+      {
+        "author": "insuusvenerati",
+        "role": "CONTRIBUTOR",
+        "body": "Is it possible to intentionally disable ipv6? I'd like to test this out as well",
+        "timestamp": "2022-03-30T00:04:35Z"
+      },
+      {
+        "author": "Lickitysplitted",
+        "role": "CONTRIBUTOR",
+        "body": "Do you mean on the host or inside a container? ",
+        "timestamp": "2022-03-30T02:50:54Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks for getting to work on that so quickly. Two thoughts:\r\n\r\n- Do you think it makes sense to keep the filename *nginx.conf* or maybe call it *nginx-default* or so? Just calling it *default* might not be obvious what that file does by just looking at it. You can still copy it to the correct location in the Dockercompose file by specifying the full path.\r\n- I almost forgot, there is a port overwrite with environment variables at startup defined in *run.sh* here: https://github.com/bbilly1/tubearchivist/blob/master/docker_assets/run.sh#L16-L24, that's a workaround for some edge cases where the docker internal networking is shared with the host and [ports collide](https://github.com/bbilly1/tubearchivist#port-collisions), so this will need changing there too.\r\n\r\nThanks a lot for your help! You can just push any further changes to your fork, this PR should update automatically. ",
+        "timestamp": "2022-03-30T12:43:42Z"
+      },
+      {
+        "author": "insuusvenerati",
+        "role": "CONTRIBUTOR",
+        "body": "> Do you mean on the host or inside a container?\r\n\r\nI assume on the host since that's what you mentioned in your previous comment. ",
+        "timestamp": "2022-03-30T13:24:47Z"
+      },
+      {
+        "author": "Lickitysplitted",
+        "role": "CONTRIBUTOR",
+        "body": "> * Do you think it makes sense to keep the filename _nginx.conf_ or maybe call it _nginx-default_ or so? Just calling it _default_ might not be obvious what that file does by just looking at it.\r\n\r\nYou make a good point, but in a single step in the Dockerfile we are able to overwrite the config file that causes the problem and place the desired config file in place. Otherwise an additional step would be needed to create a symlink or enable the config into the sites-enabled folder. I know the current image is really heavy and optimizing the Dockerfile can help.\r\n\r\nIs there an expectation that users will modify or need to know about this config file? If devs need to know it can be made in the \r\n contribution documentation.\r\n\r\n\r\n\r\n",
+        "timestamp": "2022-03-31T04:54:39Z"
+      },
+      {
+        "author": "Lickitysplitted",
+        "role": "CONTRIBUTOR",
+        "body": "> * I almost forgot, there is a port overwrite with environment variables at startup defined in _run.sh_ here: https://github.com/bbilly1/tubearchivist/blob/master/docker_assets/run.sh#L16-L24, that's a workaround for some edge cases where the docker internal networking is shared with the host and [ports collide](https://github.com/bbilly1/tubearchivist#port-collisions), so this will need changing there too.\r\n\r\nDoes this fix the issue where nginx is listening on port 80 on both IPv4 and IPv6 by default? ",
+        "timestamp": "2022-03-31T04:57:34Z"
+      },
+      {
+        "author": "Lickitysplitted",
+        "role": "CONTRIBUTOR",
+        "body": "> I assume on the host since that's what you mentioned in your previous comment.\r\n\r\nSo generally speaking there are two accepted methods of disabling IPv6 on a Linux host. One is to disable within the grub cmd and this results in no IPv6 sysctl options at all. The other is to use sysctl options which has similar results but the sysctl options still remain. AFAIK docker will adhere to the networking that is available on the host, but nginx inside of a container doesn't know that.\r\nSince nginx is getting installed with defaults it places the default config file in the sites-available with the symlink enabled to the sites-enabled. The behavior of this default config file is to listen on port 80 on both IPv4 and IPv6. If you go exec into your container now you will probably see a listener on port 80.\r\nIf a system does not have IPv6 kernel or system options available this nginx config will fail causing nginx to fail to load. This is what I've observed and my host has IPv6 disabled at grub. Reproducing this with VMs shouldn't be difficult.",
+        "timestamp": "2022-03-31T05:13:59Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Just double checked things, it looks like we lost docker_assets/nginx.conf now. I think there went something wrong when renaming the file and it got accidentally deleted?",
+        "timestamp": "2022-03-31T07:52:40Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Took the liberty to add the file back. Thanks a lot for your help with that! \r\n\r\nAnd congratulations to your first merged pull request! :-)",
+        "timestamp": "2022-04-01T04:44:38Z"
+      },
+      {
+        "author": "insuusvenerati",
+        "role": "CONTRIBUTOR",
+        "body": "Ooh interesting. Do you know of a way to intentionally disable the ipv6 stack? I’d like to test as well\nOn Mar 29, 2022, 5:43 PM -0500, Lickitysplitted ***@***.***>, wrote:\n> In my testing when a host doesn't have IPv6 stack enabled Nginx will fail as the default config listens on IPv6 port 80.\n> —\n> Reply to this email directly, view it on GitHub, or unsubscribe.\n> You are receiving this because you commented.Message ID: ***@***.***>\n",
+        "timestamp": "2022-10-11T07:29:51Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "aaf7795",
+        "message": "Modify Dockerfile and the nginx.conf file to avoid Nginx default config IPv6 conflict.",
+        "author": "Lickitysplitted",
+        "timestamp": "2022-03-29T18:27:28Z"
+      },
+      {
+        "sha": "cf438c1",
+        "message": "Adjust nginx.conf name and run.sh nginx modification.",
+        "author": "Lickitysplitted",
+        "timestamp": "2022-03-31T05:35:34Z"
+      },
+      {
+        "sha": "1d8b125",
+        "message": "but nginx.conf file back",
+        "author": "simon",
+        "timestamp": "2022-04-01T04:41:05Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#552",
+    "metadata": {
+      "title": "Support for forward auth",
+      "labels": [],
+      "qualities": [
+        "security",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-09-26T02:04:34Z",
+      "reviewers": [
+        "bbilly1"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "This PR adds support for authentication proxies such as Authelia."
+    },
+    "discussion_timeline": [
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks for taking the initiative on this.\r\n\r\nDoes this cover #403?\r\n\r\n@DanielBatteryStapler you might want to take a quick look at this to verify LDAP compatibility.\r\n\r\nCould both backends be used in parallel? As some users authenticate with LDAP and some with REMOTE_USER?\r\n\r\nEDIT: sorry, just saw, you already created the PR for the docs. :-)",
+        "timestamp": "2023-09-21T16:42:17Z"
+      },
+      {
+        "author": "DanielBatteryStapler",
+        "role": "CONTRIBUTOR",
+        "body": "Doesn't seem to cause any LDAP problems that I can tell.\r\n\r\nDjango does officially support having multiple authentication backends enabled at the same time, how it works is that when a user attempts a login it checks to see if it can authenticate using any of the backends, so I don't see why having both enabled at the same time shouldn't work -- by work I mean not immediately crash. That said, an authenticating proxy like Authelia is going to pretty much completely preempt LDAP, if I'm understanding correctly, as once you authenticate with Authelia you'll be considered logged in by tubearchivist and there would be no way to try and login using your LDAP account anyways. I don't think this is an issue though. If you're an admin setting up this to be used with something like Authelia I don't know why you would want some users to be able to circumvent that and use LDAP instead. I can't think of any reasonable way for that to work. Similarly the way I implemented LDAP support also disables the default local authentication that tubearchivist uses as otherwise it would check users against both the LDAP and Django's local database instead of just using LDAP, so I think it also makes sense for this proxy authentication to do the same thing.\r\n\r\nIn summary, I think it should be an either/or situation with the LDAP and authentication proxy similar to how it is an either/or with LDAP and local authentication. Having two or more enabled doesn't make sense to me even if Django technically allows it.\r\n\r\nAll of that said, I think that this PR actually breaks local authentication because [it is setting AUTHENTICATION_BACKENDS](https://github.com/tubearchivist/tubearchivist/pull/552/files#diff-bd0c50d1b0797afb8f8c8f55b987e1fe6d252ca7745d9f325634c46931439cf9R88) to empty array when neither LDAP or proxy authentication is enabled when Django's default is actually [[\"django.contrib.auth.backends.ModelBackend\"]](https://docs.djangoproject.com/en/4.2/topics/auth/customizing/). I'm pretty sure it's necessary for the array to be set to that in order for local authentication to work. I also think that the .insert(0,...)s are unnecessary as it doesn't make sense for more than one authentication backend (as far as I can imagine, if I'm wrong please tell me) and you should just completely set the array to the one backend you actually want to use. If both LDAP and the authentication proxy are enabled that would mean that authentication proxy takes precedence, but you can just put a check in the code for that and print an error or something, I don't think it's really that important. The admin should know what they're doing, but I'd prefer the code not suggest that having more than one enabled actually makes sense.\r\n\r\nAll of that said, I haven't actually tested the code on my computer, this is just what I noticed when I read through it. Also, just to make sure I'm not coming off the wrong way, this isn't my repo, this is bbilly1's, so don't take my suggestions as gospel, but that's my thoughts on these changes. Besides my suggestions, I think everything looks great and I'm glad to see Authelia get support. ",
+        "timestamp": "2023-09-21T18:12:44Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "@DanielBatteryStapler this makes a lot sense, thanks! I'm not that familiar with Django authentication (to be honest, I'm not even Python dev :-) ). But I agree, emptying array is a bug - I'll remove that, and follow your advice, to override it on ForwardAuth part. \r\n\r\nI agree, that it doesn't make sense to enable local authentication when forrwad auth is enabled, as user has to authenticate via proxy (authelia for example) in a first place. Asking him to authenticate again (this time locally), doesn't make sense in my opinion.",
+        "timestamp": "2023-09-21T20:38:11Z"
+      },
+      {
+        "author": "DanielBatteryStapler",
+        "role": "CONTRIBUTOR",
+        "body": "The changes you just made probably don't work because you're missing the global line that was there before (needed because Python). I think you mean to leave the ldap one as\r\n```\r\nglobal AUTHENTICATION_BACKENDS\r\n AUTHENTICATION_BACKENDS = (\"django_auth_ldap.backend.LDAPBackend\",)\r\n ```\r\n and have the other one be\r\n ```\r\n global AUTHENTICATION_BACKENDS\r\n AUTHENTICATION_BACKENDS = (\"django_auth_ldap.backend.RemoteUserBackend\",)\r\n ```\r\n \r\n Unless I'm wrong and it works without the `global` declaration, but I'm pretty sure that's required.",
+        "timestamp": "2023-09-21T20:49:14Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "I remember when I was testing this, that two globals for the same option was failing (despite being in the exclusive IF statements). Let me test it, and fix it (maybe extracting global outside be sufficient).",
+        "timestamp": "2023-09-21T20:51:03Z"
+      },
+      {
+        "author": "DanielBatteryStapler",
+        "role": "CONTRIBUTOR",
+        "body": "Yeah the `global AUTHENTICATION_BACKENDS` lines clarify to Python that you aren't trying to make a new local variable, you are trying to set the variable globally",
+        "timestamp": "2023-09-21T21:05:03Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, did some tests, and it appears that `global` is not required. I assume django does some magic, and preloads all globals at the very beginning.\r\n\r\nBtw, @bbilly1 - yes, this PR should resolve/close #403 :-)",
+        "timestamp": "2023-09-21T21:06:18Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "@ajgon Small fix needed, you'll need to check if an attribute is set, before you can access it. \r\n\r\nThanks @DanielBatteryStapler for your insights. If you have the time, please give it a proper test to verify all is working on your end as expected. \r\n\r\nAlternatively I'll also make an unstable build after merging, you could test it then too, so we can catch any problems before this goes out as a release.",
+        "timestamp": "2023-09-25T06:11:10Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "@bbilly1 Added `hasattr` patch, rebased everything back to `testing` and checked on my env new change (it works) :-)",
+        "timestamp": "2023-09-25T20:52:26Z"
+      },
+      {
+        "author": "DanielBatteryStapler",
+        "role": "CONTRIBUTOR",
+        "body": "I tested the LDAP support against my own server using this docker-compose (basically unchanged since LDAP support was originally added)\r\n```\r\nversion: '3.3'\r\n\r\nservices:\r\n  \r\n  daniel-authenticator:\r\n    restart: unless-stopped\r\n    tty: true\r\n    stdin_open: true\r\n    container_name: daniel-authenticator\r\n    image: danielbatterystapler/daniel-authenticator\r\n    environment:\r\n      DANIEL_AUTHENTICATOR_SECRET_KEY: \"thishouldbeaverysecretrandomseriesofcharacters\"\r\n      DANIEL_AUTHENTICATOR_DECLARATIVE_DATABASE: |\r\n        create_user john \"John Admin\" johnsmith@example.com secret_password_john\r\n        set_user_uuid john 75e50c72-2801-4c1d-ab3c-2f77fed25d10\r\n        superuser john\r\n        \r\n        create_user mark \"Mark User\" markuser@example.com secret_password_mark\r\n        set_user_uuid mark 891801a2-d162-4900-96ea-77c15c30a864\r\n        \r\n        create_service tubearchivist_service \"TubeArchivist\" \"http://localhost:8000\" secret_password_service\r\n        add_user_to_service john tubearchivist_service\r\n        add_user_to_service mark tubearchivist_service\r\n        \r\n    ports:\r\n      - 8080:8080\r\n\r\n  tubearchivist:\r\n    container_name: tubearchivist\r\n    restart: unless-stopped\r\n    build:\r\n      context: ./tubearchivist/\r\n    ports:\r\n      - 8000:8000\r\n    environment:\r\n      ES_URL: http://archivist-es:9200  \r\n      REDIS_HOST: archivist-redis       \r\n      HOST_UID: 1000\r\n      HOST_GID: 1000\r\n      TA_USERNAME: john       \r\n      TA_PASSWORD: verysecret   # notice that this password doesn't actually let you login, you need to use the one specified in the ldap service\r\n      TA_HOST: localhost\r\n      ELASTIC_PASSWORD: verysecret     \r\n      TZ: America/New_York      \r\n      \r\n      TA_LDAP: \"true\"\r\n      TA_LDAP_SERVER_URI: \"ldap://daniel-authenticator:3389\"\r\n      TA_LDAP_BIND_DN: \"ou=tubearchivist_service,ou=services,dc=daniel-authenticator\"\r\n      TA_LDAP_BIND_PASSWORD: \"secret_password_service\"\r\n      TA_LDAP_USER_BASE: \"ou=users,ou=tubearchivist_service,ou=services,dc=daniel-authenticator\"\r\n      TA_LDAP_USER_FILTER: \"(objectClass=user)\"\r\n    depends_on:\r\n      - archivist-es\r\n      - archivist-redis\r\n\r\n  archivist-redis:\r\n    image: redislabs/rejson                 # for arm64 use bbilly1/rejson\r\n    container_name: archivist-redis\r\n    restart: unless-stopped\r\n    expose:\r\n      - \"6379\"\r\n    depends_on:\r\n      - archivist-es\r\n\r\n  archivist-es:\r\n    image: bbilly1/tubearchivist-es         # only for amd64, or use official es 7.17.4\r\n    container_name: archivist-es\r\n    restart: unless-stopped\r\n    environment:\r\n      \"xpack.security.enabled\": \"true\"\r\n      ELASTIC_PASSWORD: \"verysecret\"\r\n      discovery.type: \"single-node\"\r\n      ES_JAVA_OPTS: \"-Xms1024m -Xmx1024m\"\r\n      \"path.repo\": \"/usr/share/elasticsearch/data/snapshot\"\r\n    ulimits:\r\n      memlock:\r\n        soft: -1\r\n        hard: -1\r\n    expose:\r\n      - \"9200\"\r\n```\r\nand it  still works as expected. Looks good to me!",
+        "timestamp": "2023-09-26T00:45:17Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6a83756",
+        "message": "support for auth forwarding proxy",
+        "author": "Igor Rzegocki",
+        "timestamp": "2023-09-15T18:32:15Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#551",
+    "metadata": {
+      "title": "Support elasticsearch clusters",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-09-25T05:28:04Z",
+      "reviewers": [
+        "ajgon"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "This project is very opinionated when it comes for handling elasticsearch, and assumes only one ES node on one host. However it will be nice, to also support elasticsearch clusters (for example in k8s environments). This PR adds small tweaks here and there to make it possible.\r\n\r\n**This PR is 100% backwards compatible.** All new settings default to previous logic.\r\n\r\n1. Better snapshot checker\r\n\r\n    The part of code checking for snapshots, doesn't take `role` param of ES node into consideration. It expects, all ES nodes to support snapshots, which is not the case in clustered environment. Only `data_*` and `master` nodes can have snapshots, other ones (especially `coordinating` and `ingest` nodes) doesn't allow it, so for these this check will fail. The PR takes that into consideration, and do the checks only on master/data nodes.\r\n\r\n2. Customizable snapshot dir\r\n\r\n    Snapshot dir is currently hardcoded to `/usr/share/elasticsearch/data/snapshot`. This is not always the case, and depends heavily on ES cluster configuration. I introduced new env variable `ES_SNAPSHOT_DIR` which defaults to `/usr/share/elasticsearch/data/snapshot` (for backwards compatibility) but also allows to customize this path.\r\n\r\n3. Support for unverified SSL in elasticsearch\r\n\r\n    Currently SSL is allowed for ES endpoint (by simply providing `https:` scheme), but requires trusted certificate - which may not always be the case (especially in internally-networked environments like kubernetes). The new `ES_VERIFY_SSL` allows to disable this verification while still using SSL. It must be explicitly set to `false` - everything else (including not setting it at all) will keep it enabled (as it was before).\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks for looking into this. Please rebase on testing, there were some incoming changes there.\r\n\r\nSo if I'm understanding this correctly, by specifying `ES_SNAPSHOT_DIR` this would still allow the snapshot functionality to work identically as in a single node setup? As the problem described in #462. ",
+        "timestamp": "2023-09-21T16:09:25Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "@bbilly1 The snapshot dir will work exactly the same, as it was before if env variable is not altered (as it defaults to `/usr/share/elasticsearch/data/snapshot` [here](https://github.com/tubearchivist/tubearchivist/pull/551/files#diff-40767335bf8378b04323feb9bdda84a51ba828074804cb0b2001b04456c5f1beR23)).\r\n\r\nRegarding #462 - this won't help here. It only alters the check, to properly check for snapshots configuration - but still requires it. The issue mentioned asks for complete removal of this check, via configuration parameter. This is something I may add to this PR as well, but on weekend at the earliest :)",
+        "timestamp": "2023-09-21T20:30:40Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "I think the desire to disable snapshots comes from the problem that this path wasn't configurable before for a cluster setup or any other custom installation.\r\n\r\nWhat I meant with my comment was, this would work identically in a cluster setup as in a none cluster setup? All functionality works, as in autosnapshot on index change? create a snapshot on demand from the settings page as well as the daily policy trigger in the background?\r\n\r\nAt some point this deserves some nicer kwargs building there in the `ElasticWrap` class, but no need to do this now. :-)",
+        "timestamp": "2023-09-22T07:42:16Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "I believe so. I'm not an ElasticSearch expert, but enabling snapshots works the same way in clustered setup. So as long as tubearchivist require snapshots, it is possible to enable them on any ES configuration. Configurable snapshot path only adds flexibility, for ES admin to choose where they store the snapshots.",
+        "timestamp": "2023-09-22T07:53:56Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "OK, please hear me out on this one, let's take the opportunity to refactor that `ElasticWrap` class there to dynamically build these keyword arguments. This would avoid the double negative there for the `ES_VERIFY_SSL` and we can be more descriptive what that does as this should disable SSL verification, we could set it directly like this:\r\n```python\r\nES_DISABLE_VERIFY_SSL: bool = bool(os.environ.get(\"ES_DISABLE_VERIFY_SSL\"))\r\n```\r\n\r\nSo if you set that env var, this will result to `True`, which disables the verification, while keeping the current default behavior. \r\n\r\nthen build the kwargs dynamically, e.g. in the `.get` method this would look something like:\r\n```python\r\ndef get(self, data=False, timeout=10, print_error=True):\r\n    \"\"\"get data from es\"\"\"\r\n    kwargs = {\r\n        \"auth\": self.auth,\r\n        \"timeout\": timeout,\r\n    }\r\n\r\n    if self.ES_DISABLE_VERIFY_SSL:\r\n        kwargs[\"verify\"] = False\r\n\r\n    if data:\r\n        kwargs[\"json\"] = data\r\n\r\n    response = requests.get(self.url, **kwargs)\r\n\r\n    if print_error and not response.ok:\r\n        print(response.text)\r\n\r\n    return response.json(), response.status_code\r\n```\r\n\r\nthen similar to that in the additional methods of that class too.\r\n\r\nAre you up for that? If not, I can also push that to your PR, but I obviously don't want to take away from your great accomplishments with this addition here. ",
+        "timestamp": "2023-09-22T09:08:45Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "I don't feel very confident with python, so if you can - go for this refactor. It will be definitely better than whatever I will come up with :)",
+        "timestamp": "2023-09-22T09:47:29Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "no problem, just pushed the changes. please give it another try to verify.",
+        "timestamp": "2023-09-22T13:45:16Z"
+      },
+      {
+        "author": "ajgon",
+        "role": "CONTRIBUTOR",
+        "body": "Deployed this PR and the forward-auth one to my cluster, and I can confirm everything works as expected 👍 . I just fixed minor issue [here](https://github.com/tubearchivist/tubearchivist/pull/551/commits/6abec9401bfaf4ee4b773cb1e41aa943d5f9a59e) (urllib3 warning should be muted with SSL verification disabled, not enabled - meaning `ES_DISABLE_VERIFY_SSL` has to be set to `True` to mute it).\r\n\r\nEdit: I found a regression during my `testing` tests, but it's not related to this PR. I created [separate issue](https://github.com/tubearchivist/tubearchivist/issues/557) for it.",
+        "timestamp": "2023-09-23T13:02:51Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Nice, thanks a lot for your contribution!",
+        "timestamp": "2023-09-25T05:27:45Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b2bb7ea",
+        "message": "Support wider spectrum of ElasticSearch configurations",
+        "author": "Igor Rzegocki",
+        "timestamp": "2023-09-21T20:23:44Z"
+      },
+      {
+        "sha": "892e81c",
+        "message": "refactor ElasticWrap dynamic kwargs",
+        "author": "Simon",
+        "timestamp": "2023-09-22T13:35:14Z"
+      },
+      {
+        "sha": "dcbd8d2",
+        "message": "update ES_DISABLE_VERIFY_SSL readme",
+        "author": "Simon",
+        "timestamp": "2023-09-22T13:42:26Z"
+      },
+      {
+        "sha": "6abec94",
+        "message": "Mute urlib3 ssl warnings when SSL verification is disabled",
+        "author": "Igor Rzegocki",
+        "timestamp": "2023-09-23T13:00:46Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#258",
+    "metadata": {
+      "title": "Update TaskAPIView with GET - #257 PR",
+      "labels": [],
+      "qualities": [
+        "maintainability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-06-15T02:15:59Z",
+      "reviewers": [],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Initial commit to determine the GET response for TaskAPIView which should show if the \"rescan\" or \"download\" tasks are currently running. This is based on if the Lock is currently owned - may need to modify further if determined inadequate for task checking."
+    },
+    "discussion_timeline": [
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "This is associated with #257 and will close when merged.",
+        "timestamp": "2022-06-06T19:19:45Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks for getting to work on that. The method `get_lock` of the `RedisArchivist` class will return a new lock instance every time it's called, so you won't be able to run `owned()` on a different instance than where the lock was initiated. I hope that makes sense, basically you can only call the `owned()` method here: https://github.com/tubearchivist/tubearchivist/blob/bb0f3dad1a02a375a306cc65b1689de92b6fc8e8/tubearchivist/home/tasks.py#L54 and it will be doing what you think it does. Otherwise you'll have to `acquire()` it, but that will create it if it can, so that's not what you want either. \r\n\r\nBasically a lock is just a key set in redis, so you can check if that key is there, that key will automatically disappear when `release()` was called on that lock, so that is a thread independent approach. \r\n\r\nI've pushed a commit to your PR implementing `is_locked` in the `RedisArchivist` class that is just doing that, so you can call that method in the API view.\r\n\r\nAlso note that all API views expect `self` as it's first argument and `request` as the second, like here: https://github.com/tubearchivist/tubearchivist/blob/bb0f3dad1a02a375a306cc65b1689de92b6fc8e8/tubearchivist/api/views.py#L366 you'll have to use the `staticmethod` decorator if you don't need access to `self` in that view, like here: https://github.com/tubearchivist/tubearchivist/blob/bb0f3dad1a02a375a306cc65b1689de92b6fc8e8/tubearchivist/api/views.py#L427\r\n\r\nOtherwise Django will be unhappy because there is an unexpected amount of arguments. ",
+        "timestamp": "2022-06-07T11:20:39Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "Thank you for the detailed reply. Based on my initial reading, I thought that `.get_lock()` was doing what the new `is_locked()` function is doing, so I appreciate the commit. I'll update the PR with the replacement requests.\r\n\r\nAlso noted for the `self` vs `staticmethod` decorator; I had noticed what you pointed out, but didn't make the connection that the decorator was what allowed it.",
+        "timestamp": "2022-06-07T15:41:42Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Were you able to build the image and test your changes? For linting, you can use `./deploy.sh validate` to help you out there. ",
+        "timestamp": "2022-06-08T02:24:59Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "I haven't yet. I had to shut down my test server a while back, so I didn't get the time to redeploy and rebuild the image.\r\n\r\nI will see if I can get that done sometime later this week before the PR merge.",
+        "timestamp": "2022-06-08T02:37:16Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "@bbilly1 - I have this tested and working now. Looks like we were getting a key error, but now it responds appropriately:\r\n\r\n```\r\n>>> r = requests.post(base_url+login_api,json=payload)\r\n>>> headers = {\"Authorization\": f\"Token {r.json()['token']}\"}\r\n>>> p = requests.get(base_url+ping_url,headers=headers)\r\n>>> p.text\r\n'{\"response\":\"pong\",\"user\":1}'\r\n>>> tg = requests.get(base_url+task_api,headers=headers)\r\n>>> tg.text\r\n'{\"rescan\":false,\"download\":false}'\r\n>>> tp = requests.post(base_url+task_api,headers=headers,json=runtask)\r\n>>> tp.text\r\n'{\"success\":true,\"task\":\"rescan_pending\"}'\r\n```\r\n\r\nTesting also shows that the `POST` requests are no longer failing with Server 500 responses.",
+        "timestamp": "2022-06-09T17:02:21Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Thanks for working on that. Does it ever set to `true` for you when you have the rescan process running for example? You'll have to pass the name of the lock into the `is_locked` method. Like here: https://github.com/tubearchivist/tubearchivist/blob/bb0f3dad1a02a375a306cc65b1689de92b6fc8e8/tubearchivist/home/tasks.py#L82 this creates a lock named `downloading` so to check if that lock is set, you'll have to use the same name like `RedisArchivist().is_locked(\"downloading\")`.\r\n\r\nThen I saw, you also updated the README, good thinking. The return will be a bool though and not a string, so `\"download\": false` and not `\"download\": \"false\"`. ",
+        "timestamp": "2022-06-14T07:46:24Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "README has been updated appropriately.\r\n\r\nHad to make a minor adjustment - I was making the correct call, but wasn't using the correct key (misread which string was passed through to the end). \r\n\r\n```\r\n>>> tg = requests.get(base_url+task_url,headers=headers)\r\n>>> tg.text\r\n'{\"rescan\":false,\"download\":false}'\r\n>>> tp = requests.post(base_url+task_url,headers=headers,json=runtask)\r\n>>> tp.text\r\n'{\"success\":true,\"task\":\"rescan_pending\"}'\r\n>>> tg = requests.get(base_url+task_url,headers=headers)\r\n>>> tg.text\r\n'{\"rescan\":true,\"download\":false}'\r\n>>> >>> tg = requests.get(base_url+task_url,headers=headers)\r\n>>> tg.text\r\n'{\"rescan\":false,\"download\":false}'\r\n```\r\n\r\nDownload was not working, so pushed another update that 1) fixed the `download` key to be `downloading` and 2) converted it to a dictionary reference loop, rather than keying each individually.\r\n\r\n```\r\n>>> tp = requests.post(base_url+task_url,headers=headers,json=runtask)\r\n>>> tp.text\r\n'{\"success\":true,\"task\":\"download_pending\"}'\r\n>>> tg = requests.get(base_url+task_url,headers=headers)\r\n>>> tg.text\r\n'{\"rescan\":false,\"downloading\":true}'\r\n```\r\n\r\nAt this point, the endpoint is working and responding against the two tasks; additionally, the README should be correct with the right typecast, as well.",
+        "timestamp": "2022-06-14T16:43:42Z"
+      },
+      {
+        "author": "lamusmaser",
+        "role": "COLLABORATOR",
+        "body": "Noticed that the README used `download` instead of `downloading`, so that is fixed.",
+        "timestamp": "2022-06-14T17:47:35Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "Excellent work, this can then easily be extended with new tasks by just adding them to the list. ",
+        "timestamp": "2022-06-15T02:15:46Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f4ee35c",
+        "message": "Initial commit for GET response for TaskAPIView.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-06T19:14:45Z"
+      },
+      {
+        "sha": "6545645",
+        "message": "Update for missing space - linting issue.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-06T19:17:28Z"
+      },
+      {
+        "sha": "edcc3de",
+        "message": "Additional linting fixes.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-06T19:18:25Z"
+      },
+      {
+        "sha": "5145d8b",
+        "message": "Merge branch 'testing' into pull_testing",
+        "author": "simon",
+        "timestamp": "2022-06-07T10:12:46Z"
+      },
+      {
+        "sha": "11ecaba",
+        "message": "add is_locked method to check if lock is set",
+        "author": "simon",
+        "timestamp": "2022-06-07T11:04:57Z"
+      },
+      {
+        "sha": "85052ea",
+        "message": "Update to use `.is_locked` method and add decorator.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-07T15:45:12Z"
+      },
+      {
+        "sha": "74117e4",
+        "message": "Fix linting issue.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-07T16:15:48Z"
+      },
+      {
+        "sha": "a208201",
+        "message": "Fix doubled \"rescan\" call for locked file.\nRemoved call to \".owned()\" under \"is_locked\".",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T05:14:03Z"
+      },
+      {
+        "sha": "d559cc6",
+        "message": "Commenting out GET call in TaskAPI view to revert change for testing.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T05:25:41Z"
+      },
+      {
+        "sha": "6b85580",
+        "message": "Commenting is_locked function to see if Server Response 500 is stopped.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T15:04:24Z"
+      },
+      {
+        "sha": "287160f",
+        "message": "Reassert is_locked function within RedisArchivist class.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T16:39:25Z"
+      },
+      {
+        "sha": "a0ddc1c",
+        "message": "Create test GET responder.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T16:43:36Z"
+      },
+      {
+        "sha": "b4af398",
+        "message": "Reverting simple GET response change.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T16:47:12Z"
+      },
+      {
+        "sha": "4fbf6db",
+        "message": "Reapplying simple GET response for `/api/task/`.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T16:50:49Z"
+      },
+      {
+        "sha": "4d78776",
+        "message": "Reapplying change with modification to lock key.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-09T16:56:46Z"
+      },
+      {
+        "sha": "5e41d6a",
+        "message": "Documentation update for new GET calls.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-10T03:15:19Z"
+      },
+      {
+        "sha": "df54c35",
+        "message": "README: fix returned value as `bool` instead of `str`.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-14T13:18:57Z"
+      },
+      {
+        "sha": "7dd6f22",
+        "message": "Updating the `is_locked` key reference to \"rescan\" and \"downloading\" to fix which key is being retrieved.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-14T14:45:29Z"
+      },
+      {
+        "sha": "9c2bfc1",
+        "message": "Use dictionary keys, rather than line-by-line statements.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-14T15:35:20Z"
+      },
+      {
+        "sha": "d6201a2",
+        "message": "Fix typo in README for Task View.",
+        "author": "lamusmaser",
+        "timestamp": "2022-06-14T17:46:39Z"
+      }
+    ]
+  },
+  {
+    "story_id": "tubearchivist/tubearchivist#1076",
+    "metadata": {
+      "title": "Add potoken provider",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "maintainability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-01-22T17:11:58Z",
+      "reviewers": [
+        "bbilly1"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "# DRAFT\r\n## Extractor Arguments\r\n- create a configurable string field to pass Extractor Arguments\r\n- parse the string for validity using yt-dlp existing source code:  [options.py](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/options.py)\r\n```python\r\n    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [\r\n        val.replace(r'\\,', ',').strip() for val in re.split(r'(?<!\\\\),', vals)])\r\n```\r\n## Use Case\r\n- I wanted to pass extractor arguments to be able to use [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) in a separate docker container\r\n```text\r\n--extractor-args \"youtubepot-bgutilhttp:base_url=http://172.17.0.1:4416\"\r\n```\r\n- I edited the `docker_assets/run.sh`, adding the extractor after TA_AUTO_UPDATE_YTDLP section\r\n```shell\r\n# https://github.com/Brainicism/bgutil-ytdlp-pot-provider\r\npython -m pip install --target=/root/.local/bin --upgrade bgutil-ytdlp-pot-provider\r\n```\r\n## Logging\r\n- single extractor argument\r\n```\r\n[2025-10-16 18:09:37,455: WARNING/ForkPoolWorker-4] [extractor_args] Applied custom args: {'youtubepot-bgutilhttp': {'base_url': ['http://172.17.0.1:4416']}}\r\n```\r\n- multiple extractor arguments, separated by a space\r\n```\r\n[2025-10-16 18:19:38,347: WARNING/ForkPoolWorker-4] [extractor_args] Applied custom args: {'youtubepot-bgutilhttp': {'base_url': ['http://172.17.0.1:4416']}, 'extractor2': {'arg1': ['val1']}}\r\n```"
+    },
+    "discussion_timeline": [
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "To preface, I think it's wise to wait for the upcoming changes in yt-dlp regarding the javascript runtime requirements. Then we'll see where to go from there.\r\n\r\nUltimately, having an application like TA to interface with yt-dlp, the goal should be to be able to configure things as easily as possible without needing to know the ins and outs of yt-dlp. E.g. for that, we could have a config field called \"pot provider url\" or something, the user passes that, then the application applies the needed configurations when yt-dlp is invoked. \r\n\r\nThen if we go that route, I don't see any problems with simply installing `bgutil-ytdlp-pot-provider` with requirements.txt. If a user doesn't use that, it's just a few KBs in the container so we don't need to install it after the fact in run.sh. \r\n\r\nBut let's wait until yt-dlp implements the deno runtime changes.",
+        "timestamp": "2025-10-27T07:58:29Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "OK, we hat a chat with one of the maintainers from yt-dlp on our discord, the gist is:\r\n\r\n- The deno runtime requirement allows for the po token generation directly within yt-dlp or a plugin architecture without an additional node based service.\r\n- There are currently other priorities, so it's unclear on what kind of a timeline this might happen.\r\n\r\nSo for us I think it makes sense to be able to integrate with https://github.com/Brainicism/bgutil-ytdlp-pot-provider.\r\n\r\nI think the [comment](https://github.com/tubearchivist/tubearchivist/pull/1076#issuecomment-3449951026) above is the way to go for that. Ultimately, when implementing that, please plan for a future removal of that functionality, should that be merged with yt-dlp at some point.",
+        "timestamp": "2025-11-15T03:46:37Z"
+      },
+      {
+        "author": "bmcdonough",
+        "role": "CONTRIBUTOR",
+        "body": "sorry about yesterday's branch changes, reset back to `3f529bd`\r\nI will take your guidance to make this more user friendly.  I will report back when I have completed the work to incorporate a POT provider.",
+        "timestamp": "2025-11-15T18:53:32Z"
+      },
+      {
+        "author": "bmcdonough",
+        "role": "CONTRIBUTOR",
+        "body": "first problem I have encountered is, although adding the library to requirements.txt installs it, apparently we need to declare the script location:\r\n\r\n```shell\r\n[debug] [youtube] [pot:bgutil:script] No script path passed, defaulting to /root/bgutil-ytdlp-pot-provider/server/build/generate_once.js\r\n[debug] [youtube] [pot:bgutil:script] Script path doesn't exist: /root/bgutil-ytdlp-pot-provider/server/build/generate_once.js\r\n[debug] [youtube] [pot] PO Token Providers: bgutil:http-1.2.2 (external), bgutil:script-1.2.2 (external, unavailable)\r\n[debug] [youtube] [pot] PO Token Cache Providers: memory\r\n[debug] [youtube] [pot] PO Token Cache Spec Providers: webpo\r\n[debug] [youtube] [jsc] JS Challenge Providers: bun (unavailable), deno, node (unavailable), quickjs (unavailable)\r\n```\r\n\r\nWhen I previously did this development work I manually installed the script.\r\nJust letting you know, that's where my progress is at this moment.",
+        "timestamp": "2025-11-16T16:59:27Z"
+      },
+      {
+        "author": "bmcdonough",
+        "role": "CONTRIBUTOR",
+        "body": "ah HA! I had to choose a video with subtitles to trigger the POT request.  Video ID obfuscated.\r\n\r\n```shell\r\n[2025-11-17 08:50:34,587: WARNING/ForkPoolWorker-6] [youtube] XXXXXXXXXXX: Downloading webpage\r\n[2025-11-17 08:50:35,336: WARNING/ForkPoolWorker-6] [youtube] XXXXXXXXXXX: Downloading tv client config\r\n[2025-11-17 08:50:35,438: WARNING/ForkPoolWorker-6] [youtube] XXXXXXXXXXX: Downloading player ef5f17ca-main\r\n[2025-11-17 08:50:35,503: WARNING/ForkPoolWorker-6] [youtube] XXXXXXXXXXX: Downloading tv player API JSON\r\n[2025-11-17 08:50:35,639: WARNING/ForkPoolWorker-6] [youtube] XXXXXXXXXXX: Downloading android sdkless player API JSON\r\n[2025-11-17 08:50:35,737: WARNING/ForkPoolWorker-6] WARNING: [youtube] XXXXXXXXXXX: Some tv client https formats have been skipped as they are missing a url. YouTube may have enabled the SABR-only or Server-Side Ad Placement experiment for the current session. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details\r\n[2025-11-17 08:50:35,806: WARNING/ForkPoolWorker-6] [youtube] [jsc:deno] Solving JS challenges using deno\r\n[2025-11-17 08:50:36,933: WARNING/ForkPoolWorker-6] [youtube] [pot:bgutil:http] Generating a gvs PO Token for web client via bgutil HTTP server\r\n```",
+        "timestamp": "2025-11-17T13:57:18Z"
+      },
+      {
+        "author": "bmcdonough",
+        "role": "CONTRIBUTOR",
+        "body": "> When I previously did this development work I manually installed the script. Just letting you know, that's where my progress is at this moment.\r\n\r\nclarification, I did **NOT** install the script.\r\nAs expected, we only needed to install `bgutil-ytdlp-pot-provider` within the requirements.txt\r\n\r\nI will need to update the tubearchivist-docs with a suggested docker configuration for bgutils.\r\n\r\n```yaml\r\nservices:\r\n  bgutil-provider:\r\n    image: brainicism/bgutil-ytdlp-pot-provider\r\n    container_name: bgutil-provider\r\n    restart: unless-stopped\r\n    init: true\r\n    ports:\r\n      - \"4416:4416\"\r\n    environment:\r\n      - TZ=Etc/UTC\r\n    networks:\r\n      - tubearchivist_default\r\n\r\nnetworks:\r\n  tubearchivist_default:\r\n    external: true\r\n```",
+        "timestamp": "2025-11-17T14:02:19Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "OK, I did some testing on this one. \r\n\r\nSame as you, I have been struggling getting it to trigger the POT request. I guess I'm lucky like that.\r\n\r\nBut yeah, let's keep it simple, I don't foresee needing to have a generic extract `ExtractorArgsParser` to parse every possible extractor arg there. If we need to add an additional option, it's quite compact to do, see the current `_add_potoken` implementation for an example. \r\n\r\nSo a `_add_potoken_url` method could look like so:\r\n\r\n```python\r\ndef _add_potoken_url(self):\r\n    \"\"\"add bgutils token url\"\"\"\r\n    if pot_provider_url := self.config[\"downloads\"].get(\"pot_provider_url\"):\r\n        self.obs.update(\r\n            {\r\n                \"extractor_args\": {\r\n                    \"youtubepot-bgutilhttp\": {\r\n                        \"base_url\": [pot_provider_url]\r\n                    }\r\n                }\r\n            }\r\n        )\r\n```\r\n\r\nThis reads the url from the config, and passes it as an extractor_args and updates the obs dict to pass to yt-dlp.\r\n",
+        "timestamp": "2025-11-28T04:57:06Z"
+      },
+      {
+        "author": "bbilly1",
+        "role": "MEMBER",
+        "body": "What's the status here? Are you up for making the suggested changes @bmcdonough ?",
+        "timestamp": "2025-12-28T05:19:53Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "542c237",
+        "message": "added extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:11:17Z"
+      },
+      {
+        "sha": "add9f86",
+        "message": "added extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:12:28Z"
+      },
+      {
+        "sha": "1041f0b",
+        "message": "added extractor_args within AppConfig",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:13:30Z"
+      },
+      {
+        "sha": "570d87e",
+        "message": "added extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:17:01Z"
+      },
+      {
+        "sha": "f9d1904",
+        "message": "added extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:36:11Z"
+      },
+      {
+        "sha": "c340835",
+        "message": "added extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T21:37:16Z"
+      },
+      {
+        "sha": "2a3ce12",
+        "message": "created ExtractorArgsParser",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T22:14:35Z"
+      },
+      {
+        "sha": "319ed93",
+        "message": "forgot the settings-box-wrapper for extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T22:19:20Z"
+      },
+      {
+        "sha": "97c5e4c",
+        "message": "fixed linting errors",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-15T22:32:45Z"
+      },
+      {
+        "sha": "a08730a",
+        "message": "Update extractor arguments format in settings, example of multiples",
+        "author": "bmcdonough",
+        "timestamp": "2025-10-16T22:28:22Z"
+      },
+      {
+        "sha": "5c114df",
+        "message": "added bgutil-ytdlp-pot-provider",
+        "author": "bmcdonough",
+        "timestamp": "2025-11-15T19:26:41Z"
+      },
+      {
+        "sha": "517b67d",
+        "message": "UI changes to support pot_provider_url",
+        "author": "bmcdonough",
+        "timestamp": "2025-11-16T15:10:00Z"
+      },
+      {
+        "sha": "119010d",
+        "message": "if pot_provide_url, append to extractor_args",
+        "author": "bmcdonough",
+        "timestamp": "2025-11-16T16:20:26Z"
+      },
+      {
+        "sha": "7416467",
+        "message": "reworded PO Token Provider URL, to match yt-dlp wording.",
+        "author": "bmcdonough",
+        "timestamp": "2025-11-18T15:11:36Z"
+      },
+      {
+        "sha": "31e1f1c",
+        "message": "changed pot token provider url link to User Guide",
+        "author": "bmcdonough",
+        "timestamp": "2025-11-18T15:48:33Z"
+      },
+      {
+        "sha": "088e919",
+        "message": "Merge branch 'develop' into pr_test_1076",
+        "author": "Simon",
+        "timestamp": "2026-01-22T16:09:31Z"
+      },
+      {
+        "sha": "6558954",
+        "message": "simplify, remove generic extractor arg parsing",
+        "author": "Simon",
+        "timestamp": "2026-01-22T16:50:25Z"
+      },
+      {
+        "sha": "51b6422",
+        "message": "revert package.json changes",
+        "author": "Simon",
+        "timestamp": "2026-01-22T16:57:15Z"
+      },
+      {
+        "sha": "ec4fa7c",
+        "message": "revert package.json changes, take 2",
+        "author": "Simon",
+        "timestamp": "2026-01-22T16:58:16Z"
+      },
+      {
+        "sha": "8abac84",
+        "message": "revert package.json changes, take 3",
+        "author": "Simon",
+        "timestamp": "2026-01-22T17:05:36Z"
+      }
+    ]
+  }
+]

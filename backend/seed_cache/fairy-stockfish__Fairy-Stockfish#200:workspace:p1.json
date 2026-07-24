@@ -1,0 +1,63 @@
+{
+  "story_id": "fairy-stockfish/Fairy-Stockfish#200",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Adding FEN Validation to a Multi-Variant Chess Engine",
+      "body": "A contributor implemented a FEN validation method for Fairy-Stockfish's API, returning one of 13 distinct error codes to help callers identify malformed board positions. The engine supports dozens of chess variants, each with different rules around kings, castling, and piece sets, making universal validation non-trivial.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Strict Should the Validator Be?",
+      "body": "The core tension is between strictness and safety: a validator that catches every possible invalid FEN risks rejecting legitimate positions in exotic variants (false negatives), while a lenient one may pass bad input silently. The team must also decide whether to encode variant-specific logic by enumerating known variants or by deriving conditions from first principles.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — gbtami",
+      "body": "Drawing on a year of production experience, gbtami argues that the most impactful checks are semantic ones—contradicting castling rights, touching kings, and missing kings—because these are the errors real users actually submit. Practical coverage of common failure modes matters more than theoretical completeness.",
+      "author": "gbtami",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — ianfab",
+      "body": "ianfab accepts incremental validation as pragmatic but insists conditions should be derived constructively from underlying game rules rather than by filtering down a list of known variants, warning that the latter approach is brittle and hard to maintain as new variants are added.",
+      "author": "ianfab",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[5]",
+        "discussion_timeline[8]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given the tradeoff between minimizing false rejections and encoding variant-specific semantic rules, what validation strategy would you adopt and why?",
+      "format": "reflection",
+      "must_precede_decision": true
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "story_id": "tubearchivist/tubearchivist#1000",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Adding Configurable LDAP User Promotion to TubeArchivist",
+      "body": "TubeArchivist is a self-hosted YouTube archiving application. Its authentication story had grown organically, and a contributor wanted to improve how LDAP and forward authentication were handled in the Django backend. The core ask was straightforward: allow administrators to designate specific LDAP users as staff or superusers through configuration variables, rather than requiring manual intervention in the admin panel after each login. The PR also reorganized authentication-related settings into dedicated modules and extended the environment variable validator to cover the new authentication configuration expectations.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "How Much Should a Community-Maintained Auth Feature Grow?",
+      "body": "The contributor had working code and a test harness, but several open questions surfaced during review. First, should diagnostic logging code be included in the merged PR, or stripped out to keep the production codebase lean? Second, should test harness compose files live in the repository so future maintainers can quickly verify auth configurations, or does that create duplicate maintenance burden? Underneath both questions was a deeper tension: the project maintainer does not personally use LDAP or forward authentication, so the feature's long-term health depends entirely on community contributors — which raises the stakes for getting the maintainability baseline right from the start.",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[2]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — joshrivers",
+      "body": "The contributor argued for pragmatic inclusion of supporting artifacts during development, including diagnostic logging and a dedicated test harness compose file. The logging was useful for validating the auth flow end-to-end, and a checked-in test harness would give future contributors — and the maintainer — a quick way to determine whether a reported auth problem was a code defect or a user configuration issue. However, the contributor held these positions loosely and was open to stripping them if the maintainer preferred a leaner repository. The contributor's primary goal was getting the core feature — configurable LDAP user promotion — merged and usable.",
+      "author": "joshrivers",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[2]",
+        "discussion_timeline[4]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — bbilly1",
+      "body": "The project maintainer emphasized that maintainability must be the top priority, especially for a feature the maintainer will not personally exercise. Keeping the repository free of duplicate or overlapping compose files reduces ongoing maintenance surface. Diagnostic logging belongs on personal development branches, not in production code. The maintainer was willing to trust the contributor and the broader community on the correctness of the auth logic itself, but wanted the merged artifact to be as minimal and clean as possible — well-documented, non-interfering with standard password authentication, and not carrying development scaffolding into the main branch.",
+      "author": "bbilly1",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[1]",
+        "discussion_timeline[3]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Before seeing what was actually merged: given that the maintainer will never personally validate this feature and the contributor is the domain expert, how should the team balance the contributor's desire for helpful development artifacts against the maintainer's preference for a lean, low-maintenance codebase? What principle should govern which supporting artifacts belong in the repository versus on personal branches?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged After Removing Logging Code; Test Harness Kept Off-Repo",
+      "body": "The contributor accepted the maintainer's guidance and removed the diagnostic logging code before the final merge. The test harness compose file was also kept off the main repository, consistent with the maintainer's preference against duplicate compose files. The core feature — segregated authentication settings modules, configurable LDAP user promotion to staff or superuser roles, and extended environment variable validation — was merged on July 11, 2025. The outcome reflected a clear division of responsibility: the contributor owns the correctness of the auth logic, the maintainer owns the shape and cleanliness of the repository, and both deferred to each other within their respective domains.",
+      "source_refs": [
+        "discussion_timeline[4]",
+        "pr_metadata.merged_at",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "When a maintainer cannot personally validate a feature, establishing clear ownership boundaries early — contributor owns correctness, maintainer owns repository shape — prevents ambiguity and allows both parties to defer confidently to each other.",
+        "Development scaffolding such as diagnostic logging and test harnesses has real value during development but should be evaluated separately from the production artifact; keeping them on personal branches avoids repository bloat without losing the tooling.",
+        "Maintainability is a stronger long-term constraint than feature completeness for community-maintained subsystems: a clean, minimal, well-documented implementation that future contributors can understand is more valuable than a comprehensive one that accumulates hidden complexity."
+      ]
+    }
+  ]
+}

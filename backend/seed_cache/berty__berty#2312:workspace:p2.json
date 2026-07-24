@@ -1,0 +1,28 @@
+{
+  "story_id": "berty/berty#2312",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged: Message Cache Accepted with Refinements",
+      "body": "The PR was merged on 2020-10-12 into master and released as version 2.178.0. The team accepted the core approach of caching undecryptable messages until the sender's chain key is registered, while refining API naming, channel buffering rationale, and timeout ownership during review.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[last]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Caching unprocessable data at the receiving layer is a valid resilience pattern when key-exchange ordering cannot be strictly guaranteed.",
+        "Channel buffer sizes should be justified by explicit reasoning about event frequency and consumer guarantees, not left as arbitrary constants.",
+        "Timeout responsibility belongs to the caller, not the service, so each consumer can apply limits appropriate to its own context."
+      ]
+    }
+  ]
+}

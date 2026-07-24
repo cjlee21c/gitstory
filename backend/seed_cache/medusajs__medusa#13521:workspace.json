@@ -1,0 +1,90 @@
+{
+  "story_id": "medusajs/medusa#13521",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "A Visual Inconsistency in the Admin Dashboard",
+      "body": "The Medusa admin dashboard's location editing and creation forms used native browser select elements for country and province selection. On certain operating systems and in dark mode, these native elements rendered with their own platform-specific styling, creating a jarring visual mismatch with the rest of the dashboard's design system. A contributor noticed this and opened a pull request proposing to replace the native selects with the Medusa UI design system's own Select component, which would inherit the application's theme and behave consistently across platforms and color modes.",
+      "source_refs": [
+        "issue_payload.body",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Targeted Fix or Systemic Replacement?",
+      "body": "The core tension was about the scope and approach of the fix. One path was to patch only the specific form pages where the visual bug was most visible. The other path was to fix the shared CountrySelect and ProvinceSelect components themselves, so that every place in the application that used them would benefit automatically. Beyond scope, there were real technical complications: the Medusa UI Select component had a different prop interface than the native element, meaning some props like className could not simply be passed through, and the underlying DOM element used by the UI component's trigger was a button rather than a select, which caused a type mismatch when forwarding refs. Additionally, a hover interaction bug was discovered during review, raising the question of whether the upstream component itself was broken or whether the integration was at fault.",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[5]",
+        "discussion_timeline[7]",
+        "discussion_timeline[10]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — willbouch",
+      "body": "The reviewing contributor, willbouch, initially could not reproduce the visual bug on macOS, where the native select rendered acceptably. This raised the question of whether the problem was platform-specific rather than universal. Rather than accepting a narrow fix for one form, willbouch pushed for the fix to be applied at the shared component level so that all usages across the dashboard would be corrected in one change. When a hover regression was discovered after the switch to the Medusa UI component, willbouch escalated by looping in another team member to verify whether the issue was real or environment-specific, rather than blocking the PR outright.",
+      "author": "willbouch",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[2]",
+        "discussion_timeline[6]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — patelaryan0914",
+      "body": "The PR author, patelaryan0914, argued that the visual inconsistency was real and reproducible on Windows and Linux, where native browser controls do not inherit application theming. They demonstrated before-and-after screenshots for multiple forms to show the breadth of the problem. When technical complications arose around prop compatibility and ref type mismatches, they explained the reasoning behind each adaptation rather than reverting to the simpler native element. When the hover bug was surfaced, they demonstrated that the same behavior existed in the upstream Medusa UI Select component itself, suggesting the issue was not introduced by their change but was a pre-existing limitation of the shared component.",
+      "author": "patelaryan0914",
+      "author_role": "CONTRIBUTOR",
+      "source_refs": [
+        "discussion_timeline[3]",
+        "discussion_timeline[5]",
+        "discussion_timeline[7]",
+        "discussion_timeline[11]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the hover regression appears to exist in the upstream design system component and not just in this PR's changes, and given that the fix addresses a real cross-platform theming problem even if it is not reproducible on all platforms, should the PR be merged as-is, held until the upstream component is fixed, or reverted to the native element? What criteria would you use to make this call?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged After Team Verification",
+      "body": "After a second team member tested the change locally and found it acceptable, willbouch took ownership of the final steps and the pull request was merged on October 10, 2025. The decision was to accept the replacement of native select elements with the Medusa UI Select component across both the CountrySelect and ProvinceSelect shared components, accepting that the hover behavior concern was a pre-existing issue in the design system rather than a regression introduced by this change. The fix was applied at the shared component level, meaning all forms across the dashboard that used these components inherited the corrected theming behavior.",
+      "source_refs": [
+        "discussion_timeline[14]",
+        "pr_metadata.merged_at",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Platform-specific bugs can be hard to reproduce in a homogeneous development environment. When a reviewer cannot reproduce an issue, it is worth asking about the reporter's operating system and environment before dismissing the report, since native browser controls behave very differently across platforms.",
+        "Fixing a bug at the shared component level rather than at individual call sites is almost always preferable for long-term consistency, but it requires more careful analysis of the component's interface contract, since a design system component may not accept the same props as the native element it replaces.",
+        "When a regression is discovered during review, it is important to determine whether the regression was introduced by the change or was already present in a dependency. Attributing a pre-existing upstream bug to a new PR can unfairly block a valid fix, while ignoring a genuine regression can ship a worse experience than before."
+      ]
+    }
+  ]
+}

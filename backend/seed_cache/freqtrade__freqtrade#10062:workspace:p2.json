@@ -1,0 +1,30 @@
+{
+  "story_id": "freqtrade/freqtrade#10062",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged: Exit Allowed While Open Orders Exist, With Duplicate-Order Guard",
+      "body": "The PR was merged on 2025-01-18 after extensive redesign. The final approach allows exit signals and callbacks to proceed even when an unfilled entry order exists, cancelling that open order before executing the exit. To prevent runaway order replacement loops, a sameness check on direction and amount was adopted instead of the contributor's proposed order-tag scheme, keeping the strategy interface unchanged.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[3]",
+        "discussion_timeline[5]",
+        "discussion_timeline[6]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Unblocking one callback while leaving adjacent callbacks gated creates subtle, hard-to-reason-about inconsistencies that compound over time.",
+        "Preventing infinite replacement loops requires a deduplication heuristic; choosing one that avoids breaking the existing strategy interface is preferable to adding new required return values.",
+        "Scope discipline matters: deferring tempting but orthogonal improvements to separate PRs keeps a feature branch reviewable and mergeable."
+      ]
+    }
+  ]
+}

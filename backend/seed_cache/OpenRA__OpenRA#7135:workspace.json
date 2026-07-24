@@ -1,0 +1,93 @@
+{
+  "story_id": "OpenRA/OpenRA#7135",
+  "beats": [
+    {
+      "beat_id": "b1",
+      "type": "context",
+      "order": 1,
+      "title": "Adding a Legacy Map Importer for Dune 2000",
+      "body": "OpenRA is an open-source reimplementation of classic real-time strategy games. This pull request introduces a new utility command that imports map files from the original Dune 2000 game into OpenRA's own map format. The contributor, penev92, describes the importer as roughly 90% functional for skirmish maps at the time of opening, with terrain, resource (spice), and actor placement all handled. Known gaps include missing tile definitions in the tileset configuration and an inability to properly assign player references for mission maps. The work is explicitly flagged as a work-in-progress, and the author asks reviewers to focus on functionality rather than code style initially.",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[0]"
+      ]
+    },
+    {
+      "beat_id": "b2",
+      "type": "dilemma",
+      "order": 2,
+      "title": "Merge Now or Wait for Completeness?",
+      "body": "The core tension in this discussion is whether to merge the importer while known gaps remain — missing tileset entries that cause crashes, unhandled actor types, and mission map player-reference limitations — or to hold the pull request open until all edge cases are resolved. A secondary tension concerns the tileset architecture itself: the original game stores the tileset name in a mission-specific file that has no logical connection to the map data, meaning skirmish maps have no reliable way to declare their tileset. This is a design constraint inherited from the original game that the importer cannot easily work around. The question becomes: does an importer that works well for the common case (skirmish maps) provide enough value to ship, even if mission map support is incomplete?",
+      "source_refs": [
+        "issue_payload.body",
+        "discussion_timeline[8]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b3",
+      "type": "viewpoint",
+      "order": 3,
+      "title": "Position A — penev92",
+      "body": "penev92 argues that the importer is already highly useful for skirmish maps, which represent the majority of community-created content. The known limitations around mission maps stem from a fundamental quirk in the original game's file format — the tileset name is stored in a mission-specific file that is entirely separate from the map file itself — which is described as a design failure in the source material rather than a deficiency in the importer. The contributor iteratively addresses each raised concern: adding missing tile definitions, expanding actor coverage to include Smugglers, Mercenaries, and suggested structures, improving error handling, and cleaning up output behavior. The implicit position is that incremental, working functionality is better than waiting for a theoretically complete solution.",
+      "author": "penev92",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[0]",
+        "discussion_timeline[5]",
+        "discussion_timeline[8]",
+        "discussion_timeline[9]",
+        "discussion_timeline[10]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b4",
+      "type": "viewpoint",
+      "order": 4,
+      "title": "Position B — Mailaender",
+      "body": "Mailaender takes an active role in testing the importer against real Dune 2000 map archives and surfaces a concrete crash caused by incorrect command-line argument handling. Rather than blocking the pull request on this finding, Mailaender's stance evolves toward pragmatism: once the immediate crash is understood and the code style issues are addressed through the project's automated checks, the remaining known limitation around mission map player references should be deferred to a follow-up pull request rather than blocking this one. This reflects a preference for shipping working incremental improvements and handling edge cases separately.",
+      "author": "Mailaender",
+      "author_role": "MEMBER",
+      "source_refs": [
+        "discussion_timeline[3]",
+        "discussion_timeline[6]",
+        "discussion_timeline[7]",
+        "discussion_timeline[12]"
+      ]
+    },
+    {
+      "beat_id": "b5",
+      "type": "checkpoint",
+      "order": 5,
+      "question": "Given that the importer works reliably for skirmish maps but has known limitations for mission maps rooted in the original game's file format design, and that the remaining gaps have been acknowledged and deferred to follow-up work — would you merge this pull request now, or require the mission map limitations to be resolved first? What criteria would you use to decide when an importer is 'good enough' to ship?",
+      "format": "reflection",
+      "must_precede_decision": true
+    },
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "Merged After Iterative Fixes and Positive Testing",
+      "body": "The pull request was merged on February 18, 2015, after a multi-month iterative process. The contributor addressed each concern raised during review: missing tile definitions were added to the tileset configuration, actor coverage was expanded to all major factions, error handling was improved, output directory behavior was corrected, and code style violations were resolved. An external contributor, obrakmann, tested the importer against real skirmish maps from a community archive and confirmed it worked correctly in-game without manual adjustments. The remaining limitation around mission map player references was explicitly accepted as a known gap to be addressed in a future pull request, consistent with Mailaender's stated preference. The merge proceeded once the two minor code nits identified by pchote were fixed and the branch was rebased.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[12]",
+        "discussion_timeline[13]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Shipping an importer that handles the common case well is often more valuable than waiting for complete coverage of every edge case, especially when remaining gaps stem from constraints in the source format rather than deficiencies in the implementation.",
+        "When a limitation is rooted in a third-party or legacy format's design rather than your own architecture, it is worth explicitly documenting that constraint so reviewers can distinguish between fixable bugs and inherited design problems.",
+        "Iterative, responsive development — addressing each reviewer concern in turn, expanding coverage incrementally, and improving robustness through real-world testing — builds the trust needed to get a complex feature merged even when it starts as a work-in-progress.",
+        "Deferring known but non-blocking issues to follow-up pull requests is a legitimate and often healthy strategy, provided the deferral is explicit and agreed upon by the team rather than silently ignored."
+      ]
+    }
+  ]
+}

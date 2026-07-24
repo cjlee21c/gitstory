@@ -1,0 +1,29 @@
+{
+  "story_id": "NVlabs/tiny-cuda-nn#69",
+  "beats": [
+    {
+      "beat_id": "b6",
+      "type": "decision",
+      "order": 6,
+      "title": "PR Merged After Contributor Exceeded Original Scope",
+      "body": "The PR was merged on 2022-03-25 after the contributor voluntarily extended the implementation beyond the originally scoped partial support to include the full second-order derivative path. The maintainer found only a single minor nitpick, applied it directly, and merged immediately, praising the contribution as a model of high-quality open-source work.",
+      "source_refs": [
+        "pr_metadata.merged_at",
+        "discussion_timeline[3]",
+        "discussion_timeline[4]",
+        "commit_history"
+      ]
+    },
+    {
+      "beat_id": "b7",
+      "type": "lessons",
+      "order": 7,
+      "title": "Engineering Lessons",
+      "lessons": [
+        "Scoping a complex feature incrementally lets reviewers build trust before a contributor expands to the full solution voluntarily.",
+        "Detailed mathematical derivations in a PR description dramatically reduce review friction and serve as lasting documentation for future contributors.",
+        "A maintainer who merges quickly after a minor self-applied fix signals that review velocity is a form of respect for contributor effort."
+      ]
+    }
+  ]
+}
