@@ -2,9 +2,9 @@ import { UNAUTHORIZED_EVENT, clearAccessCode, getAccessCode } from "./access";
 import type {
   AnswerRequest,
   DiscoverFilters,
+  DiscoverResponse,
   LibraryEntry,
   PipelineRunResponse,
-  RepoRecommendation,
   StoryListResponse,
   WorkspaceContent,
 } from "./types";
@@ -46,7 +46,7 @@ export async function checkAccessCode(code: string): Promise<boolean> {
   return res.ok;
 }
 
-export function discoverRepos(filters: DiscoverFilters): Promise<RepoRecommendation[]> {
+export function discoverRepos(filters: DiscoverFilters): Promise<DiscoverResponse> {
   return request("/discover", {
     method: "POST",
     body: JSON.stringify(filters),

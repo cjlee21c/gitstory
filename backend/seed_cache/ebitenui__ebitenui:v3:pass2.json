@@ -1,0 +1,299 @@
+[
+  {
+    "story_id": "ebitenui/ebitenui#81",
+    "metadata": {
+      "title": "Added option to hide Container",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-09-24T21:56:48Z",
+      "reviewers": [
+        "mcarpenter622"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "I needed a way to hide containers but I couldn't figure out a way to do so. \r\n\r\nI plan to update the docs and add an example, but could you check if you like the way it was programmed before I do that. \r\n\r\nThanks a lot! \r\n\r\nExample usage\r\n```\r\nbuildingContainer := widget.NewContainer(\r\n\t\t// the container will use a plain color as its background\r\n\t\twidget.ContainerOpts.BackgroundImage(image.NewNineSliceColor(color.NRGBA{0x13, 0x1a, 0x22, 0xff})),\r\n\r\n\t\t// the container will use an anchor layout to layout its single child widget\r\n\t\twidget.ContainerOpts.Layout(widget.NewRowLayout(\r\n\t\t\twidget.RowLayoutOpts.Spacing(10),\r\n\t\t\twidget.RowLayoutOpts.Padding(widget.Insets{\r\n\t\t\t\tTop:    10,\r\n\t\t\t\tBottom: 10,\r\n\t\t\t\tLeft:   10,\r\n\t\t\t\tRight:  10,\r\n\t\t\t}),\r\n\t\t)),\r\n\t)\r\nbuildingContainer.Hidden = true\r\n```"
+    },
+    "discussion_timeline": [
+      {
+        "author": "CLAassistant",
+        "role": "NONE",
+        "body": "[![CLA assistant check](https://cla-assistant.io/pull/badge/signed)](https://cla-assistant.io/ebitenui/ebitenui?pullRequest=81) <br/>All committers have signed the CLA.",
+        "timestamp": "2023-07-05T14:29:08Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "Good morning! I love the idea of hiding elements but I think the property\r\nbelongs on the widget object not the container. That way we can set any\r\nwidget to hidden.\r\n\r\nSo you could call\r\ncontainer.GetWidget().Hidden = true\r\nor\r\nbutton.GetWidget().Hidden = true\r\n\r\n\r\n\r\nOn Wed, Jul 5, 2023, 10:29 AM CLAassistant ***@***.***> wrote:\r\n\r\n> [image: CLA assistant check]\r\n> <https://cla-assistant.io/ebitenui/ebitenui?pullRequest=81>\r\n> Thank you for your submission! We really appreciate it. Like many open\r\n> source projects, we ask that you sign our Contributor License Agreement\r\n> <https://cla-assistant.io/ebitenui/ebitenui?pullRequest=81> before we can\r\n> accept your contribution.\r\n> You have signed the CLA already but the status is still pending? Let us\r\n> recheck <https://cla-assistant.io/check/ebitenui/ebitenui?pullRequest=81>\r\n> it.\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/ebitenui/ebitenui/pull/81#issuecomment-1621878999>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/ADJ7PVTC6L7JJIPLEHMIJ2TXOV237ANCNFSM6AAAAAAZ7BMIS4>\r\n> .\r\n> You are receiving this because you are subscribed to this thread.Message\r\n> ID: ***@***.***>\r\n>\r\n",
+        "timestamp": "2023-07-05T14:33:33Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @mcarpenter622 I knew I wasn't on the right track. \r\n\r\nI added the attribute to Widget and adapted the layout render to ignore widgets that are in Hidden state. \r\n\r\nThis still needs to be tested with all layout types, but wanted to get your thoughts on code.",
+        "timestamp": "2023-07-05T17:12:18Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "Other than some misspellings in your comments, that looks good to me! I'll\r\nhave to test it later to confirm but thank you for the awesome work!\r\n\r\n\r\nOn Wed, Jul 5, 2023, 1:12 PM Samuel ***@***.***> wrote:\r\n\r\n> Thanks @mcarpenter622 <https://github.com/mcarpenter622> I knew I wasn't\r\n> on the right track.\r\n>\r\n> I added the attribute to Widget and adapted the layout render to ignore\r\n> widgets that are in Hidden state.\r\n>\r\n> This still needs to be tested with all layout types, but wanted to get\r\n> your thoughts on code.\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/ebitenui/ebitenui/pull/81#issuecomment-1622166581>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/ADJ7PVWDC5WADPHDPKBCTPLXOWN75ANCNFSM6AAAAAAZ7BMIS4>\r\n> .\r\n> You are receiving this because you were mentioned.Message ID:\r\n> ***@***.***>\r\n>\r\n",
+        "timestamp": "2023-07-05T17:22:38Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "So I've been playing around a bit and I think there's a corner case I'd like your thoughts on: Do hidden elements take up space? cc @mcarpenter622 \r\n\r\nHere the Row Layout takes up space, but the buttons do not.  \r\n![Taking up space](https://www.sava.be/images/ebitenui/hidden_take_up_space.gif)\r\n\r\nHere the Row Layout doesn't take up space (buttons stay the same). \r\n![Not taking up space](https://www.sava.be/images/ebitenui/hidden_dont_up_space.gif)\r\n\r\nIn my case I want the row to take up space as it stops the row below from jumping up and down, but I don't want the buttons to do so. \r\n\r\nIt kinda makes sense to not have Hidden options take up space, which would mean I need to work around the jumping up and down in my project, which I think I can do with an empty container. \r\n\r\n",
+        "timestamp": "2023-07-06T08:04:02Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "Alternatively we could add something like `HiddenBehaviour` with `NonBlocking` and `Blocking` ",
+        "timestamp": "2023-07-06T08:09:06Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "How about an enum for Visibility?:\r\nVisibiilty_Show\r\nVisibility_Hide //hidden but takes up space\r\nVisibility_None //hidden and doesn't take up space\r\n\r\nOn Thu, Jul 6, 2023, 4:09 AM Samuel ***@***.***> wrote:\r\n\r\n> Alternatively we could add something like HiddenBehaviour with NonBlocking\r\n> and Blocking\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/ebitenui/ebitenui/pull/81#issuecomment-1623186748>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/ADJ7PVXIKF2M43KXVZRZMRLXOZXCZANCNFSM6AAAAAAZ7BMIS4>\r\n> .\r\n> You are receiving this because you were mentioned.Message ID:\r\n> ***@***.***>\r\n>\r\n",
+        "timestamp": "2023-07-06T12:53:47Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "Great idea. I'll code it in and do some testing. ",
+        "timestamp": "2023-07-06T18:21:53Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "I added an example to play with. There's still odd behavior with `RowLayout` where the blue box in the example still takes up space although it's set to `Visibility_None`. I'm not sure how to fix that. Any guidance @mcarpenter622? \r\n\r\nI'm not sure about the names also:\r\n```\r\nVisibility_Show Visibility = iota\r\nVisibility_Hide            // Hide widget, but take up space\r\nVisibility_None            // Hide widget, but don't take up space\r\n```\r\n\r\nWhen I was using it the difference between `Visibility_Hide` and `Visibility_None` was confusing. From the names it's hard to see which is which. What do you think about `Visibility_Hide_Blocking` and `Visibiliy_Hide`?",
+        "timestamp": "2023-07-22T17:41:24Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "@kidk  Sorry for taking so long to respond, been dealing with some stuff with work.  I am ok with the suggested names. I havent had a chance to check out the Row Layout issue yet.",
+        "timestamp": "2023-08-05T19:32:15Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "No worries @mcarpenter622 There's no urgency from my side at all, so whenever you have time. 👍 \r\n\r\nI'll make the suggested changes soon. ",
+        "timestamp": "2023-08-06T16:12:53Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "So I've been testing this tonight and from what I can tell the RowLayout is working as expected. The issue with the blue box in your PR is that it is in a gridLayout. GridLayouts have a column and stretch setting, It doesn't care about what children are in each cell.  I changed middleContainer to a RowLayout and added a 3rd element. When I \"None\" or \"Hide' the blue box, the new child behaves as I would expect.   All in all this looks like a great change. My only requests are 1) Update the enum names if you'd like, and add a section in the launch.json file for visibility (alphabetized) Otherwise I am happy to merge this!",
+        "timestamp": "2023-08-13T01:23:25Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "Hey @kidk I really like this PR! Just checking to see if you're still willing to update it? If not I'll make the few changes I mentioned a couple weeks ago and merge it =)",
+        "timestamp": "2023-08-23T22:53:14Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "I should have some time this weekend to get it into final state. Work has been getting in the way 😄 ",
+        "timestamp": "2023-08-24T13:04:01Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "Trust me I get that! I just appreciate the assistance\r\n\r\nOn Thu, Aug 24, 2023, 9:04 AM Samuel ***@***.***> wrote:\r\n\r\n> I should have some time this weekend to get it into final state. Work has\r\n> been getting in the way 😄\r\n>\r\n> —\r\n> Reply to this email directly, view it on GitHub\r\n> <https://github.com/ebitenui/ebitenui/pull/81#issuecomment-1691636778>,\r\n> or unsubscribe\r\n> <https://github.com/notifications/unsubscribe-auth/ADJ7PVRRQ4EVGWFZUE3ZXR3XW5GM3ANCNFSM6AAAAAAZ7BMIS4>\r\n> .\r\n> You are receiving this because you were mentioned.Message ID:\r\n> ***@***.***>\r\n>\r\n",
+        "timestamp": "2023-08-24T13:08:16Z"
+      },
+      {
+        "author": "kidk",
+        "role": "CONTRIBUTOR",
+        "body": "@mcarpenter622 I've updated the constants and example. \r\n\r\nI think it's good for final review",
+        "timestamp": "2023-08-28T08:17:00Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "Thank you for the great PR! Sorry it took me so long to review it. I didnt get an alert when you commented for some reason =(. ",
+        "timestamp": "2023-09-24T22:00:23Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ca881e2",
+        "message": "Added Hidden option to widget",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-07-05T17:11:40Z"
+      },
+      {
+        "sha": "bb211d3",
+        "message": "fixed typo on Hidden comment",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-07-05T17:26:22Z"
+      },
+      {
+        "sha": "ceda777",
+        "message": "Replaced Hidden with Visibility enum",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-07-06T20:51:28Z"
+      },
+      {
+        "sha": "3c94635",
+        "message": "added visibility example",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-07-22T17:36:51Z"
+      },
+      {
+        "sha": "ca27923",
+        "message": "chore: renamed visibility constants to clarity blocking vs non blocking",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-08-28T08:06:08Z"
+      },
+      {
+        "sha": "7767249",
+        "message": "chore: updated visiblity example",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-08-28T08:14:52Z"
+      },
+      {
+        "sha": "104a9f1",
+        "message": "chore: improved visibility example",
+        "author": "Samuel Vandamme",
+        "timestamp": "2023-08-28T08:16:46Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ebitenui/ebitenui#304",
+    "metadata": {
+      "title": "widget/container: Make the 'RemoveChild/ren' cascade effect",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-09-15T01:36:25Z",
+      "reviewers": [
+        "mcarpenter622"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "So any of the childrens of them also call the function as long as they are containers.\r\n\r\nThis way all the containers are properly cleaned up\r\n\r\nCloses #303 "
+    },
+    "discussion_timeline": [
+      {
+        "author": "mat007",
+        "role": "CONTRIBUTOR",
+        "body": "This is a very big change. I’m not sure about others, but I for sure heavily rely on this feature to cut and paste, or dynamically manipulate the component hierarchy.\r\nThere must be another way to fix the tooltip bug? 🤔 ",
+        "timestamp": "2025-09-02T06:55:21Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "Can you explain more which is your usecase?\r\n\r\nMy point on doing this was mostly to have a \"remove/cleanse\" callback. If you remove a parent all the childs will also be removed and call the respective callbacks to clean watever they are maintaining.\r\n\r\nIf you don't want to remove something then I would hide it.\r\n\r\nThere are other ways in which I could solve the issue like just checking the Tooltip to be removed but it would look more like a patch than a fix",
+        "timestamp": "2025-09-02T07:50:52Z"
+      },
+      {
+        "author": "mat007",
+        "role": "CONTRIBUTOR",
+        "body": "> Can you explain more which is your usecase?\r\n\r\nMostly for 2 cases:\r\n1. swapping the content of a container in a fairly simple way (e.g. the `FlipBook` at the moment is implemented like that, and this change would break it, I believe?)\r\n2. moving parts of the UI around (for instance an inventory system where you move items)\r\n\r\n> If you don't want to remove something then I would hide it.\r\n\r\nIndeed that could be a solution for 1., with maybe a container with a stacked layout and children being hidden/shown when needed.\r\n",
+        "timestamp": "2025-09-03T19:09:31Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "1. You are right `FlipBook` is not working properly, I'll check the implementation\r\n2. I have this working by simply switching the image displayed, If I know where everything is on the storage D&D is simply that. But everyone has it's own implementation.\r\n\r\nI'll check now the `FlipBook`\r\n",
+        "timestamp": "2025-09-03T20:05:11Z"
+      },
+      {
+        "author": "mat007",
+        "role": "CONTRIBUTOR",
+        "body": "For 1. maybe #305 can help?",
+        "timestamp": "2025-09-04T05:20:20Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "As discussed on Discord I added this changes to be added to the `UpdateObject`.\r\n\r\nYou mentioned that the Scroll Container could use something similar but IDK exactly where hehe.",
+        "timestamp": "2025-09-10T14:32:43Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "18f2b3a",
+        "message": "widget: Added 'CloseEphemeralWindows' to the 'UpdateObject'\n\nThen the parent 'ui' will close all the EphemeralWindows if set to true",
+        "author": "xescugc",
+        "timestamp": "2025-09-04T07:09:06Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ebitenui/ebitenui#327",
+    "metadata": {
+      "title": "widget: Make it so if no visible no 'Update'",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-03-16T00:54:08Z",
+      "reviewers": [
+        "mcarpenter622"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "This was causing issues due to 'not visible buttons' being able to still be clicked.\r\n\r\nTo test the bug you can apply \r\n\r\n```diff\r\ndiff --git a/_examples/widget_demos/imagebutton/main.go b/_examples/widget_demos/imagebutton/main.go\r\nindex ea002b2..8767a44 100644\r\n--- a/_examples/widget_demos/imagebutton/main.go\r\n+++ b/_examples/widget_demos/imagebutton/main.go\r\n@@ -64,6 +64,7 @@ func main() {\r\n                        btnIconG.GetWidget().Disabled = !btnIconG.GetWidget().Disabled\r\n                }),\r\n        )\r\n+       button.GetWidget().Visibility = widget.Visibility_Hide\r\n        buttonStackedLayout.AddChild(button)\r\n        // Put an image on top of the button, it will be centered.\r\n        // If your image doesn't fit the button and there is no Y stretching support,\r\n```\r\n        \r\nAnd then run ` go run ./_examples/widget_demos/imagebutton/`, then just click the circle and you'll see the log of `button clicked` which it should not.\r\n        \r\nThis specific one can also be solved by :\r\n        \r\n```diff\r\n        diff --git a/widget/stackedlayout.go b/widget/stackedlayout.go\r\nindex 456682b..3170a78 100644\r\n--- a/widget/stackedlayout.go\r\n+++ b/widget/stackedlayout.go\r\n@@ -79,6 +79,9 @@ func (a *StackedLayout) Layout(widgets []PreferredSizeLocateableWidget, rect ima\r\n        }\r\n        rect = a.padding.Apply(rect)\r\n        for idx := range widgets {\r\n+               if !widgets[idx].GetWidget().IsVisible() {\r\n+                       continue\r\n+               }\r\n                widgets[idx].SetLocation(rect)\r\n        }\r\n }\r\n```\r\n\r\nIDK exaclty which is the best solution, but the StackedLayout one, even if this fixes the issue on the example, on my game still fails until I do it on the Widget.\r\n\r\nOn my game I have a modal with buttons and when one is clicked I hide  the content and display another content on top of it, but then if I clicked on that new content it would still trigger the hidden buttons.\r\n\r\nSo if it's fixed on the widget it cannot `fireEvents` which is at the end what is triggering the Click."
+    },
+    "discussion_timeline": [
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "My concern with this solution is regarding tooltips. I think they may not be removed if the update method isn't run. Can you confirm that? I think it might be a little better to wrap the \"fireEvents\" function in the isVisible if statement",
+        "timestamp": "2025-12-19T23:30:24Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "The `go run ./_examples/widget_demos/tooltips/` works as expected :shrug: ",
+        "timestamp": "2025-12-20T00:01:33Z"
+      },
+      {
+        "author": "mcarpenter622",
+        "role": "COLLABORATOR",
+        "body": "I meant put a tooltip on a widget that you want hidden. hover over the widget to make sure the tooltip is visible. Then hit a button on the keyboard to toggle that widget to invisibile. I think the tooltip will not close.",
+        "timestamp": "2025-12-20T01:37:50Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "So I did this:\r\n\r\n```diff\r\ndiff --git a/_examples/widget_demos/tooltips/main.go b/_examples/widget_demos/tooltips/main.go\r\nindex 5813ce6..e107ed8 100644\r\n--- a/_examples/widget_demos/tooltips/main.go\r\n+++ b/_examples/widget_demos/tooltips/main.go\r\n@@ -11,13 +11,15 @@ import (\r\n        \"github.com/ebitenui/ebitenui/image\"\r\n        \"github.com/ebitenui/ebitenui/widget\"\r\n        \"github.com/hajimehoshi/ebiten/v2\"\r\n+       \"github.com/hajimehoshi/ebiten/v2/inpututil\"\r\n        \"github.com/hajimehoshi/ebiten/v2/text/v2\"\r\n        \"golang.org/x/image/font/gofont/goregular\"\r\n )\r\n \r\n // Game object used by ebiten\r\n type game struct {\r\n-       ui *ebitenui.UI\r\n+       ui  *ebitenui.UI\r\n+       btn *widget.Button\r\n }\r\n \r\n func main() {\r\n@@ -323,7 +325,8 @@ func main() {\r\n        ebiten.SetWindowTitle(\"Ebiten UI - Tooltips\")\r\n \r\n        game := game{\r\n-               ui: &ui,\r\n+               ui:  &ui,\r\n+               btn: button5,\r\n        }\r\n \r\n        // run Ebiten main loop\r\n@@ -341,6 +344,13 @@ func (g *game) Layout(outsideWidth int, outsideHeight int) (int, int) {\r\n // Update implements Game.\r\n func (g *game) Update() error {\r\n        // update the UI\r\n+       if inpututil.IsKeyJustPressed(ebiten.KeyB) {\r\n+               if g.btn.GetWidget().GetVisibility() == widget.Visibility_Hide {\r\n+                       g.btn.GetWidget().SetVisibility(widget.Visibility_Show)\r\n+               } else {\r\n+                       g.btn.GetWidget().SetVisibility(widget.Visibility_Hide)\r\n+               }\r\n+       }\r\n        g.ui.Update()\r\n        return nil\r\n }\r\n ```\r\n And the result is this\r\n \r\nhttps://github.com/user-attachments/assets/60bed5fc-0712-415d-acf8-a1cc4360aeec\r\n\r\nClicking `b` will `Hide/Show` the last button that has 2 tooltips, everything works as expected no?\r\n\r\n\r\n \r\n",
+        "timestamp": "2025-12-21T22:17:20Z"
+      },
+      {
+        "author": "xescugc",
+        "role": "CONTRIBUTOR",
+        "body": "I was just checking around and the https://github.com/ebitenui/ebitenui/blob/master/_examples/widget_demos/imagebutton/main.go is not working as expected, and if I comment the code I added on this PR it works :shrug: \r\n\r\nAt the end the issue is the `fireEvents()` that it should not be done (as it fires the Click)\r\n\r\nDoing something like:\r\n\r\n```diff\r\ndiff --git a/widget/widget.go b/widget/widget.go\r\nindex ac87fe2..a7447f9 100644\r\n--- a/widget/widget.go\r\n+++ b/widget/widget.go\r\n@@ -646,10 +646,9 @@ func (w *Widget) Render(screen *ebiten.Image) {\r\n }\r\n \r\n func (w *Widget) Update(updObj *UpdateObject) {\r\n-       if !w.IsVisible() {\r\n-               return\r\n+       if w.IsVisible() {\r\n+               w.fireEvents()\r\n        }\r\n-       w.fireEvents()\r\n        if w.DragAndDrop != nil {\r\n                w.DragAndDrop.Update(w.self)\r\n        }\r\n```\r\n\r\nMakes it work, basically only firing events if it's visible, the res of the `Update` is still run.",
+        "timestamp": "2025-12-21T23:03:11Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b0c532d",
+        "message": "widget: Make it so if no visible no 'Update'\n\nThis was causing issues due to 'not visible buttons' beeing able to still be clicked",
+        "author": "xescugc",
+        "timestamp": "2025-12-19T22:22:53Z"
+      }
+    ]
+  }
+]

@@ -67,6 +67,9 @@ class StoryListResponse(BaseModel):
     # set, so the UI can show which quality filters actually have content and
     # grey out dead ones. Computed from cached labels — no extra LLM/API cost.
     quality_counts: dict[str, int]
+    # Set when the requested focus matched nothing and `stories` is the
+    # unfiltered fallback instead. Mirrors DiscoverResponse.notice.
+    notice: str | None = None
 
 
 class PipelineRunResponse(BaseModel):
@@ -153,6 +156,10 @@ class DiscoverRequest(BaseModel):
     stars: StarId | None = None
     contributors: ContribId | None = None
     keyword: str | None = None
+    # Only used to rotate which slice of the result pool this student sees, so
+    # coming back to the same filters doesn't show the same repos again. Not
+    # part of the discovery cache key — students share the underlying pool.
+    student_id: str | None = None
 
     @field_validator("domain")
     @classmethod
@@ -172,3 +179,11 @@ class RepoRecommendation(BaseModel):
     summary: str
     stars: int | None = None
     language: str | None = None
+
+
+class DiscoverResponse(BaseModel):
+    repos: list[RepoRecommendation]
+    # Set when the filters matched too little on GitHub and discovery widened
+    # them; explains to the student what changed and why.
+    notice: str | None = None
+    relaxed: list[str] = []

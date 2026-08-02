@@ -1,0 +1,934 @@
+[
+  {
+    "story_id": "hashicorp/consul#22932",
+    "metadata": {
+      "title": "Update website dependencies for security vulnerabilities-Add sharp dependency for Next.js optimization",
+      "labels": [
+        "type/docs",
+        "pr/no-changelog",
+        "backport/1.21",
+        "backport/1.22"
+      ],
+      "qualities": [
+        "security",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-10-14T05:54:47Z",
+      "reviewers": [
+        "paras-gupta2"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "### Description\r\n\r\nRemove deprecated dependencies like regenerator-runtime These updates address known security vulnerabilities while maintaining compatibility with existing website functionality.\r\n\r\n### Testing & Reproduction steps\r\n\r\n<!--\r\n\r\n* In the case of bugs, describe how to replicate\r\n* If any manual tests were done, document the steps and the conditions to replicate\r\n* Call out any important/ relevant unit tests, e2e tests or integration tests you have added or are adding\r\n\r\n-->\r\n\r\n### Links\r\n\r\n<!--\r\n\r\nInclude any links here that might be helpful for people reviewing your PR (Tickets, GH issues, API docs, external benchmarks, tools docs, etc). If there are none, feel free to delete this section.\r\n\r\nPlease be mindful not to leak any customer or confidential information. HashiCorp employees may want to use our internal URL shortener to obfuscate links.\r\n\r\n-->\r\n\r\n### PR Checklist\r\n\r\n* [ ] updated test coverage\r\n* [ ] external facing docs updated\r\n* [ ] appropriate backport labels added\r\n* [ ] not a security concern\r\n\r\n## PCI review checklist\r\n\r\n<!-- heimdall_github_prtemplate:grc-pci_dss-2024-01-05 -->\r\n\r\n- [ ] I have documented a clear reason for, and description of, the change I am making.\r\n\r\n- [ ] If applicable, I've documented a plan to revert these changes if they require more than reverting the pull request.\r\n\r\n- [ ] If applicable, I've documented the impact of any changes to security controls.\r\n\r\n  Examples of changes to security controls include using new access control methods, adding or removing logging pipelines, etc.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "suresh-hashicorp",
+        "role": "CONTRIBUTOR",
+        "body": "This looks good to me while going through the vercel deployment, but I would still feel better if someone from docs team can confirm that upgrading major versions of next is harmless. \r\n\r\n@boruszak Can someone from your team help us with this?",
+        "timestamp": "2025-10-14T05:19:21Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-14T09:23:07Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-15T09:23:40Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-16T09:23:45Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-17T09:24:13Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-18T09:22:12Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-19T09:21:32Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-21T09:23:31Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-23T09:26:11Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.18,1.19,1.20,1.21] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-24T09:25:55Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-25T09:23:33Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-26T09:23:30Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-27T09:27:29Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-28T09:25:17Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-29T09:26:42Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-30T09:25:40Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-10-31T09:25:51Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-01T09:23:47Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-02T09:24:53Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-03T09:27:34Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-04T09:27:42Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-05T09:27:28Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-07T09:26:00Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-08T09:24:53Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-09T09:24:51Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-10T09:28:10Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-11T09:26:32Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-12T09:27:09Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-13T09:27:17Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-14T09:26:33Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-15T09:24:33Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-16T09:26:07Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-17T09:29:02Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-18T09:27:29Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-19T09:26:45Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-20T09:27:23Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-21T09:28:29Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-22T09:27:05Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-23T09:27:11Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-24T09:30:15Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-25T09:26:57Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-26T09:26:45Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-27T09:27:05Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-28T09:27:40Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-29T09:27:28Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-11-30T09:27:04Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-01T09:31:01Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-02T09:29:10Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-03T09:29:50Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-04T09:28:26Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-06T09:27:19Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-07T09:26:59Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-08T09:31:42Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-09T09:29:08Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-10T09:28:25Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-11T09:28:12Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-12T09:29:19Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-13T09:27:01Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-14T09:27:40Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-15T09:33:14Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-16T09:31:07Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-17T09:29:51Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-18T09:31:51Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-19T09:29:33Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-20T09:26:58Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-21T09:27:12Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-23T09:30:21Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-24T09:30:27Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-25T09:29:19Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-26T09:28:57Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-27T09:27:23Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-28T09:27:22Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-29T09:32:51Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-30T09:31:14Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2025-12-31T09:30:42Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-01T09:30:35Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-02T09:30:25Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-03T09:26:57Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-04T09:26:37Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-05T09:33:43Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-06T09:29:53Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-07T09:31:25Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-08T09:30:44Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-09T09:29:47Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-10T09:27:42Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-11T09:28:18Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-12T09:32:39Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-13T09:29:21Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-14T09:30:32Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-15T09:28:22Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-16T09:28:09Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-17T09:27:24Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-18T09:26:29Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-19T09:34:39Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-20T09:32:05Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-22T09:33:17Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-23T09:31:47Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-24T09:27:28Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-25T09:28:07Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":mega: Hi @paras-gupta2! a backport is missing for this PR [22932] for versions [1.20] please perform the backport manually and add the following snippet to your backport PR description:\n```\n<details>\n\t<summary> Overview of commits </summary>\n\t\t- <<backport commit 1>>\n\t\t- <<backport commit 2>>\n\t\t...\n</details>\n```",
+        "timestamp": "2026-01-26T09:34:10Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2feff47",
+        "message": "updating version of and platform-content-conformance",
+        "author": "mansi991999",
+        "timestamp": "2025-10-14T05:03:14Z"
+      }
+    ]
+  },
+  {
+    "story_id": "hashicorp/consul#11951",
+    "metadata": {
+      "title": "API gateway docs",
+      "labels": [
+        "type/docs",
+        "pr/no-changelog",
+        "pr/no-metrics-test"
+      ],
+      "qualities": [
+        "usability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-01-27T21:38:09Z",
+      "reviewers": [
+        "Jeff-Apple",
+        "david-yu",
+        "nathancoleman",
+        "blake",
+        "andrewstucki",
+        "mikemorris",
+        "pcmccarron",
+        "trujillo-adam",
+        "eddie-rowe",
+        "karl-cardenas-coding"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Here is the documentation for the API gateway beta release. "
+    },
+    "discussion_timeline": [
+      {
+        "author": "david-yu",
+        "role": "CONTRIBUTOR",
+        "body": "@trujillo-adam @karl-cardenas-coding @Jeff-Apple  Should the API Gateway have its own section as opposed to be nested underneath Service Mesh and K8s?\r\n\r\n<img width=\"1319\" alt=\"image\" src=\"https://user-images.githubusercontent.com/551323/149209209-8dce8aec-661d-43a2-bfbb-2f0642bb45b4.png\">\r\n",
+        "timestamp": "2022-01-12T19:35:03Z"
+      },
+      {
+        "author": "karl-cardenas-coding",
+        "role": "CONTRIBUTOR",
+        "body": "@david-yu I agree, I think API Gateway should have its own section, that way it's easier to find.  @trujillo-adam thoughts on this idea?",
+        "timestamp": "2022-01-12T20:05:04Z"
+      },
+      {
+        "author": "trujillo-adam",
+        "role": "CONTRIBUTOR",
+        "body": "> @trujillo-adam @karl-cardenas-coding @Jeff-Apple Should the API Gateway have its own section as opposed to be nested underneath Service Mesh and K8s?\r\n> \r\n> <img alt=\"image\" width=\"1319\" src=\"https://user-images.githubusercontent.com/551323/149209209-8dce8aec-661d-43a2-bfbb-2f0642bb45b4.png\">\r\n\r\nJeff and I discussed this and we chose this location based on the following factors:\r\n- It is roughly parallel to ingress gateway functionality, so it made sense to position it as a sibling under service mesh\r\n- The current implementation is only supported for k8s; down the road, it will be available for non-k8s runtimes, but the usage will be a bit different, so we'll create separate page when we get there. Again, seem to have standardized on documenting gateways for non-k8s and k8s workflows in separate locations.\r\n\r\n@Jeff-Apple , am I recalling our conversation accurately?",
+        "timestamp": "2022-01-12T20:12:01Z"
+      },
+      {
+        "author": "trujillo-adam",
+        "role": "CONTRIBUTOR",
+        "body": "This is what I was talking about in my previous comment. We have a convention for documenting this type of functionality. \r\n![Screen Shot 2022-01-12 at 12 14 19 PM](https://user-images.githubusercontent.com/47586768/149215021-9c3ea251-fbe6-4ef9-91cf-5b3159a2f177.png)\r\nOther than discoverability, is there a reason this should be treated differently? I think it would be more important to sort of train readers to use the navigation.\r\n",
+        "timestamp": "2022-01-12T20:18:09Z"
+      },
+      {
+        "author": "david-yu",
+        "role": "CONTRIBUTOR",
+        "body": "> > @trujillo-adam @karl-cardenas-coding @Jeff-Apple Should the API Gateway have its own section as opposed to be nested underneath Service Mesh and K8s?\r\n> > <img alt=\"image\" width=\"1319\" src=\"https://user-images.githubusercontent.com/551323/149209209-8dce8aec-661d-43a2-bfbb-2f0642bb45b4.png\">\r\n> \r\n> Jeff and I discussed this and we chose this location based on the following factors:\r\n> \r\n> * It is roughly parallel to ingress gateway functionality, so it made sense to position it as a sibling under service mesh\r\n> * The current implementation is only supported for k8s; down the road, it will be available for non-k8s runtimes, but the usage will be a bit different, so we'll create separate page when we get there. Again, seem to have standardized on documenting gateways for non-k8s and k8s workflows in separate locations.\r\n> \r\n> @Jeff-Apple , am I recalling our conversation accurately?\r\n\r\n\r\n\r\n> This is what I was talking about in my previous comment. We have a convention for documenting this type of functionality.\r\n> ![Screen Shot 2022-01-12 at 12 14 19 PM](https://user-images.githubusercontent.com/47586768/149215021-9c3ea251-fbe6-4ef9-91cf-5b3159a2f177.png)\r\n> Other than discoverability, is there a reason this should be treated differently? I think it would be more important to sort of train readers to use the navigation.\r\n\r\nIt was just really hard for me to find until I searched for it on the search bar. As long as folks can find it quickly I think that is fine. I also do think in the future it would need its own place since there will likely be a large collection of docs that will support that product. ",
+        "timestamp": "2022-01-12T20:20:01Z"
+      },
+      {
+        "author": "karl-cardenas-coding",
+        "role": "CONTRIBUTOR",
+        "body": "Yup I second @david-yu 's thoughts. I, too, found it a bit tough to find. I understand the rationale for placing it with the other Gateways. But looking ahead, and the potential gateway consolidation work, it might make more sense to place API Gateway as its own section. ",
+        "timestamp": "2022-01-12T20:42:13Z"
+      },
+      {
+        "author": "trujillo-adam",
+        "role": "CONTRIBUTOR",
+        "body": "OK, I guess I'm outvoted. I'll make it a high-level topic.",
+        "timestamp": "2022-01-12T21:26:55Z"
+      },
+      {
+        "author": "david-yu",
+        "role": "CONTRIBUTOR",
+        "body": "@trujillo-adam It sounds like there is a missing closing CodeBlockConfig somewhere causing the Vercel deploys to fail\r\n\r\nSyntaxError: unknown: Expected corresponding JSX closing tag for <CodeBlockConfig>. (26",
+        "timestamp": "2022-01-27T00:09:27Z"
+      },
+      {
+        "author": "trujillo-adam",
+        "role": "CONTRIBUTOR",
+        "body": "> @trujillo-adam It sounds like there is a missing closing CodeBlockConfig somewhere causing the Vercel deploys to fail\r\n> \r\n> SyntaxError: unknown: Expected corresponding JSX closing tag for . (26\r\n\r\nYeah, I keep fixing it every time I commit. I think it's because the code block at line 31 won't stay indented, which not only throws a parser error, but it messes up my ordered list. I might just need to give up on the formatting I'm trying to implement.",
+        "timestamp": "2022-01-27T16:13:18Z"
+      },
+      {
+        "author": "david-yu",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks. I just noticed based on the latest preview that the tables are different in size. Just a nit and not blocking. \r\n\r\n<img width=\"1613\" alt=\"image\" src=\"https://user-images.githubusercontent.com/551323/151405097-56f202a6-8cf5-4168-b8f2-d67f21cbf82c.png\">\r\n",
+        "timestamp": "2022-01-27T16:50:03Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":cherries: If backport labels were added before merging, cherry-picking will start automatically.\n\nTo retroactively trigger a backport after merging, add backport labels and re-run https://circleci.com/gh/hashicorp/consul/569138.",
+        "timestamp": "2022-01-27T21:39:12Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":cherries::white_check_mark: Cherry pick of commit 43af9b097293de09a45bc98930498a8f002663ac onto `stable-website` succeeded!",
+        "timestamp": "2022-01-27T21:39:15Z"
+      },
+      {
+        "author": "hc-github-team-consul-core",
+        "role": "COLLABORATOR",
+        "body": ":cherries::white_check_mark: Cherry pick of commit 43af9b097293de09a45bc98930498a8f002663ac onto `release/1.11.x` succeeded!",
+        "timestamp": "2022-01-27T21:39:17Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "b3496a3",
+        "message": "initial commit/draft of the API gateway docs",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-06T02:45:00Z"
+      },
+      {
+        "sha": "66ac665",
+        "message": "applied feedback",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T19:19:15Z"
+      },
+      {
+        "sha": "fb40ad0",
+        "message": "forgot to update the image version",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T19:23:22Z"
+      },
+      {
+        "sha": "3510430",
+        "message": "missed a cmd block when adding dollar signs",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T19:24:36Z"
+      },
+      {
+        "sha": "c67612e",
+        "message": "added beta flag to nav link",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T19:32:32Z"
+      },
+      {
+        "sha": "c2c717d",
+        "message": "fixes to the params table",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T19:53:32Z"
+      },
+      {
+        "sha": "0d35c30",
+        "message": "moved consul api gateway to top of nav hierarchy",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-12T22:04:03Z"
+      },
+      {
+        "sha": "203c503",
+        "message": "addressed feedback about binary",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-18T20:23:17Z"
+      },
+      {
+        "sha": "6cda05a",
+        "message": "addressed feedback about binary - fixed bad formatting",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-18T20:28:44Z"
+      },
+      {
+        "sha": "fe867dd",
+        "message": "Apply suggestions from code review\n\nCo-authored-by: Blake Covarrubias <blake@covarrubi.as>",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-18T22:30:35Z"
+      },
+      {
+        "sha": "30032f4",
+        "message": "fixed formatting",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-18T23:06:55Z"
+      },
+      {
+        "sha": "8c2399a",
+        "message": "Updated intro text\n\nJeff and I re-worded/expanded the text a bit here for the introduction section.",
+        "author": "Peter M",
+        "timestamp": "2022-01-21T23:14:45Z"
+      },
+      {
+        "sha": "4c4a9f3",
+        "message": "added GWclass and GWClassConfig",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-26T17:23:10Z"
+      },
+      {
+        "sha": "52ac765",
+        "message": "fixed formattting issues",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-26T17:32:47Z"
+      },
+      {
+        "sha": "41709dc",
+        "message": "trying to fix persistent formatting problems",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-26T17:44:32Z"
+      },
+      {
+        "sha": "f28f037",
+        "message": "added more complete spec info and applied feedback",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-26T23:11:40Z"
+      },
+      {
+        "sha": "f2f0c51",
+        "message": "Apply suggestions from code review\r\n\r\nAdding content and feedback from @mikemorris\n\nCo-authored-by: Mike Morris <mikemorris@users.noreply.github.com>",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-26T23:16:22Z"
+      },
+      {
+        "sha": "c7ac8b0",
+        "message": "integrated TLS info",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T00:04:24Z"
+      },
+      {
+        "sha": "4d97b68",
+        "message": "Apply suggestions from code review\r\n\r\nThanks for catching my typos!\n\nCo-authored-by: Nathan Coleman <nathandanielcoleman@gmail.com>",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T16:06:54Z"
+      },
+      {
+        "sha": "3324bea",
+        "message": "website: fix indentation to resolve CodeBlockConfig syntax error",
+        "author": "Mike Morris",
+        "timestamp": "2022-01-27T16:12:23Z"
+      },
+      {
+        "sha": "1c7a9c6",
+        "message": "website: fix ordering of list with nested code blocks",
+        "author": "Mike Morris",
+        "timestamp": "2022-01-27T16:34:11Z"
+      },
+      {
+        "sha": "1aba658",
+        "message": "applying additional feedback",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T18:01:29Z"
+      },
+      {
+        "sha": "ed6fd46",
+        "message": "reordered the installation steps",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T18:31:02Z"
+      },
+      {
+        "sha": "9d1fbd8",
+        "message": "fixed formatting",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T18:33:39Z"
+      },
+      {
+        "sha": "5d15605",
+        "message": "removed extra quotation mark typo",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T18:44:14Z"
+      },
+      {
+        "sha": "f749212",
+        "message": "still trying to fix formatting",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T18:55:13Z"
+      },
+      {
+        "sha": "7c65dec",
+        "message": "fixed formatting, applied Jeff's feedback",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T19:46:14Z"
+      },
+      {
+        "sha": "f859700",
+        "message": "formatting",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T20:02:48Z"
+      },
+      {
+        "sha": "9e4fa4d",
+        "message": "added link to tutorial",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T20:21:19Z"
+      },
+      {
+        "sha": "97e79e9",
+        "message": "more feedback about helm chart from Jeff",
+        "author": "trujillo-adam",
+        "timestamp": "2022-01-27T21:02:21Z"
+      }
+    ]
+  }
+]

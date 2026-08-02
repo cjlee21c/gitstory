@@ -1,0 +1,397 @@
+[
+  {
+    "issue": {
+      "number": 123,
+      "title": "Compile against recent google WebRTC snapshot for ICE support",
+      "body": "#117 #118 #121 \r\n\r\n## Compilation WebRTC (refs/remotes/branch-heads/4180)\r\n\r\nAdd SteamWebRTC CMake based build scripts.\r\n\r\n- Add CMake based WebRTC build scripts (Minimalized for ICE transport).\r\n- Add Abseil-cpp dependency for WebRTC.\r\n- Update travis script to testing steamwebrtc build step.\r\n- Add option to build steamwebrtc as static library.\r\n- Update IceSession for Turn server configuration.\r\n- Add ws2_32, crypt32 dependencies for static OpenSSL library link.\r\n- Update WebRTC's rtc_base/system/arch.h for ppc64le, s390x build.\r\n- Add HAVE_STRCPY_S definition for check strcpy_s\r\n\r\nUsage:\r\n```\r\ncmake -DUSE_STEAMWEBRTC=ON .. \r\ncmake -DUSE_STEAMWEBRTC=ON -DSTEAMWEBRTC_USE_STATIC_LIBS=OFF ..\r\ncmake -DUSE_STEAMWEBRTC=ON -DSTEAMWEBRTC_USE_STATIC_LIBS=ON ..\r\n```\r\n",
+      "labels": [],
+      "user": {
+        "login": "zcube"
+      }
+    },
+    "pr_num": 123,
+    "comments": [
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Hey just wanted to say thanks again for doing this.  When you're done, I'll probably ask for help from @tycho to review all the build setup stuff.  I can work on setting up some sort of example / test framework / fake signaling sevrice.  I have quite a few fairly large P2P changes incoming, but I don't think they will conflict with any of this work.",
+        "created_at": "2020-07-01T23:14:18Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "tycho"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Please make sure to clean up the commit history for this patch series. Follow the guidelines presented [here](https://github.com/torvalds/subsurface-for-dirk/blob/a48494d2fbed58c751e9b7e8fbff88582f9b2d02/README#L88) and [here](https://www.kernel.org/doc/html/v4.17/process/submitting-patches.html#the-canonical-patch-format), in order to write good commit messages. You definitely should squash several of these commits with a rebase as well. The general ordering for commit history in a good pull request is:\r\n\r\n1. Any commits to refactor or prepare the existing code base for your changes.\r\n2. Commits implementing your change, including appropriate build system changes (both CMake and Meson, in this project's case).\r\n3. Any additional followup changes/bugfixes (generally these can be squashed into the commits implementing the change after they've received appropriate review).\r\n\r\nThe Linux kernel project has some [good guidelines](https://www.kernel.org/doc/html/v4.17/process/submitting-patches.html#separate-your-changes) on this.\r\n\r\nNote as well: for each commit in sequence, the build should *not* break -- as in, a Travis build should be able to succeed at every point in the history.  This is necessary in case a revert of a specific logical change needs to happen in the future.\r\n\r\nThis contribution policy really helps with long-term code maintenance. For instance, in case something breaks it is helpful to have a clear and concise history in the commit log to help understand what was done, what was intended, and what we can do to fix it.",
+        "created_at": "2020-07-02T08:55:31Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "tycho"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Adding another comment so I don't lose this link... someone on Hacker News linked to a fantastic guide on writing strong git commit messages: https://chris.beams.io/posts/git-commit/\r\n\r\nAlso, your recent commit messages are looking a bit better, though the changes still need quite a bit of cleanup. (I realize it's a work in progress, though.)",
+        "created_at": "2020-07-05T16:21:46Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zcube"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "@tycho I clean up commits. But there are some problems on master branch now. so I couldn't pass travis builds. And I couldn't test this binaries, build only. It needs some extra works needed. So I'll waiting for @fletcherdvalve 's examples. Last time i tested binary, with console based signalling. there are some certificate error occured.",
+        "created_at": "2020-07-06T11:31:14Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "tycho"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Yes, ignore the Arch Linux builder results for now. There's a bug filed with LLVM to try and get to the bottom of that one:\r\n\r\nhttps://bugs.llvm.org/show_bug.cgi?id=46313",
+        "created_at": "2020-07-06T14:25:03Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "> Yes, ignore the Arch Linux builder results for now.\r\n\r\nIs it a single-line change in some travis config to nuke that config for now?  I hate to see the build \"red\" for so long, it doesn't look good.....   If you can point me in the right direction I'll make the change.",
+        "created_at": "2020-07-07T17:41:37Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "I will hopefully get to looking at this change this week .  Good stuff!",
+        "created_at": "2020-07-07T17:42:22Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zcube"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "> > Yes, ignore the Arch Linux builder results for now.\r\n> \r\n> Is it a single-line change in some travis config to nuke that config for now? I hate to see the build \"red\" for so long, it doesn't look good..... If you can point me in the right direction I'll make the change.\r\n\r\non fedora:rawhide\r\n```\r\n>echo _ZN6google8protobuf13RepeatedFieldIiEC2ERKS2_ | c++filt\r\ngoogle::protobuf::RepeatedField<int>::RepeatedField(google::protobuf::RepeatedField<int> const&)\r\n>nm -gD /usr/lib/libprotobuf.so  |  grep 0000000000117b80 |  c++filt\r\ngoogle::protobuf::RepeatedField<int>::RepeatedField(google::protobuf::RepeatedField<int> const&)\r\n>0000000000117b80 W _ZN6google8protobuf13RepeatedFieldIiEC1ERKS2_\r\n```\r\nSame function, but with a different name. I don't know the difference between these names. I think it would be better to build and use Protobuf.",
+        "created_at": "2020-07-08T11:59:01Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "tycho"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "I don't think building protobuf ourselves will help. This seems to be an LLVM compiler bug.",
+        "created_at": "2020-07-08T12:00:20Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Just a note that I haven't forgotten about this, and hopefully will act on it soon. :)",
+        "created_at": "2020-08-07T16:04:33Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Just pulled this in.  I am on bionic, and this version of cmake doesn't understand \"FetchContent\".  So I cannot really test it.  That's OK, nobody can really test it until we get a signaling server setup, so even if it's \"broken\" there isn't anything to break.\r\n\r\nI'm going to try switching to use a git submodule instead of having cmake do the git work.  And then cmake will just confirm file existance and tell you to pull in the submodule.  I think that's better for integrating with meson (if we continue to care about meson).  And it means you don't have to have a new version of cmake.\r\n\r\nI'll add some tasks for me to do what needs to be done to actually make this stuff usable (dummy signaling service and test case).  Thanks for doing this!",
+        "created_at": "2020-08-29T19:11:49Z",
+        "source": "issue"
+      }
+    ],
+    "pr_meta": {
+      "merged_at": "2020-08-29T19:08:17Z",
+      "reviewers": [
+        "zcube",
+        "tycho"
+      ],
+      "changed_files": 12
+    },
+    "signals": {
+      "discussion": 13,
+      "participants": 3,
+      "changed_files": 12,
+      "substantive": 7,
+      "alternations": 7,
+      "maintainer_engaged": false
+    }
+  },
+  {
+    "issue": {
+      "number": 192,
+      "title": "TURN configuration implemented.",
+      "body": "Pretty straightforward TURN config implementation.\r\n\r\nI tested connecting to a test server via a test client app. Both applications are Windows apps. Server was behind a VPN and the firewall was resisting the NAT piercing. Later when i tried with TURN configuration implemented, the connection was success.",
+      "labels": [],
+      "user": {
+        "login": "LeventSevgili"
+      }
+    },
+    "pr_num": 192,
+    "comments": [
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] Note: This doesn't actually work. :)  Probably need to make sure that a misconfiguration cannot lead to an access violation or leak of any credentials.  Probably just ignore all TURN servers  if the three arrays don't have the same length, rather than asserting.  Or...maybe if the users and passes list is empty, then that's OK, just treat all TURN servers as unauthenticated.  But if either list is not empty, then all the arrays must be the same length?\r\n\r\nOr is there a standard syntax used by applications for specifying the configuration of a TURN server in a single string?    Like username@address ?  (Not sure where password would go?)  I suppose any approach has the potential problem: what if your password has a comma in it?",
+        "created_at": "2021-08-30T17:25:12Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "LeventSevgili"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] I think if users and passes list is empty, treating them as unathenticated makes sense, (we set them as empty strings because of the below check.) And even if the three arrays don't have the same length, the code may take TURN servers array as a base, and populate or reduce size of related users and passes arrays accordingly to be sure all three having the same size?\r\nThis approach of course not covering the if password has a comma in it. \r\n\r\nMay be best would be the ConfigValue struct supports non-primitive type which to have an array struct type of a TurnConfig for ConnectionConfig struct, force users to initialize configs seperately as an array of TurnConfig struct, and after init, the reader (CConnectionTransportP2PICE::Init method) will read the config as an array of TurnConfig, so using comma would work too?\r\n\r\nI will think about it and look around for a standard usage if exists.\r\n\r\nhttps://github.com/ValveSoftware/GameNetworkingSockets/blob/f98cd32f62877d31a3fe27fc91578e13f4f795c9/src/external/steamwebrtc/ice_session.cpp#L292",
+        "created_at": "2021-08-30T18:11:38Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] Probably best to keep it simple strings, struct is complicated to maintain.  If there is an existing standard, then a single var with a string for each server sounds nice.  Otherwise, separate strings with the rule that either they need to be the same length, or the user+pass arrays both need to empty, sounds good.\r\n\r\nMight need to make sure that V_AllocAndSplitString will do the right thing if one item is empty, e.g. \"username1,,username3\"",
+        "created_at": "2021-08-30T18:30:59Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "LeventSevgili"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] Okay i ll make sure V_AllocAndSplitString will cover the cases.\r\n\r\nYes, if there is an existing standard, having a single string per server would be cool. From my fast research i see JSON kinda formats exists as below; '?' is used to seperate transport and turn maybe, user+pass are in different places. But i will look more.\r\n\r\nOkay, makes sense, if array lengths are not same, then it means user+pass arrays need to empty. If lengths are equal, then is already okay.\r\n\r\n```\r\n customServers: [\r\n      {\r\n        urls: [\r\n          'turn:123.124.125.126:3478?transport=udp’',\r\n          'turn:123.124.125.126:3478?transport=tcp'\r\n        ],\r\n        username: 'webrtc',\r\n        credential: 'foO0Bar1'\r\n      },\r\n\r\nList<IceServer> serverList = new IceServer(\r\n  'turn:123.124.125.126:3478?transport=udp', // TURN server URL\r\n  'webrtc', // Username\r\n  'foO0Bar1' // Credential\r\n);\r\n\r\n```",
+        "created_at": "2021-08-30T19:03:45Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "LeventSevgili"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] I tested the V_AllocAndSplitString method and it handles it nicely.\r\nex: \"username1,,username3\" populates array of 2, values are verified by debugger.\r\nex: \"asd,asdasd,,sd,,sdsd\" populates array of  4. values are verified by debugger.\r\nex: \"asd,asdasd,,,,,sd,,sdsd\" populates array of  4. values are verified by debugger.\r\n\r\nIf user+pass arrays length are not same with turnservers array length, then it treat all the TURN servers as unauthenticated.\r\n\r\nI pushed the commits. Thank you!",
+        "created_at": "2021-08-30T21:21:10Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] I think we will need to pass bIncludeEmptyStrings=true to V_AllocAndSplitString.  Otherwise, there's no way to have some TURN servers that require a username and password, and other servers that don't.\r\n\r\nE.g., you need to be able to do something like this:\r\n\r\nauth_server_1.blah.com,open_server_2.blah.com,auth_server_3.blah.com,open_server_4.blah.com\r\nusername1,,username3,\r\npassword1,,password3,",
+        "created_at": "2021-08-31T17:22:52Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "LeventSevgili"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] Yes, you are right. Lemme cover this. This was on my mind at the morning btw. thumbs up.",
+        "created_at": "2021-08-31T17:31:03Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "LeventSevgili"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/steamnetworkingsockets/clientlib/steamnetworkingsockets_p2p_ice.cpp] Enabling bIncludeEmptyStrings generates 1 string from \"username1,\" and generates 2 strings from \"username1,,\"\r\nWe need 2 strings \"from username1,\" and 3 strings from \"username1,,\"\r\n\r\nI added the below _else if block_ at V_SPlitStrings2 which seperates \"username1,\" into 2 strings instead of 1. Result is \"username1\" and \"\". It works.\r\n\r\nhttps://github.com/LeventSevgili/GameNetworkingSockets/blob/b5ce6785abe11b9071e8570d20ae5515240288a7/src/vstdlib/strtools.cpp#L405\r\n\r\nI tested below cases:\r\n\r\n\"username1,,username3\" -> \"username1\" \"\" \"username2\" 3 strings.\r\n\"pass1,,pass3\" -> \"pass1\" \"\" \"pass3\" as 3 strings.\r\nOR\r\n\"username1,username2,\" -> \"username1\" \"username2\" \"\" 3 strings.\r\n\"pass1,pass2,\" -> \"pass1\" \"pass2\" \"\" 3 strings.\r\n\r\nb5ce6785abe11b9071e8570d20ae5515240288a7\r\nWhat do you think? Maybe we enable this feature of this method with another flag? But i'm not sure. Thanks.",
+        "created_at": "2021-08-31T19:12:42Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/vstdlib/strtools.cpp] [Edited: disregard, I misread the code.  I think this actually works.]\r\n\r\nIt bothers the heck out of me that there is a bug in this function to begin with.  I'm going to investigate what's going on in the Steam branch.",
+        "created_at": "2021-09-07T18:27:28Z",
+        "source": "review_inline"
+      }
+    ],
+    "pr_meta": {
+      "merged_at": "2021-10-04T18:56:23Z",
+      "reviewers": [
+        "LeventSevgili",
+        "zpostfacto"
+      ],
+      "changed_files": 7
+    },
+    "signals": {
+      "discussion": 9,
+      "participants": 2,
+      "changed_files": 7,
+      "substantive": 8,
+      "alternations": 6,
+      "maintainer_engaged": false
+    }
+  },
+  {
+    "issue": {
+      "number": 277,
+      "title": "Get steamwebrtc building successfully on macos",
+      "body": "Defining WEBRTC_MAC and including cocoa_threading.mm, etc. are crucial to getting steamwebrtc compiling successfully on macos.",
+      "labels": [],
+      "user": {
+        "login": "NatWeiss"
+      }
+    },
+    "pr_num": 277,
+    "comments": [
+      {
+        "user": {
+          "login": "NatWeiss"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/external/steamwebrtc/CMakeLists.txt] Thanks for the suggestion, but it doesn't work. If `Darwin` is changed to `IOS` the mac build fails because `WEBRTC_MAC` is not defined which leads to compilation errors.\r\n\r\nMoreover, using `Darwin` is more cohesive as it is how the [main CMakeLists.txt:173](https://github.com/ValveSoftware/GameNetworkingSockets/blob/d5f855967440eeb5b4d5798bebe179ef868ac6af/CMakeLists.txt#L162) tests for macos.",
+        "created_at": "2023-04-19T04:11:02Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "NatWeiss"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/external/steamwebrtc/CMakeLists.txt] You edited your previous comment from `IOS` to `APPLE`. Yes, if line 695 is changed from:\r\n\r\n`elseif(CMAKE_SYSTEM_NAME MATCHES Darwin)`\r\n\r\nto:\r\n\r\n`elseif(APPLE)`\r\n\r\nIt does indeed compile successfully. However, this breaks the cohesion with the main [CMakeLists.txt:173](https://github.com/ValveSoftware/GameNetworkingSockets/blob/d5f855967440eeb5b4d5798bebe179ef868ac6af/CMakeLists.txt#L162). Might be better to submit a separate pull request for this.",
+        "created_at": "2023-05-02T20:39:42Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "NatWeiss"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "[src/external/steamwebrtc/CMakeLists.txt] Thanks, Jake. You make a good point. I think it just needs to be a separate pull request to maintain cohesion with the primary `CMakeLists.txt` and to focus on one purpose at a time. The purpose of this pull request is to solve compilation errors on macos when enabling `steamwebrtc`.\r\n\r\nCheers and wishing you all the best.",
+        "created_at": "2023-05-03T20:30:21Z",
+        "source": "review_inline"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Awesome, thanks!  I don't really have any way to test this, so I'll have to take your word for it!",
+        "created_at": "2024-03-13T23:42:24Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "(Sorry for being so late....)",
+        "created_at": "2024-03-13T23:42:41Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "NatWeiss"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Cool! Thanks for merging",
+        "created_at": "2024-03-14T04:49:31Z",
+        "source": "issue"
+      }
+    ],
+    "pr_meta": {
+      "merged_at": "2024-03-13T23:42:00Z",
+      "reviewers": [
+        "NatWeiss"
+      ],
+      "changed_files": 1
+    },
+    "signals": {
+      "discussion": 6,
+      "participants": 2,
+      "changed_files": 1,
+      "substantive": 3,
+      "alternations": 2,
+      "maintainer_engaged": false
+    }
+  },
+  {
+    "issue": {
+      "number": 407,
+      "title": "Fill in Plat_IsInDebugSession() for OpenBSD",
+      "body": "",
+      "labels": [],
+      "user": {
+        "login": "brad0"
+      }
+    },
+    "pr_num": 407,
+    "comments": [
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "lol, when I saw the other one cone in, I was going to ask you for this.",
+        "created_at": "2026-04-27T06:25:43Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "brad0"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "> lol, when I saw the other one cone in, I was going to ask you for this.\r\n\r\nYa, I figured I might as well look into how to do so while I'm at it.",
+        "created_at": "2026-04-27T06:44:26Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Would you mind resolving the merge conflicts so that I can just click the rebase and merge button, please?",
+        "created_at": "2026-04-27T19:13:11Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "brad0"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "> Would you mind resolving the merge conflicts so that I can just click the rebase and merge button, please?\r\n\r\nSure.",
+        "created_at": "2026-04-27T19:25:23Z",
+        "source": "issue"
+      },
+      {
+        "user": {
+          "login": "zpostfacto"
+        },
+        "author_association": "CONTRIBUTOR",
+        "body": "Thanks!",
+        "created_at": "2026-04-28T00:04:55Z",
+        "source": "issue"
+      }
+    ],
+    "pr_meta": {
+      "merged_at": "2026-04-28T00:04:50Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "signals": {
+      "discussion": 5,
+      "participants": 2,
+      "changed_files": 1,
+      "substantive": 0,
+      "alternations": 4,
+      "maintainer_engaged": false
+    }
+  }
+]

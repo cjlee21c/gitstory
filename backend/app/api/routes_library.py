@@ -12,6 +12,7 @@ from app.github_client import GitHubClient
 from app.llm.repo_classifier import classify_repos_domains
 from app.models.db_models import Repo
 from app.models.schemas import StorySummary
+from app.pipeline.orchestrator import PIPELINE_VERSION
 from app.storage.cache import CACHE_DIR
 
 router = APIRouter(tags=["library"])
@@ -26,9 +27,16 @@ def _to_summary(bundle: dict) -> StorySummary:
     )
 
 
+# Only the current pipeline version is listed. The cache keeps one file per
+# version per repo, so globbing "*:pass2.json" showed the same repo once per
+# version it had ever been mined under — each copy carrying that version's
+# labels, including retired ones.
+_PASS2_SUFFIX = f":{PIPELINE_VERSION}:pass2.json"
+
+
 def _repo_from_cache_key(filename: str) -> str:
-    # filename looks like "PaperMC__Paper:pass2.json" → "PaperMC/Paper"
-    key = filename.replace(":pass2.json", "")
+    # filename looks like "PaperMC__Paper:v3:pass2.json" → "PaperMC/Paper"
+    key = filename[: -len(_PASS2_SUFFIX)]
     return key.replace("__", "/")
 
 
@@ -38,7 +46,7 @@ def get_library(session: Session = Depends(get_session)):
     if not CACHE_DIR.exists():
         return results
 
-    for path in sorted(CACHE_DIR.glob("*:pass2.json")):
+    for path in sorted(CACHE_DIR.glob(f"*{_PASS2_SUFFIX}")):
         try:
             bundles = json.loads(path.read_text(encoding="utf-8"))
             repo = _repo_from_cache_key(path.name)

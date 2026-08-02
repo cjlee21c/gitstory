@@ -1,0 +1,352 @@
+[
+  {
+    "story_id": "kitao/pyxel#529",
+    "metadata": {
+      "title": "Fixed the issue of gbk encoding format compatibility and drive path on Windows when app2exe was executed",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-04-01T12:27:46Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "#521 \r\nFixed the issue of gbk encoding format compatibility and drive path on Windows when app2exe was executed"
+    },
+    "discussion_timeline": [
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "The error message:**UnicodeDecodeError: 'gbk' codec can't decode byte 0xbb in position 515: illegal multibyte sequence**,the content of the \".py\" file may contain characters in non-GBK encoded formats such as Chinese,find the file reading method and add a compatible encoding format\"utf8\"\r\nThe error message:**ValueError: path is on mount 'C:', start on mount 'E:'**,it is possible that `os.path.dirname` and `os.path.abspath` was used in the \".py\" file,the issue is triggered when the code is packaged",
+        "timestamp": "2024-03-20T09:39:49Z"
+      },
+      {
+        "author": "merwok",
+        "role": "CONTRIBUTOR",
+        "body": "There is a function intended to open Python files respecting the encoding declaration: https://docs.python.org/3/library/tokenize.html#tokenize.open",
+        "timestamp": "2024-03-21T01:12:16Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "So this modification could be written more simply?",
+        "timestamp": "2024-03-21T02:39:41Z"
+      },
+      {
+        "author": "merwok",
+        "role": "CONTRIBUTOR",
+        "body": "Yes, it would be simpler (one line of code), faster (one try) and correct in more cases (supporting all encodings that Python supports, not only locale encoding and UTF-8 as in the current PR)",
+        "timestamp": "2024-03-21T03:02:07Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "I re-analyzed the encoding error(**UnicodeDecodeError: 'gbk' codec can't decode byte 0xbb in position 515: illegal multibyte sequence**).This is because the default encoding format of the Windows system is gbk.The default encoding format for Python3 is UTF8,when using the python reading method `open()`,if no encoding is specified, the default encoding format of the operating system will be used,causes the UTF8 file to be read using the gbk format.The default encoding for Mac and Linux is UTF8,so add `encoding=\"utf8\"` when reading a file may be more compatible",
+        "timestamp": "2024-03-21T03:42:17Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "About #521 ,there are many possible causes,it looks like the program is trying to find a relative path between the two directories, and they don't exist because they're on different drives.This is usually due to the use of `os.path.dirname` and `os.path.abspath` in python code, but it can also be a Windows issue or a pyinstaller issue.This is hard to judge, so try an absolute path if finding a relative path fails",
+        "timestamp": "2024-03-21T04:07:13Z"
+      },
+      {
+        "author": "merwok",
+        "role": "CONTRIBUTOR",
+        "body": "But Python modules can use many encodings, not only UTF-8.\r\nWhy not use the function that is made for this?",
+        "timestamp": "2024-03-21T13:52:18Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "I've tried this suggestion, but it doesn't simply open the file with the encoding of the file,tokenize.open(filename) using the encoding detected by [detect_encoding()](https://docs.python.org/3/library/tokenize.html#tokenize.detect_encoding).This  function is used to detect the encoding that should be used to decode a Python source file,it detects the encoding from the presence of a UTF-8 BOM or an encoding cookie,if no encoding is specified, then the default of 'utf-8' will be returned.So if the file encoding is not utf8, you must set the encoding cookie, otherwise the SyntaxError is wrong.\r\nIt's just a default encoding conflict under Windows, specifying UTF8 may have less impact.Using tokenize.open requires a programmer to have good code specifications",
+        "timestamp": "2024-03-22T07:07:16Z"
+      },
+      {
+        "author": "merwok",
+        "role": "CONTRIBUTOR",
+        "body": "> if the file encoding is not utf8, you must set the encoding cookie\r\n\r\nAbsolutely ‑ this is required for a Python module. There is no default to platform default encoding, Python defines that the default is UTF-8. This is not about best practices, but base requirements.",
+        "timestamp": "2024-03-22T22:43:58Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Has this discussion been settled?\r\nI haven't had time to properly review it yet, but I would like to know if the current code is the best and most realistic solution.",
+        "timestamp": "2024-03-28T22:36:04Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "The current changes are working well in my project.The path issue just adds one more attempt.Regarding encoding, specifying the UTF8 encoding format is the most convenient change for me...",
+        "timestamp": "2024-03-29T09:24:13Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "@EurynomeKeros Sorry, I checked the changes and I don't understand why `abspath` is used when `relpath` failed for avoiding a encoding conflict. Could you explain the reason clearly again?",
+        "timestamp": "2024-04-01T02:01:46Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "@kitao This is the issue mentioned in #521 ,which is also caused by Windows.Some versions of Windows, such as win10, will generate temporary files under **C:\\Users\\xxx\\AppData\\Local\\Temp** when the application is executed.When you run the pyxel project, it is actually executed in this directory under the **C:** drive.Executing `app2exe `uses `relpath `to find the file, which is a relative path, if the pyxel project is on a drive other than the **C:** drive, such as the **E:** drive, and the `from xxx import xxx` syntax is used in the .py file,then it will cause an error **ValueError: path is on mount 'C:', start on mount 'E:'**,because the relative path between the different drive paths cannot be provided.At this point, try to use `abspath `to provide an absolute path so that Pyxel can find the file",
+        "timestamp": "2024-04-01T09:46:34Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you for your reply. Let me ask some questions.\r\nQ1: So `relpath/abspath` modification is nothing to do with the encoding issues?\r\nQ2:  Try to use `relpath` first is necessary process? What happens if just replace `relpath` into `abspath`.\r\nQ3: `relpath` is used in _list_imported_modules function several times. Modifying one line is enough?\r\nThank you.\r\n\r\n",
+        "timestamp": "2024-04-01T09:57:00Z"
+      },
+      {
+        "author": "EurynomeKeros",
+        "role": "CONTRIBUTOR",
+        "body": "R1:The `relpath/abspath` modification has nothing to do with coding issues.\r\nR2,R3:Use `relpath` in the **_list_imported_modules** function to find the `import` and `from...import` the imported module in .py file.I replaced the `relpath` used by this function with `abspath` to make sure that the module was found.",
+        "timestamp": "2024-04-01T12:12:56Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you. I'll try to use your modification.",
+        "timestamp": "2024-04-01T12:28:21Z"
+      },
+      {
+        "author": "merwok",
+        "role": "CONTRIBUTOR",
+        "body": "The encoding change will cause issues on windows, where saving files does not default to utf-8.",
+        "timestamp": "2024-04-01T16:20:01Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f222f4a",
+        "message": "Non-gbk format (\"such as Chinese\") encoding compatibility and Windows drive path issues when executing app2exe",
+        "author": "EurynomeKeros",
+        "timestamp": "2024-03-20T08:56:16Z"
+      },
+      {
+        "sha": "ffccaec",
+        "message": "Merge branch 'kitao:main' into main",
+        "author": "EurynomeKeros",
+        "timestamp": "2024-03-21T02:49:46Z"
+      },
+      {
+        "sha": "d5f246f",
+        "message": "Fixed the issue of gbk encoding format compatibility and drive path on Windows when app2exe was executed",
+        "author": "EurynomeKeros",
+        "timestamp": "2024-03-21T03:00:14Z"
+      },
+      {
+        "sha": "4e764d4",
+        "message": "Fixed the issue of gbk encoding format compatibility and drive path on Windows when app2exe was executed",
+        "author": "EurynomeKeros",
+        "timestamp": "2024-03-21T03:49:44Z"
+      },
+      {
+        "sha": "5b7d083",
+        "message": "Fixed the issue of gbk encoding format compatibility and drive path on Windows when app2exe was executed",
+        "author": "EurynomeKeros",
+        "timestamp": "2024-04-01T11:56:06Z"
+      }
+    ]
+  },
+  {
+    "story_id": "kitao/pyxel#334",
+    "metadata": {
+      "title": "Fix PermissionError to delete tempdirectory",
+      "labels": [],
+      "qualities": [
+        "deployability",
+        "availability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-12-12T10:57:41Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "When exiting after playing pyxapp, an error occurs that the temporary directory cannot be deleted.\r\nIt seemed that the temporary directory could not be deleted without terminating the process, so I decided to run it in a sub-process."
+    },
+    "discussion_timeline": [
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you!",
+        "timestamp": "2021-12-12T10:57:50Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "@hadamak\r\nOn Windows and standalone version of Pyxel 1.6.0,\r\n`TypeError: spawn_main() missing 1 required positional argument: 'pipe_handle'` error occurred.\r\nDo you have any idea how handle this error?\r\nThis doesn't occur on my Mac and Linux environment.\r\nAny information is welcome. Thank you.",
+        "timestamp": "2022-01-09T14:46:36Z"
+      },
+      {
+        "author": "hadamak",
+        "role": "CONTRIBUTOR",
+        "body": "@kitao \r\nIt seems to be a symptom specific to PyOxidizer.\r\n\r\nThe Python interpreter environment, created by the\r\n` pyoxidizer init-config-file pyapp`\r\n\r\nI have confirmed that I get the same error with minimal codes such as\r\n`>>> import multiprocessing`\r\n`>>> p = multiprocessing.Process(target=print, args=('work...',))`\r\n`>>> p.start()`\r\n\r\nThis does not happen with other interpreters or executables created with cxFreeze.\r\n\r\nPerhaps this is the commit to the issue.\r\nhttps://github.com/indygreg/PyOxidizer/commit/383e3f0bbb4c2a063579e45c0415378095b85ad3",
+        "timestamp": "2022-01-11T18:16:48Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you for your confirmation.\n\nNow I understand why it happened on Windows.\n\nThe version of it on Window was slightly old, because I installed it with pip command for Windows.\nAnd for other platforms, the versions are the latest.\n\nI’ll install the PyOxidizer with cargo command on Windows to built it from source code, and test.\n\nThank you!\n\n> 2022/01/12 3:16、hadamak ***@***.***>のメール:\n> \n> \n> @kitao <https://github.com/kitao>\n> It seems to be a symptom specific to PyOxidizer.\n> \n> The Python interpreter environment, created by the\n> pyoxidizer init-config-file pyapp\n> \n> I have confirmed that I get the same error with minimal codes such as\n> >>> import multiprocessing\n> >>> p = multiprocessing.Process(target=print, args=('work...',))\n> >>> p.start()\n> \n> This does not happen with other interpreters or executables created with cxFreeze.\n> \n> Perhaps this is the commit to the issue.\n> ***@***.*** <https://github.com/indygreg/PyOxidizer/commit/383e3f0bbb4c2a063579e45c0415378095b85ad3>\n> —\n> Reply to this email directly, view it on GitHub <https://github.com/kitao/pyxel/pull/334#issuecomment-1010234887>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AAFFXESVH43VHZIZ6DDIHBTUVRXZXANCNFSM5J4AVAJQ>.\n> Triage notifications on the go with GitHub Mobile for iOS <https://apps.apple.com/app/apple-store/id1477376905?ct=notification-email&mt=8&pt=524675> or Android <https://play.google.com/store/apps/details?id=com.github.android&referrer=utm_campaign%3Dnotification-email%26utm_medium%3Demail%26utm_source%3Dgithub>. \n> You are receiving this because you were mentioned.\n> \n\n",
+        "timestamp": "2022-01-12T00:58:34Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Unfortunately the latest version of PyOxidizer doesn’t work either. \n\n> 2022/01/12 9:58、Takashi Kitao ***@***.***>のメール:\n> \n> Thank you for your confirmation.\n> \n> Now I understand why it happened on Windows.\n> \n> The version of it on Window was slightly old, because I installed it with pip command for Windows.\n> And for other platforms, the versions are the latest.\n> \n> I’ll install the PyOxidizer with cargo command on Windows to built it from source code, and test.\n> \n> Thank you!\n> \n>> 2022/01/12 3:16、hadamak ***@***.*** ***@***.***>>のメール:\n>> \n>> \n>> @kitao <https://github.com/kitao>\n>> It seems to be a symptom specific to PyOxidizer.\n>> \n>> The Python interpreter environment, created by the\n>> pyoxidizer init-config-file pyapp\n>> \n>> I have confirmed that I get the same error with minimal codes such as\n>> >>> import multiprocessing\n>> >>> p = multiprocessing.Process(target=print, args=('work...',))\n>> >>> p.start()\n>> \n>> This does not happen with other interpreters or executables created with cxFreeze.\n>> \n>> Perhaps this is the commit to the issue.\n>> ***@***.*** <https://github.com/indygreg/PyOxidizer/commit/383e3f0bbb4c2a063579e45c0415378095b85ad3>\n>> —\n>> Reply to this email directly, view it on GitHub <https://github.com/kitao/pyxel/pull/334#issuecomment-1010234887>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AAFFXESVH43VHZIZ6DDIHBTUVRXZXANCNFSM5J4AVAJQ>.\n>> Triage notifications on the go with GitHub Mobile for iOS <https://apps.apple.com/app/apple-store/id1477376905?ct=notification-email&mt=8&pt=524675> or Android <https://play.google.com/store/apps/details?id=com.github.android&referrer=utm_campaign%3Dnotification-email%26utm_medium%3Demail%26utm_source%3Dgithub>. \n>> You are receiving this because you were mentioned.\n>> \n> \n\n",
+        "timestamp": "2022-01-12T02:51:40Z"
+      },
+      {
+        "author": "hadamak",
+        "role": "CONTRIBUTOR",
+        "body": "難しい話になってきたので日本語で失礼します。\r\npyoxidizer 0.20.0-preをビルドして確認しましたが先述のテストコードでやはりエラーが出るので、さしあたっては先におっしゃられていた通りmultiprocessingではない別の方法で一時ディレクトリの問題を解決する方法を探った方が良いかもしれません。\r\npyxel1.16.1で確認したところ、run_pathでpyxelが起動されたあとメインウィンドウを閉じると、run_path以降のコードに戻って来ていません。パーミッションエラーは出ませんがwith節の後始末であるはずの一時ファイル・ディレクトリの削除も全く行われません。別プロセスで起動する以外に解決する方法がわかりませんでした…。",
+        "timestamp": "2022-01-12T11:01:55Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "はい、Windowsではpython playコマンドが一切動かない、\r\nというのはさすがに不具合としてまずいので、1.16.1で（一旦）\r\n別プロセスの起動処理を削除しています。Pyxelの修了処理ではexitを\r\n呼ぶ形になっているため結果Pythonに処理は戻っていません。\r\n\r\nそれでも一時ディレクトリがどこかのタイミングで消えてくれれば\r\n（例：次回実行時、マシン再起動時等）とも思っていたのですが、\r\nそれが難しいようなら、いっそ固定のディレクトリ名等にしてしまった\r\n方が良いのかもしれませんね。\r\n\r\natexitで補足する手段もあるかもしれないのですが、そもそも\r\nユーザーにプロセスを強制終了されるとどうやっても対応できない\r\nみたいな書き込みも見たので対応に迷っています。\r\n\r\n\r\n> 2022/01/12 20:02、hadamak ***@***.***>のメール:\r\n> \r\n> \r\n> 難しい話になってきたので日本語で失礼します。\r\n> pyoxidizer 0.20.0-preをビルドして確認しましたが先述のテストコードでやはりエラーが出るので、さしあたっては先におっしゃられていた通りmultiprocessingではない別の方法で一時ディレクトリの問題を解決する方法を探った方が良いかもしれません。\r\n> pyxel1.16.1で確認したところ、run_pathでpyxelが起動されたあとメインウィンドウを閉じると、run_path以降のコードに戻って来ていません。パーミッションエラーは出ませんがwith節の後始末であるはずの一時ファイル・ディレクトリの削除も全く行われません。別プロセスで起動する以外に解決する方法がわかりませんでした…。\r\n> \r\n> —\r\n> Reply to this email directly, view it on GitHub <https://github.com/kitao/pyxel/pull/334#issuecomment-1010920130>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AAFFXEXCEAH6MVMC5SNDOX3UVVNS5ANCNFSM5J4AVAJQ>.\r\n> Triage notifications on the go with GitHub Mobile for iOS <https://apps.apple.com/app/apple-store/id1477376905?ct=notification-email&mt=8&pt=524675> or Android <https://play.google.com/store/apps/details?id=com.github.android&referrer=utm_campaign%3Dnotification-email%26utm_medium%3Demail%26utm_source%3Dgithub>. \r\n> You are receiving this because you were mentioned.\r\n> \r\n\r\n",
+        "timestamp": "2022-01-12T11:59:45Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "続報です。\r\nPythonのatexitで捕捉する、Rust側でexitの使用をなくす、\r\nなどいくつか方法を試みましたが、どれも解決には至れませんでした。\r\n\r\n何らか作業フォルダを（できれば各PFのtempフォルダ以下に）作って、\r\nそこにPIDを名前にしたフォルダをアプリごとに作成する運用にして、\r\nPyxel起動時に、存在しないPIDのフォルダ名であれば掃除（削除）する\r\nみたいな運用がいいのかもしれません。\r\n\r\n現在はマルチプラットフォーム対応でtempフォルダを取得する方法を\r\n調査しているところです。\r\n\r\n> 2022/01/12 20:59、Takashi Kitao ***@***.***>のメール:\r\n> \r\n> はい、Windowsではpython playコマンドが一切動かない、\r\n> というのはさすがに不具合としてまずいので、1.16.1で（一旦）\r\n> 別プロセスの起動処理を削除しています。Pyxelの修了処理ではexitを\r\n> 呼ぶ形になっているため結果Pythonに処理は戻っていません。\r\n> \r\n> それでも一時ディレクトリがどこかのタイミングで消えてくれれば\r\n> （例：次回実行時、マシン再起動時等）とも思っていたのですが、\r\n> それが難しいようなら、いっそ固定のディレクトリ名等にしてしまった\r\n> 方が良いのかもしれませんね。\r\n> \r\n> atexitで補足する手段もあるかもしれないのですが、そもそも\r\n> ユーザーにプロセスを強制終了されるとどうやっても対応できない\r\n> みたいな書き込みも見たので対応に迷っています。\r\n> \r\n> \r\n>> 2022/01/12 20:02、hadamak ***@***.*** ***@***.***>>のメール:\r\n>> \r\n>> \r\n>> 難しい話になってきたので日本語で失礼します。\r\n>> pyoxidizer 0.20.0-preをビルドして確認しましたが先述のテストコードでやはりエラーが出るので、さしあたっては先におっしゃられていた通りmultiprocessingではない別の方法で一時ディレクトリの問題を解決する方法を探った方が良いかもしれません。\r\n>> pyxel1.16.1で確認したところ、run_pathでpyxelが起動されたあとメインウィンドウを閉じると、run_path以降のコードに戻って来ていません。パーミッションエラーは出ませんがwith節の後始末であるはずの一時ファイル・ディレクトリの削除も全く行われません。別プロセスで起動する以外に解決する方法がわかりませんでした…。\r\n>> \r\n>> —\r\n>> Reply to this email directly, view it on GitHub <https://github.com/kitao/pyxel/pull/334#issuecomment-1010920130>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AAFFXEXCEAH6MVMC5SNDOX3UVVNS5ANCNFSM5J4AVAJQ>.\r\n>> Triage notifications on the go with GitHub Mobile for iOS <https://apps.apple.com/app/apple-store/id1477376905?ct=notification-email&mt=8&pt=524675> or Android <https://play.google.com/store/apps/details?id=com.github.android&referrer=utm_campaign%3Dnotification-email%26utm_medium%3Demail%26utm_source%3Dgithub>. \r\n>> You are receiving this because you were mentioned.\r\n>> \r\n> \r\n\r\n",
+        "timestamp": "2022-01-14T03:15:36Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "結局Pyxel用のワークディレクトリを作成して、\r\n使われていないフォルダを削除する形にすることで対応行いました。\r\n\r\n最新版のPyxelにてリリース済みです。\r\n\r\n> 2022/01/14 12:15、Takashi Kitao ***@***.***>のメール:\r\n> \r\n> 続報です。\r\n> Pythonのatexitで捕捉する、Rust側でexitの使用をなくす、\r\n> などいくつか方法を試みましたが、どれも解決には至れませんでした。\r\n> \r\n> 何らか作業フォルダを（できれば各PFのtempフォルダ以下に）作って、\r\n> そこにPIDを名前にしたフォルダをアプリごとに作成する運用にして、\r\n> Pyxel起動時に、存在しないPIDのフォルダ名であれば掃除（削除）する\r\n> みたいな運用がいいのかもしれません。\r\n> \r\n> 現在はマルチプラットフォーム対応でtempフォルダを取得する方法を\r\n> 調査しているところです。\r\n> \r\n>> 2022/01/12 20:59、Takashi Kitao ***@***.*** ***@***.***>>のメール:\r\n>> \r\n>> はい、Windowsではpython playコマンドが一切動かない、\r\n>> というのはさすがに不具合としてまずいので、1.16.1で（一旦）\r\n>> 別プロセスの起動処理を削除しています。Pyxelの修了処理ではexitを\r\n>> 呼ぶ形になっているため結果Pythonに処理は戻っていません。\r\n>> \r\n>> それでも一時ディレクトリがどこかのタイミングで消えてくれれば\r\n>> （例：次回実行時、マシン再起動時等）とも思っていたのですが、\r\n>> それが難しいようなら、いっそ固定のディレクトリ名等にしてしまった\r\n>> 方が良いのかもしれませんね。\r\n>> \r\n>> atexitで補足する手段もあるかもしれないのですが、そもそも\r\n>> ユーザーにプロセスを強制終了されるとどうやっても対応できない\r\n>> みたいな書き込みも見たので対応に迷っています。\r\n>> \r\n>> \r\n>>> 2022/01/12 20:02、hadamak ***@***.*** ***@***.***>>のメール:\r\n>>> \r\n>>> \r\n>>> 難しい話になってきたので日本語で失礼します。\r\n>>> pyoxidizer 0.20.0-preをビルドして確認しましたが先述のテストコードでやはりエラーが出るので、さしあたっては先におっしゃられていた通りmultiprocessingではない別の方法で一時ディレクトリの問題を解決する方法を探った方が良いかもしれません。\r\n>>> pyxel1.16.1で確認したところ、run_pathでpyxelが起動されたあとメインウィンドウを閉じると、run_path以降のコードに戻って来ていません。パーミッションエラーは出ませんがwith節の後始末であるはずの一時ファイル・ディレクトリの削除も全く行われません。別プロセスで起動する以外に解決する方法がわかりませんでした…。\r\n>>> \r\n>>> —\r\n>>> Reply to this email directly, view it on GitHub <https://github.com/kitao/pyxel/pull/334#issuecomment-1010920130>, or unsubscribe <https://github.com/notifications/unsubscribe-auth/AAFFXEXCEAH6MVMC5SNDOX3UVVNS5ANCNFSM5J4AVAJQ>.\r\n>>> Triage notifications on the go with GitHub Mobile for iOS <https://apps.apple.com/app/apple-store/id1477376905?ct=notification-email&mt=8&pt=524675> or Android <https://play.google.com/store/apps/details?id=com.github.android&referrer=utm_campaign%3Dnotification-email%26utm_medium%3Demail%26utm_source%3Dgithub>. \r\n>>> You are receiving this because you were mentioned.\r\n>>> \r\n>> \r\n> \r\n\r\n",
+        "timestamp": "2022-01-16T04:43:42Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "28b2b26",
+        "message": "Fix PermissionError to delete tempdirectory",
+        "author": "ls1916",
+        "timestamp": "2021-12-12T08:32:00Z"
+      }
+    ]
+  },
+  {
+    "story_id": "kitao/pyxel#78",
+    "metadata": {
+      "title": "Reduce gif size",
+      "labels": [],
+      "qualities": [
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-10-16T22:43:14Z",
+      "reviewers": [],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "こんにちは :wave:!\r\n\r\nThis PR is an attempt to address #7 (The size of the captured gif animation is too large than expected).\r\n\r\nThe idea is to compare to frames, and only save the difference between them.\r\n\r\n<img src=\"https://i.imgur.com/V8DtWkL.png\" width=200><img src=\"https://i.imgur.com/eAFEDqq.png\" width=200><img src=\"https://i.imgur.com/nkQ9UOS.png\" width=200>\r\n\r\nI've added a new constant: `GIF_TRANSPARENCY_COLOR` which is an extra color I've added to the palette to use as the color for transparency in the gif. I've set this to pure red for now, if you want it as something else, let me know.\r\n\r\nSince working on this I noticed you created `utilities.py`. Would you prefer `_get_color_palette_index` and `_difference` to live there?\r\n\r\nTo get this to work, I have had to change the `optimize` kwarg when creating the gif to `False`. This is because with optimisation, any unused colors are removed from the palette. This was causing the `GIF_TRANSPARENCY_COLOR` to move to difference palette indexes for each frame, so it wasn't working correctly.\r\n\r\nThe exception here is simple gifs (hello pyxel example) have grown in size as they benefited from `optimize=True`.\r\n\r\n\r\n|  master branch        |  reduced               |\r\n|-----------------------|------------------------|\r\n|  ![][master-jump]     |  ![][reduced-jump]     |\r\n| 14.7 MB               | 11.0 MB                |\r\n|  ![][master-hello]    |  ![][reduced-hello]    |\r\n| 699 KB                | 1.35 MB                |\r\n|  ![][master-bubbles]  |  ![][reduced-bubbles]  |\r\n| 8.38 MB               | 6.19 MB                |\r\n\r\n\r\n[master-jump]: https://i.imgur.com/hX9bg9t.gif\r\n[master-hello]: https://i.imgur.com/CQFLcNj.gif\r\n[master-bubbles]: https://i.imgur.com/jOxHA3m.gif\r\n\r\n[reduced-jump]: https://i.imgur.com/BIWML2a.gif\r\n[reduced-hello]: https://i.imgur.com/iC10rLn.gif\r\n[reduced-bubbles]: https://i.imgur.com/9BRgGc8.gif\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you for the suggestion! I don't have an idea of this and it's very impressive. I'm really appreciate it.\r\n\r\nHowever, please let me say selfish. Please check the size of each gif animation of the following link:\r\nhttps://github.com/kitao/pyxel/tree/master/pyxel/examples/screenshots\r\n\r\nThese are the gif I re-compressed with the online gif animation tool and its sizes are less than 1MB.\r\nDo you have any idea how to compress gifs to this level? I'm wondering I need to use other python module to make gif animation instead of PIL.",
+        "timestamp": "2018-10-16T01:43:36Z"
+      },
+      {
+        "author": "alxwrd",
+        "role": "CONTRIBUTOR",
+        "body": "@kitao, that is better! Do you have a link to the website you used? I'd like to compare the inputs and outputs to see what it's doing.",
+        "timestamp": "2018-10-16T07:16:44Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Here's the link:\r\nhttps://www.iloveimg.com/ja/compress-image/compress-gif\r\n(Sorry, it's Japanese site)",
+        "timestamp": "2018-10-16T07:22:30Z"
+      },
+      {
+        "author": "alxwrd",
+        "role": "CONTRIBUTOR",
+        "body": "@kitao So after looking into [iloveimg.com](www.iloveimg.com), I am certain it's using the same compression as [ezgif.com/optimize](ezgif.com/optimize).\r\n\r\n```shell\r\n$ ls -lh *.gif\r\n-rw-r--r-- 1 alxwrd 1049089 2.3M Oct 16 14:14 ezgif.gif\r\n-rw-r--r-- 1 alxwrd 1049089 2.3M Oct 16 14:14 iloveimg.gif\r\n```\r\n\r\nezgif.com claims:\r\n> \"GIF compressor optimizes GIFs using gifsicle and [Lossy GIF](https://github.com/kornelski/giflossy) encoder, which implements lossy LZW compression.\"\r\n\r\ngifsicle (and its fork giflossy) is a C library and, as far as I can see, there isn't a Python module for it. (The ones I could find require gifsicle to be installed, they don't have Python bindings for the C library).\r\n\r\nI am about to push some changes to slightly reduce the size of the files a bit more by cleaning up the palette.\r\n\r\n|  previously        |  now                 |\r\n|-----------------------|------------------------|\r\n|  ![][master-jump]     |  ![][master-jump]     |\r\n| 11.0 MB               | 10.5 MB                |\r\n|  ![][master-hello]    |  ![][master-hello]    |\r\n| 1.35 MB                |  802 KB               |\r\n|  ![][master-bubbles]  |  ![][master-bubbles]  |\r\n| 6.19 MB               |  5.6 MB               |\r\n\r\n\r\n[master-jump]: https://i.imgur.com/hX9bg9tt.gif\r\n[master-hello]: https://i.imgur.com/CQFLcNjt.gif\r\n[master-bubbles]: https://i.imgur.com/jOxHA3mt.gif\r\n\r\n\r\n",
+        "timestamp": "2018-10-16T21:44:46Z"
+      },
+      {
+        "author": "kitao",
+        "role": "OWNER",
+        "body": "Thank you! Let's talk about other ideas, especially how to use gifsicle in #80",
+        "timestamp": "2018-10-16T22:50:18Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "fddb8f4",
+        "message": "only add image difference to gif",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-09T11:53:38Z"
+      },
+      {
+        "sha": "03150db",
+        "message": "make pyxel palette optional",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-09T15:17:42Z"
+      },
+      {
+        "sha": "c74f37c",
+        "message": "replace transparent sections with pure red",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-09T15:32:53Z"
+      },
+      {
+        "sha": "cb3b2e5",
+        "message": "get palette index of red and use for transparency",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-09T15:33:47Z"
+      },
+      {
+        "sha": "4f9b799",
+        "message": "add transparency color as constant",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-11T21:15:58Z"
+      },
+      {
+        "sha": "d60bbb2",
+        "message": "use transparency color, extract get palette index",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-11T21:16:54Z"
+      },
+      {
+        "sha": "47dc0ca",
+        "message": "remove optimize as it messes up gif palette",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-11T21:33:25Z"
+      },
+      {
+        "sha": "90da4d7",
+        "message": "remove kwarg",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-12T09:48:50Z"
+      },
+      {
+        "sha": "3513ed7",
+        "message": "extract out creating palette list",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-16T21:25:24Z"
+      },
+      {
+        "sha": "887d282",
+        "message": "apply reduced palette to gif",
+        "author": "Alex Ward",
+        "timestamp": "2018-10-16T21:25:56Z"
+      }
+    ]
+  }
+]

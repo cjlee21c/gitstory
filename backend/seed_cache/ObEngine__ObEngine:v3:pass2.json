@@ -1,0 +1,849 @@
+[
+  {
+    "story_id": "ObEngine/ObEngine#323",
+    "metadata": {
+      "title": "Now you can use vcpkg to get some of the dependencies.",
+      "labels": [
+        "hacktoberfest-accepted"
+      ],
+      "qualities": [
+        "deployability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-12-14T14:41:30Z",
+      "reviewers": [
+        "Sygmei",
+        "TerensTare"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "This feature can be enabled by defining the `USE_VCPKG` flag when running `cmake ..` (so instead of just `cmake ..`, do `cmake -DUSE_VCPKG=ON ..`). Tested on Windows 10 with Visual Studio 2019 and the latest vcpkg commit."
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] So if we use VCPKG the flag won't be set ?",
+        "timestamp": "2020-10-06T23:16:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Wrong indentation ?",
+        "timestamp": "2020-10-06T23:16:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Can we use `target_link_libraries` instead ?",
+        "timestamp": "2020-10-06T23:18:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] I added that here because Vcpkg has support for tinydir",
+        "timestamp": "2020-10-07T05:59:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] Yes, my bad sorry.",
+        "timestamp": "2020-10-07T05:59:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] That is what I initially used, but I got an error saying that the target wasn't built by this CMakeLists.txt",
+        "timestamp": "2020-10-07T06:00:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] If `OBE_USE_VCPKG` is set to `TRUE` the line\r\n```cmake\r\nset(USE_FILESYSTEM_FALLBACK TRUE CACHE BOOL \"Use filesystem fallback\" FORCE)\r\n```\r\nwill never be executed.\r\nThen, in [src/Core/CMakeLists.txt#L38](https://github.com/Sygmei/ObEngine/blob/master/src/Core/CMakeLists.txt#L38) it will fail to do the appropriate actions.",
+        "timestamp": "2020-10-07T06:01:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] Fix coming right now",
+        "timestamp": "2020-10-07T06:03:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Yup, the `target_link_libraries` are done in a separate [`CMakeLists.txt`](https://github.com/Sygmei/ObEngine/blob/master/src/Core/CMakeLists.txt#L26) (which is the CMakeLists.txt for ÖbEngineCore).",
+        "timestamp": "2020-10-07T06:03:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] Hmm.. How can we make the other `CMakeLists.txt` know that we are using vcpkg?",
+        "timestamp": "2020-10-07T06:09:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Variables are shared between the `CMakeLists.txt` so `OBE_USE_VCPKG` should be accessible from there",
+        "timestamp": "2020-10-07T06:11:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] Is there a non-header-only version available ?",
+        "timestamp": "2020-10-07T06:34:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/CMakeLists.txt] I think vcpkg supports only the header-only version.",
+        "timestamp": "2020-10-07T06:38:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/CMakeLists.txt] At least, on my pc",
+        "timestamp": "2020-10-07T06:39:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] It seems you are linking the two versions of the library, the standard one and the header only version.\r\nCheck out this link : https://fmt.dev/dev/usage.html#usage-with-cmake\r\nDoes removing the `fmt::fmt-header-only` and keeping `fmt::fmt` works ?",
+        "timestamp": "2020-10-07T06:41:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/CMakeLists.txt] Oh, I thought you were talking about sol2. I guess fmt will still work, there are places on my project where I use `fmt/core.h`, or `fmt/format.h` alone, so there are multiple headers. I used this method because vcpkg suggested it.",
+        "timestamp": "2020-10-07T06:44:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] Same for `spdlog` :) I'd rather use the non-header-only version for faster build times",
+        "timestamp": "2020-10-07T06:48:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Would it be possible to wrap the whole VCPKG initialization into a script in the [`cmake`](https://github.com/Sygmei/ObEngine/tree/master/cmake) directory ?",
+        "timestamp": "2020-10-07T09:36:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Can we remove those now that they have been added into the [`src/Core/CMakeLists.txt`](https://github.com/Sygmei/ObEngine/blob/master/src/Core/CMakeLists.txt) ?",
+        "timestamp": "2020-10-07T09:37:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] `target_link_libraries` :) ?",
+        "timestamp": "2020-10-09T20:19:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[extlibs/vili/CMakeLists.txt] Do you really need to do a `find_package` again ?",
+        "timestamp": "2020-10-09T20:20:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] `find_package` in top-level CMakeLists.txt and then use the with `target_link_libraries` on targets ?",
+        "timestamp": "2020-10-09T20:21:47Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] Why is this needed ? `target_link_libraries` should add the necessary include paths to the target ?",
+        "timestamp": "2020-10-09T20:22:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[CMakeLists.txt] It's on the main file, but I doubt it will need those checks and links.",
+        "timestamp": "2020-10-09T20:22:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "[extlibs/vili/CMakeLists.txt] Yes, you need it there unfortunately. A wave of errors followed when that wasn't set. I can try to remove that from the Core CmakeList",
+        "timestamp": "2020-10-09T20:26:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] We should check the condition\r\n```cmake\r\nif (APPLE OR USE_FILESYSTEM_FALLBACK)\r\n```\r\nthere too",
+        "timestamp": "2020-10-18T19:33:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[CMakeLists.txt] Why don't we require the version 2.5 anymore ?",
+        "timestamp": "2020-10-18T19:34:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[extlibs/vili/CMakeLists.txt] Since `fmt` is required by both vili and ÖbEngineCore, I think the `find_package` should be located in the root `CMakeLists.txt` ?",
+        "timestamp": "2020-10-18T19:36:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "Good job ! Thanks a lot for taking the time to integrate vcpkg into ÖbEngine :)",
+        "timestamp": "2020-10-22T14:14:17Z",
+        "source": "review"
+      },
+      {
+        "author": "TerensTare",
+        "role": "CONTRIBUTOR",
+        "body": "I noticed there were some conflicts between the `CMakeLists.txt` I submitted on `src/Core` and the one provided by the engine. Please suggest anything as this is the first time I resolve conflicts.",
+        "timestamp": "2020-11-16T15:06:53Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "36bc720",
+        "message": "Now you can use vcpkg to get some of the dependencies.",
+        "author": "Terens Tare",
+        "timestamp": "2020-10-06T19:25:50Z"
+      },
+      {
+        "sha": "e6d30e2",
+        "message": "Tried to fix a build error.",
+        "author": "terens",
+        "timestamp": "2020-10-06T19:33:53Z"
+      },
+      {
+        "sha": "1409b3e",
+        "message": "Update CMakeLists.txt\n\nFixed wrong indentation on CMakeLists.txt",
+        "author": "terens",
+        "timestamp": "2020-10-07T06:01:28Z"
+      },
+      {
+        "sha": "2f5f015",
+        "message": "Update CMakeLists.txt\n\nFixed error related to filesystem callback",
+        "author": "terens",
+        "timestamp": "2020-10-07T06:04:23Z"
+      },
+      {
+        "sha": "d598750",
+        "message": "Update CMakeLists.txt\n\nUpdated src/Core/CMakeLists.txt to match vcpkg usage. Fixes #323",
+        "author": "terens",
+        "timestamp": "2020-10-07T06:25:15Z"
+      },
+      {
+        "sha": "8e943b0",
+        "message": "Update CMakeLists.txt\n\nUse non-header version for fmt and spdlog",
+        "author": "terens",
+        "timestamp": "2020-10-07T06:57:12Z"
+      },
+      {
+        "sha": "ab5f9be",
+        "message": "Update CMakeLists.txt\n\nUse non-header-only version for fmt and spdlog",
+        "author": "terens",
+        "timestamp": "2020-10-07T06:58:07Z"
+      },
+      {
+        "sha": "73e70bd",
+        "message": "Moved vcpkg-related checks to new .cmake file",
+        "author": "Terens Tare",
+        "timestamp": "2020-10-07T15:48:45Z"
+      },
+      {
+        "sha": "795304e",
+        "message": "(Hopefully) Finished vcpkg integration",
+        "author": "Terens Tare",
+        "timestamp": "2020-10-09T20:12:39Z"
+      },
+      {
+        "sha": "21523f2",
+        "message": "(Hopefully) Finished vcpkg integration - Part 2",
+        "author": "Terens Tare",
+        "timestamp": "2020-10-10T05:41:34Z"
+      },
+      {
+        "sha": "5c726ce",
+        "message": "Fixed some bugs",
+        "author": "Terens Tare",
+        "timestamp": "2020-10-19T08:31:22Z"
+      },
+      {
+        "sha": "20dc7f3",
+        "message": "Merge branch 'master' into patch-vcpkg",
+        "author": "terens",
+        "timestamp": "2020-11-16T14:47:33Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ObEngine/ObEngine#319",
+    "metadata": {
+      "title": "Encapsulate version into an object",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-10-08T11:06:06Z",
+      "reviewers": [
+        "kevle",
+        "Sygmei"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "Version information may now be encapsulated inside an object that can be compared.\r\nHere is a short break down on the changes of the individual commits which may be cherry-picked if only parts are desired:\r\n\r\n- 0cd06ae Introduces the Version class\r\n- 67bc173 Adds an instance of a Version object for the current repository state to obe::Config\r\n- f631218 Remove requirement for git to reside in PATH\r\n- 585927f Move configure_file mechanism into separate CMake file ( engine_git.cmake ) since it would only be run on reconfiguration otherwise."
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] Isn't ${ObEngine_SOURCE_DIR} a global variable ? Do we have to pass it as parameter ?",
+        "timestamp": "2020-10-04T15:44:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] Could we have \"?\" instead of \"-1\" ? Seems more clear to me",
+        "timestamp": "2020-10-04T15:46:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] Why configure the file as a custom target rather than during the CMake Configure ?",
+        "timestamp": "2020-10-04T15:51:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Config/Version.cpp] So technically I could instanciate version with : \r\n```cpp\r\nVersion a(\"x0.1.1\");\r\n```\r\n?",
+        "timestamp": "2020-10-04T15:53:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[tests/src/Config/VersionTests.cpp] Ah nice ! Some Units tests, ÖbEngine is seriously lacking in this field",
+        "timestamp": "2020-10-04T15:58:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Config/Exceptions.hpp] I'd rename it `InvalidVersionFormat` based on the way you use it ?",
+        "timestamp": "2020-10-04T15:59:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[cmake/engine_git.cmake] Versions are currently stored as 3 integers in C++, we can of course change this to a \"string\"-based storage.",
+        "timestamp": "2020-10-04T16:14:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[cmake/engine_git.cmake] This script is not included in the main CMakeLists.txt anymore but rather executed at build-time. Therefore some parameters have to be manually propagated.\r\nWhen using \"configure_file\" the files will only be updated during configure time. If you create a new commit and build your project, the changes will not be reflected in the build unless you reconfigure the CMake project.",
+        "timestamp": "2020-10-04T16:17:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[include/Core/Config/Exceptions.hpp] True, I will adapt this.",
+        "timestamp": "2020-10-04T16:18:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/CMakeLists.txt] See https://github.com/Sygmei/ObEngine/pull/319/files/07e3b92a527d79b1477f80b914d129f1688dfc8e#r499263010 for the reason.",
+        "timestamp": "2020-10-04T16:19:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/Config/Version.cpp] Yep, do you think we should be stricter?",
+        "timestamp": "2020-10-04T16:20:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "It seems that the CI fails because of this : \r\n```\r\nCMake Error at D:/a/ObEngine/ObEngine/cmake/engine_git.cmake:12 (string):\r\n    string sub-command REGEX, mode MATCH needs at least 5 arguments total to\r\n    command.\r\n```",
+        "timestamp": "2020-10-04T16:46:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] Ah ! Makes sense :)",
+        "timestamp": "2020-10-04T16:47:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] Or std::optional<int> but that seems overkill, let's stay with the -1 :)",
+        "timestamp": "2020-10-04T16:49:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Config/Version.hpp] Could be cool to have a\r\n```cpp\r\nconstexpr Version(std::string_view version);\r\n```\r\nconstructor :)",
+        "timestamp": "2020-10-04T16:51:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/CMakeLists.txt] Is it necessary ? I thought CMake's `configure_file` automatically generated directory structure / files as needed ?",
+        "timestamp": "2020-10-04T16:53:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Config/Version.cpp] I think so !",
+        "timestamp": "2020-10-04T16:54:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Core/CMakeLists.txt] You are right, does not seem to be necessary in this case.",
+        "timestamp": "2020-10-04T18:20:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] The cause of the CI fail is right here :+1:\r\n```\r\nCMake Error at /home/runner/work/ObEngine/ObEngine/cmake/engine_git.cmake:12 (string):\r\n  string sub-command REGEX, mode MATCH needs at least 5 arguments total to\r\n  command.\r\nCall Stack (most recent call first):\r\n  /home/runner/work/ObEngine/ObEngine/cmake/engine_git.cmake:78 (set_git_version)\r\n  /home/runner/work/ObEngine/ObEngine/cmake/engine_git.cmake:93 (configure_obengine_git)\r\nsrc/Core/CMakeFiles/ConfigureObEngineGit.dir/build.make:74: recipe for target 'src/Core/CMakeFiles/ConfigureObEngineGit' failed\r\n\r\nCMakeFiles/Makefile2:746: recipe for target 'src/Core/CMakeFiles/ConfigureObEngineGit.dir/all' failed\r\n```",
+        "timestamp": "2020-10-06T03:30:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[cmake/engine_git.cmake] Just a hint but that might happen when the `git` executable is not found, thus not matching the previous regex ?",
+        "timestamp": "2020-10-06T03:34:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[cmake/engine_git.cmake] I'll look into it.",
+        "timestamp": "2020-10-07T07:08:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "kevle",
+        "role": "CONTRIBUTOR",
+        "body": "[cmake/engine_git.cmake] It turned out that tags have not been fetched.",
+        "timestamp": "2020-10-07T17:38:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[.github/workflows/build.yml] Might be worth to port this patch on this file too since it also needs the version : https://github.com/Sygmei/ObEngine/blob/master/.github/workflows/artifacts.yml",
+        "timestamp": "2020-10-07T18:04:22Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f631218",
+        "message": "Use find_package to find Git (#294)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T10:15:38Z"
+      },
+      {
+        "sha": "0cd06ae",
+        "message": "Added version class (#294)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T13:32:16Z"
+      },
+      {
+        "sha": "67bc173",
+        "message": "Make version object available through\nobe::Config::OBENGINE_VERSION_OBJECT (#294)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T13:33:59Z"
+      },
+      {
+        "sha": "585927f",
+        "message": "Make sure version information is up-to-date without reconfigure (#294)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T14:01:54Z"
+      },
+      {
+        "sha": "07e3b92",
+        "message": "Create directory before touching file (#294)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T14:25:07Z"
+      },
+      {
+        "sha": "7fbe5ba",
+        "message": "Stricter string version conversion\nRenamed version exception to better reflect purpose (#319)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-04T16:34:30Z"
+      },
+      {
+        "sha": "5caa12a",
+        "message": "Remove clutter from tag output (#319)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-05T18:53:07Z"
+      },
+      {
+        "sha": "d3b44dd",
+        "message": "Use unknown version fallback in case of missing git tags (#319)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-07T17:33:55Z"
+      },
+      {
+        "sha": "3c2ad2e",
+        "message": "Also fetch tags (#319)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-07T17:37:17Z"
+      },
+      {
+        "sha": "32cef40",
+        "message": "Graceful git error handling (#319)",
+        "author": "Kevin Leonardic",
+        "timestamp": "2020-10-07T18:27:51Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ObEngine/ObEngine#352",
+    "metadata": {
+      "title": "Adds AABB filtering for collision check (closes #310)",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-04-02T06:35:29Z",
+      "reviewers": [
+        "Sygmei",
+        "Darnagof"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Transform/Rect.hpp] Duplicate of intersects method ?",
+        "timestamp": "2021-03-14T14:15:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Maybe put this code inside a private function (not a method) so it doesn't appear twice ?",
+        "timestamp": "2021-03-14T14:28:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Single `doesCollide` doesn't have bounding-box optimization anymore ?",
+        "timestamp": "2021-03-14T14:33:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[include/Core/Transform/Rect.hpp] It return a boolean if there is an intersection, but doesn't calculate the Rect intersection.",
+        "timestamp": "2021-03-14T18:41:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] The bounding-box optimization is already made in doesCollide(offset) and getMaximumDistanceBeforeCollision(offset). It avoids the process being made twice during collision detection.\r\nAn alternative would be to keep the optimization but add a boolean parameter to skip this process.",
+        "timestamp": "2021-03-14T18:55:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Transform/Rect.hpp] I'm not sure the overhead of `intersects` is worth doing another method where you can actually do :\r\n```cpp\r\nif (rect1.intersects(rect2))\r\n{\r\n   ...\r\n}\r\n```\r\nThanks to `std::optional` bool cast",
+        "timestamp": "2021-03-14T19:50:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Yup, I would keep the optimization, it's pretty useful when you want custom collision logic (such as climbing ladders etc..)",
+        "timestamp": "2021-03-14T19:52:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[include/Core/Transform/Rect.hpp] I made this function to avoid doing the Rect calculation of the intersection, because the AABB filter doesn't need it. I tried using doesIntersects() and intersects() on AABB filtering on a same benchmark scenario, and with doesIntersects() we get ~0.30% less Total CPU usage on getMaximumDistanceBeforeCollision().",
+        "timestamp": "2021-03-16T19:53:14Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "26328a0",
+        "message": "added aabb filter",
+        "author": "Darnagof",
+        "timestamp": "2021-02-21T21:08:44Z"
+      },
+      {
+        "sha": "37bb731",
+        "message": "cached bounding box",
+        "author": "Darnagof",
+        "timestamp": "2021-02-28T15:00:50Z"
+      },
+      {
+        "sha": "f2ea149",
+        "message": "replaced doesOverlap by doesIntersects",
+        "author": "Darnagof",
+        "timestamp": "2021-03-08T18:50:40Z"
+      },
+      {
+        "sha": "99f4214",
+        "message": "check collider != this",
+        "author": "Darnagof",
+        "timestamp": "2021-03-08T20:17:46Z"
+      },
+      {
+        "sha": "64e753e",
+        "message": "updated doesCollide",
+        "author": "Darnagof",
+        "timestamp": "2021-03-08T21:20:35Z"
+      },
+      {
+        "sha": "043cd64",
+        "message": "private aabbFilter function + renamed intersects to getIntersection",
+        "author": "Darnagof",
+        "timestamp": "2021-03-25T00:33:07Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ObEngine/ObEngine#274",
+    "metadata": {
+      "title": "Closes #271 - Add CollisionData struct",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-06-10T22:04:50Z",
+      "reviewers": [
+        "Sygmei",
+        "Darnagof"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "Added `CollisionData `struct, returned by `collider.getMaximumDistanceBeforeCollision`.\r\nNow a vector of touched colliders is sent to `OnCollide` callback.\r\nNow `collider.doesCollide()` return a vector of touched colliders."
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Collision/PolygonalCollider.hpp] Why not returning a CollisionData here too ?",
+        "timestamp": "2020-06-09T19:23:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Collision/Trajectory.hpp] Might be better to change \r\n```cpp\r\nUnitVector, std::vector<PolygonalCollider*>&\r\n```\r\nto\r\n```cpp\r\nCollisionData\r\n```",
+        "timestamp": "2020-06-09T19:26:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Bindings/Collision/Collision.cpp] Make it readonly please :)",
+        "timestamp": "2020-06-09T19:26:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Bindings/Collision/Collision.cpp] Also readonly",
+        "timestamp": "2020-06-09T19:27:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[include/Core/Collision/PolygonalCollider.hpp] Because `doesCollide` only check the colliders that can be touched in the offset, it doesn't return a new calculated offset (contrary to `getMaximumDistanceBeforeCollision`).",
+        "timestamp": "2020-06-09T19:49:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[include/Core/Collision/PolygonalCollider.hpp] You can always return a zero offset, it makes the API clearer and allows the user to benefit tof future methods of `CollisionData`.",
+        "timestamp": "2020-06-09T20:55:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "Good job ! You can now merge :)",
+        "timestamp": "2020-06-10T20:30:11Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d4f92eb",
+        "message": "Added CollisionData struct; Now send touched colliders to collision callbacks",
+        "author": "Darnagof",
+        "timestamp": "2020-06-09T18:57:51Z"
+      },
+      {
+        "sha": "3e56533",
+        "message": "more uses of CollisionData; CollData fields binding now readonly",
+        "author": "Darnagof",
+        "timestamp": "2020-06-10T18:04:21Z"
+      }
+    ]
+  },
+  {
+    "story_id": "ObEngine/ObEngine#315",
+    "metadata": {
+      "title": "Fix tunnelling on collision detection (closes #308)",
+      "labels": [],
+      "qualities": [
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-10-03T09:06:33Z",
+      "reviewers": [
+        "Sygmei",
+        "Darnagof"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "Full speed ahead, no more tunneling :\r\n![image](https://user-images.githubusercontent.com/4027974/94969232-a3233880-0502-11eb-936c-51aa62925b95.png)\r\n\r\nAdded magnitude function to UnitVector.\r\n\r\n(+ added missing binding for getAllGameObjects proxy)"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Why do you need to convert to ScenePixels here ?",
+        "timestamp": "2020-10-03T02:45:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Transform/UnitVector.cpp] Maybe, it should use a standardized unit ?",
+        "timestamp": "2020-10-03T02:46:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Because `getMaximumDistanceBeforeCollision(PolygonalCollider& collider, const Transform::UnitVector& offset)` return a vector in ScenePixels unit.",
+        "timestamp": "2020-10-03T08:32:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Darnagof",
+        "role": "COLLABORATOR",
+        "body": "[src/Core/Transform/UnitVector.cpp] Always returning the result in SceneUnits ?",
+        "timestamp": "2020-10-03T08:35:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Transform/UnitVector.cpp] Yup for example, we can merge as-is for now since I'll have to do some refactor on UnitVector for v0.5 anyway, I'll modify the code later !",
+        "timestamp": "2020-10-03T08:37:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sygmei",
+        "role": "MEMBER",
+        "body": "[src/Core/Collision/PolygonalCollider.cpp] Ah okay !",
+        "timestamp": "2020-10-03T08:37:17Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "44d64d5",
+        "message": "Fixed tunneling; added magnitude() to UnitVector",
+        "author": "Darnagof",
+        "timestamp": "2020-10-01T22:01:05Z"
+      },
+      {
+        "sha": "0d26056",
+        "message": "bindings done",
+        "author": "Darnagof",
+        "timestamp": "2020-10-02T20:40:34Z"
+      },
+      {
+        "sha": "6f7ce74",
+        "message": "modified comment in PolygonalCollider",
+        "author": "Darnagof",
+        "timestamp": "2020-10-02T20:49:54Z"
+      }
+    ]
+  }
+]

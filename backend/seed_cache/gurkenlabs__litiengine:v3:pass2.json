@@ -1,0 +1,506 @@
+[
+  {
+    "story_id": "gurkenlabs/litiengine#763",
+    "metadata": {
+      "title": "Update to java 19",
+      "labels": [],
+      "qualities": [
+        "deployability",
+        "modifiability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-01-28T00:39:06Z",
+      "reviewers": [
+        "nightm4re94"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "<s>No changes to the codebase are required.</s>"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "Actually, Object.finalize() is deprecated and removed (never called) in jdk 18.\r\n\r\nWe should be cleaning up using try/catch/finally or try with resources",
+        "timestamp": "2022-12-12T02:59:58Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "I wanted to give GraalVM CE a try for our builds. This might be a good opportunity to test that and migrate to Java 19 at the same time. Do you want to set up the [GraalVM action](https://github.com/graalvm/setup-graalvm) in our build workflows?",
+        "timestamp": "2022-12-15T21:00:23Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "> I wanted to give GraalVM CE a try for our builds. This might be a good opportunity to test that and migrate to Java 19 at the same time. Do you want to set up the [GraalVM action](https://github.com/graalvm/setup-graalvm) in our build workflows?\r\n\r\nI've never worked with that software so I wouldn't really be comfortable making a PR for it.",
+        "timestamp": "2022-12-16T00:52:55Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "That's alright, then go ahead as planned 👍 thank you! ",
+        "timestamp": "2022-12-16T08:23:01Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "This is pretty much done, just needs testing to make sure sounds play and that the resources are properly relinquished.\r\n\r\nI'll try to test it by the end of the week, been feeling sick lately.",
+        "timestamp": "2022-12-19T17:32:47Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "Swift recovery to you then and thanks already 😊",
+        "timestamp": "2022-12-19T18:43:54Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "I've just tested this PR and it seems that sounds are not played anymore with these changes.\r\nReproduced with utiLITI by adding a `Sound source` and playing it directly within the editor.",
+        "timestamp": "2022-12-29T14:11:23Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "Other than that: we had a quick discussion today about Java 19 and what it brings for us and we'd really like to give [Project: Panama](https://openjdk.org/projects/panama/) a try to approach our native dependencies differently. This could give us the opportunity to replace JNI for input and sound.",
+        "timestamp": "2022-12-29T14:14:28Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "> I've just tested this PR and it seems that sounds are not played anymore with these changes. Reproduced with utiLITI by adding a `Sound source` and playing it directly within the editor.\r\n\r\nCan confirm. Not only does playing sounds not work, it also crashed my entire PC without error messages.",
+        "timestamp": "2022-12-29T14:19:00Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "> Can confirm. Not only does playing sounds not work, it also crashed my entire PC without error messages.\r\n\r\nYikes, I'll take a look",
+        "timestamp": "2022-12-29T21:39:38Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "I'm unable to reproduce this when manually playing a sound:\r\n\r\n```java\r\ntry {\r\n\tGame.audio().playSound(new Sound(new BufferedInputStream(new FileInputStream(new File(\"/home/gamebuster/Desktop/dolphinDump/Audio/example.mp3\"))), \"test\"));\r\n} catch (IOException | UnsupportedAudioFileException e) {\r\n\te.printStackTrace();\r\n}\r\n```\r\n\r\nHowever, I am unable to add sounds at all using the editor, the dropdown doesn't show imported sounds.",
+        "timestamp": "2022-12-29T22:18:55Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "> However, I am unable to add sounds at all using the editor, the dropdown doesn't show imported sounds.\r\n\r\nI fixed this yesterday with #772\r\n",
+        "timestamp": "2022-12-30T09:11:21Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "I'm still unable to reproduce this issue.\r\n\r\nhttps://www.youtube.com/watch?v=1eYYqMb2Fw0\r\n\r\n",
+        "timestamp": "2022-12-30T22:49:15Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "Really appreciate the effort, thank you!\r\nI've rebased your branch onto master for testing locally.\r\nWhen I play a sound, a thread is spawned for the playback, I can't hear anything, and the thread is never closed. (The sound used in the examples below is only around one second long)\r\n![image](https://user-images.githubusercontent.com/26114385/210139222-39c65180-a258-4603-b385-7e217cdf0840.png)\r\n![image](https://user-images.githubusercontent.com/26114385/210139249-bf17a83f-fa08-4b54-afaf-e9c2bb1d51cb.png)\r\nEach new playback results in around 20% increased CPU load:\r\n![image](https://user-images.githubusercontent.com/26114385/210139351-6210eedf-6d11-4941-b404-7abc6cd45fcf.png)\r\n\r\nAlso, I have verified that doing exactly the same thing on master works.\r\n",
+        "timestamp": "2022-12-31T14:02:39Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "[Sounds.zip](https://github.com/gurkenlabs/litiengine/files/10327465/Sounds.zip)\r\nThese are two of the sounds I tried using (.ogg and .wav).",
+        "timestamp": "2022-12-31T14:10:05Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "Maybe a Windows thing?",
+        "timestamp": "2022-12-31T15:31:16Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "I'll try those out, I only used a .mp4 previously.",
+        "timestamp": "2022-12-31T22:36:56Z"
+      },
+      {
+        "author": "Gamebuster19901",
+        "role": "CONTRIBUTOR",
+        "body": "Issue fixed, ready for review.",
+        "timestamp": "2022-12-31T23:37:38Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "4abbe14",
+        "message": "Update to java 19",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-12T02:26:21Z"
+      },
+      {
+        "sha": "2633260",
+        "message": "Properly close resources",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-12T05:38:10Z"
+      },
+      {
+        "sha": "bbfa57c",
+        "message": "spotlessApply",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-16T00:55:12Z"
+      },
+      {
+        "sha": "683d3fc",
+        "message": "Merge branch 'gurkenlabs:master' into patch-8",
+        "author": "Gamebuster",
+        "timestamp": "2022-12-16T00:57:13Z"
+      },
+      {
+        "sha": "45eb127",
+        "message": "Don't get stuck in an infinite loop if the line closes unexpectedly.",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-31T23:35:13Z"
+      },
+      {
+        "sha": "e1fb79b",
+        "message": "Fix closing SoundPlayback.line prematurely",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-31T23:35:27Z"
+      },
+      {
+        "sha": "c764957",
+        "message": "Close the line when playback is finished",
+        "author": "Gamebuster19901",
+        "timestamp": "2022-12-31T23:51:09Z"
+      },
+      {
+        "sha": "77705b4",
+        "message": "The lines should be closed in the playback implementation",
+        "author": "Gamebuster19901",
+        "timestamp": "2023-01-01T00:46:18Z"
+      },
+      {
+        "sha": "c59322d",
+        "message": "Don't close MusicPlayback Prematurely",
+        "author": "Gamebuster19901",
+        "timestamp": "2023-01-01T00:48:59Z"
+      },
+      {
+        "sha": "7b67268",
+        "message": "Revert accidental changes",
+        "author": "Gamebuster19901",
+        "timestamp": "2023-01-01T00:55:20Z"
+      }
+    ]
+  },
+  {
+    "story_id": "gurkenlabs/litiengine#436",
+    "metadata": {
+      "title": "Build utiLITI using github actions",
+      "labels": [],
+      "qualities": [
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-01-06T14:34:57Z",
+      "reviewers": [],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "I did a test run of the PR on my fork and it seem to work:\r\nhttps://github.com/weisJ/litiengine/actions/runs/1641284682\r\nBecause the produced output it rather large and there is a limit on how much storage action artifacts can take up in total I have decided to not run the action on every push. Instead the normal CI just checks whether `jpackage` succeeds. Instead the package action has to be triggered manually in the actions tab. ",
+        "timestamp": "2022-01-01T18:12:26Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "Looks good so far 👍 \r\n\r\nOne more thing we should probably add is an option to set the input `release = true` such that the `SNAPSHOT` suffix disappears for actual release builds.",
+        "timestamp": "2022-01-02T10:52:08Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "I am not quite sure why the previous setup for publishing didn't work out as I am not very experienced with the \"raw\" maven-publish plugin. I have now modified to use a setup which I know will work as I am using it myself. The following properties will be need to be provided locally (I recommend storing them in `<user_home_path>/.gradle/gradle.properties`:\r\n- `ghGitSourceUsername`: The github user name. This is `gurkenlabs`\r\n- `ghGitSourcePassword`: An appropriate github access token. It has to have access to create tags in the repo.\r\n- `ghNexusUsername`: The username for the maven nexus you are publishing to i.e. `OSSRH_USERNAME`\r\n- `ghNexusPassword`: The password for the maven nexus you are publishing to i.e. `OSSRH_PASSWORD`\r\n\r\nFor singing either of two approaches will work:\r\n- Either\r\n  - `signing.keyId`: The id of the gpg key\r\n  - `signing.password`: The password of the gpg key\r\n  - `signing.secretKeyRingFile`: Path to the gpg key\r\n- Or:\r\n  - `useInMemoryKey = true`\r\n  - `signing.inMemoryKey`: The ascii armored version of the gpg key with `\\n` instead of newlines (i.e. `OSSRH_GPG_SECRET_KEY`)\r\n\r\nThen publishing works like this:\r\n- For snapshots:\r\n  ````\r\n  ./gradlew prepareVote -Pgh -Prc=1 -Prelease=false\r\n  ````\r\n  Expected output:\r\n  ````\r\n  litiengine v0.5.2-beta-SNAPSHOT-rc1 is ready for preview.\r\n\r\n  Git SHA: <some sha>\r\n  Staging repository: https://oss.sonatype.org/content/repositories/null\r\n  ````\r\n- For releases\r\n  ````\r\n  ./gradlew prepareVote -Pgh -Prc=1 -Prelease=true\r\n  ````\r\n  Expected output is the same as for the snapshot version but instead a proper staging repository url (i.e no `null` path) and no `-SNAPSHOT` suffix.\r\n\r\nIn both cases an appropriate tag in the github repository is created.\r\nThe `-Prc=` property sets the version of the release candidate. It's perfectly safe to reuse the same number (I do this for snapshots to not clutter the the repo with tags). It will only affect the tag in the repo. For example in the above case the created tag will be called `v0.5.2-beta-rc1`.\r\n\r\nIn the case of releases (`-Prelease=true`) you still have to manually release it in the nexus repository manager. (I assume this is oss.sonatype.org for you.)\r\n\r\nPlease check whether this works for you as I can't test it myself :D ",
+        "timestamp": "2022-01-03T18:44:57Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "This doesn't yet automatically attach the artifacts from the jpackage action to the release tag as resources. I'll have to read more into how the github api works first :)",
+        "timestamp": "2022-01-03T18:47:04Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "Just so you know, we're waiting out with the release until this feature is ready. Thank you!",
+        "timestamp": "2022-01-04T17:18:54Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "There is now an action to automatically create the github release.\r\nIt is run if a tag is created that matches `v\\d+\\.\\d+\\.\\d+-rc\\d+` (e.g. `v10.0.15-rc1`), which is precicesly the format that `prepareVote` creates. Note that the action won't run for snapshot builds. The action I have added previously isn't used for this but I have left it existent so one can easly create a build of utiLITI manually without having to create a tag (the action can be manually run through the actions interface).\r\n\r\nExample of how the release looks: https://github.com/weisJ/litiengine/releases/tag/v10.0.15-rc1\r\n\r\nSome additional notes about the release process:\r\nInstead of manually publishing through the nexus one can also run `./gradlew publishRelease -Pgh -Prc=1`, where the value of `rc` is the same as in `prepareVote`. I can't vouch for it 100% as I haven't used this command myself (I like to check the jar content in nexus before releasing).\r\n\r\nDid you try whether `prepareVote` works for you as described above? It's safe to run as you can still manually delete the created tag. I'd rather not wan't to debug this on the master branch later :D\r\n",
+        "timestamp": "2022-01-04T20:11:27Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "Thank you! Since the relaunch of our website, we have decided no longer to distribute the executables on the GitHub release page, but via our website. Therefore, we don't need the utiLITI packages here.",
+        "timestamp": "2022-01-04T20:58:17Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "In this case if `prepareVote` is working for you this should be done. I'll just remove the part that uploads the assets to the github release then. If you wan't I can add a link the website instead.",
+        "timestamp": "2022-01-04T21:14:30Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "Please do :)\r\nhttps://litiengine.com/download/ would be preferred.",
+        "timestamp": "2022-01-04T21:47:35Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "Ok dropped the part where packages are uploaded to the release page. Instead now it refers to the website to download utiLITI.\r\nI have added another manually dispateched action which builds a release candidate and **automatically releases** it i.e. it prepares it using `prepareVote -Pgh -Prc=1 -Prelease=1` and directly afterwards publishes it using `publishRelease -Pgh -Prc=1`.\r\nTo me it sounds like #439 is exactly about that. Correct me if I am wrong here. Other than that if you could verify that the commands from the script work for you locally this PR should be good to go.",
+        "timestamp": "2022-01-05T14:13:51Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "@weisJ Many thanks for taking care of this and also for preparing a bulletproof documentation 👍 \r\n\r\nCurrently testing the implementation on my local machine. Set all the properties in the `gradle.properties` accordingly and right now when executing a snapshot release, I get the following error:\r\n\r\n```\r\nPushing tag to Git remote release-origin: https://github.com/de.gurkenlabs/litiengine.git\r\n\r\nBuild litiengine-sdk FAILURE reason:\r\n    Execution failed for task ':pushRcTag':\r\n        Caused by: org.eclipse.jgit.api.errors.TransportException: https://github.com/de.gurkenlabs/litiengine.git: https://github.com/de.gurkenlabs/litiengine.git/info/refs?service=git-receive-pack not found: Not Found\r\n            at org.eclipse.jgit.api.PushCommand.call(PushCommand.java:147)\r\n            ...\r\n```\r\n\r\nSeems like it's referencing the wrong repository path **WRONG**: `https://github.com/de.gurkenlabs/litiengine` instead of **RIGHT:** `https://github.com/gurkenlabs/litiengine/`",
+        "timestamp": "2022-01-06T11:48:43Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "Adjusted it with 8d49674\r\n\r\nAh, I noticed one more thing: when publishing to maven we left out the `alpha`, `beta` tags in the past. I believe there were some issues with it related to some build systems if I recall correctly. So, we need to adjust the version for the maven release to be \"plain\".\r\n\r\nSee also: https://oss.sonatype.org/content/groups/public/de/gurkenlabs/litiengine/",
+        "timestamp": "2022-01-06T14:40:31Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "In this case simply leaving the beta off the version would do the trick a lot easier than adjusting it during release. For utiLITI the beta has to be stripped anyway for jpackage to work, so there really isn’t any place to observe that the beta part exists in the first place.",
+        "timestamp": "2022-01-06T14:43:48Z"
+      },
+      {
+        "author": "steffen-wilke",
+        "role": "CONTRIBUTOR",
+        "body": "Okay, we're getting there:\r\n\r\nI have the artifacts in a staging repository now but validation currently fails:\r\n\r\n```\r\nInvalid POM: /de/gurkenlabs/litiengine/0.5.2/litiengine-0.5.2.pom: Project name missing, Project description missing, Project URL missing, License information missing, SCM URL missing, Developer information missing\r\n```\r\nApparently, we're missing some meta information.\r\n\r\n`litiengine-0.5.1.pom`:\r\n\r\n```xml\r\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\r\n  <modelVersion>4.0.0</modelVersion>\r\n  <groupId>de.gurkenlabs</groupId>\r\n  <artifactId>litiengine</artifactId>\r\n  <version>0.5.1</version>\r\n  <name>litiengine</name>\r\n  <description>LITIENGINE is a free and open source Java 2D Game Engine. It provides a comprehensive Java library and a dedicated map editor to create tile-based 2D games.</description>\r\n  <url>http://litiengine.com</url>\r\n  <licenses>\r\n    <license>\r\n    <name>MIT License</name>\r\n    <url>https://github.com/gurkenlabs/litiengine/blob/master/LICENSE</url>\r\n    </license>\r\n  </licenses>\r\n  <developers>\r\n  <developer>\r\n    <id>steffen</id>\r\n    <name>Steffen Wilke</name>\r\n    <email>steffen@gurkenlabs.de</email>\r\n    </developer>\r\n    <developer>\r\n    <id>matthias</id>\r\n    <name>Matthias Wilke</name>\r\n    <email>matthias@gurkenlabs.de</email>\r\n    </developer>\r\n  </developers>\r\n  <scm>\r\n    <connection>scm:git:git://github.com/gurkenlabs/litiengine.git</connection>\r\n    <developerConnection>scm:git:git@github.com:gurkenlabs/litiengine.git</developerConnection>\r\n    <url>https://github.com/gurkenlabs/litiengine/</url>\r\n  </scm>\r\n  <dependencies>\r\n  ...\r\n  </dependencies>\r\n</project>\r\n```\r\n\r\n`litiengine-0.5.2.pom`:\r\n\r\n```xml\r\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd\">\r\n<modelVersion>4.0.0</modelVersion>\r\n<groupId>de.gurkenlabs</groupId>\r\n<artifactId>litiengine</artifactId>\r\n<version>0.5.2</version>\r\n<dependencies>\r\n...\r\n</dependencies>\r\n</project>\r\n```\r\n",
+        "timestamp": "2022-01-06T15:03:50Z"
+      },
+      {
+        "author": "weisJ",
+        "role": "CONTRIBUTOR",
+        "body": "Fixed in #442 ",
+        "timestamp": "2022-01-06T15:46:51Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "44a24b4",
+        "message": "Update to Java 17\n\nIt's the current LTS version hence preferable over Java 16.\nAlso, there seem to be some fixes for jpackage.",
+        "author": "Jannis Weis",
+        "timestamp": "2021-12-31T15:47:18Z"
+      },
+      {
+        "sha": "4357c8c",
+        "message": "Build utiLITI distributions for different platforms using actions",
+        "author": "Jannis Weis",
+        "timestamp": "2021-12-31T15:57:01Z"
+      },
+      {
+        "sha": "c60719a",
+        "message": "Sanitize utiLITI version\n\nOnly 3 numbers separated by dots are allowed.\nThe version also can't start with a 0.\nThis can be simplified once we actually hit version\n`1.0.0`.",
+        "author": "Jannis Weis",
+        "timestamp": "2021-12-31T16:33:50Z"
+      },
+      {
+        "sha": "03a8b52",
+        "message": "Remove --linux-package-name\n\nIt's only meant for the installer not standalone packages",
+        "author": "Jannis Weis",
+        "timestamp": "2021-12-31T16:37:27Z"
+      },
+      {
+        "sha": "2bf9fc1",
+        "message": "Properly configure project for publishing to maven central\n\nI'm not quite sure why the previous setup didn't work as I'm\nnot experienced with the \"raw\" maven-publish plugin.",
+        "author": "Jannis Weis",
+        "timestamp": "2022-01-03T18:26:43Z"
+      },
+      {
+        "sha": "403c004",
+        "message": "Build a nightly snapshot using github actions",
+        "author": "Jannis Weis",
+        "timestamp": "2022-01-03T18:27:09Z"
+      },
+      {
+        "sha": "1e9be43",
+        "message": "Add action to automatically create release on GitHub\n\nIf a tag is pushed/create that is of the form v[0-9]+\\.[0-9]+\\.[0-9]+-rc[0-9]+\n(e.g. v5.8.6-rc1) it will change  the text of the release to include information\non how to obtain the library through Gradle/Maven and utiLITI on the website.",
+        "author": "Jannis Weis",
+        "timestamp": "2022-01-04T18:06:04Z"
+      },
+      {
+        "sha": "f1ca725",
+        "message": "Add action to automatically release to maven central\n\nThe action has to be dispatched manually. It will stage a candidate and\nautomatically release it.",
+        "author": "Jannis Weis",
+        "timestamp": "2022-01-05T14:08:36Z"
+      },
+      {
+        "sha": "11d3ef6",
+        "message": "Run jpackage with -Prelease=true",
+        "author": "Jannis Weis",
+        "timestamp": "2022-01-05T14:09:53Z"
+      }
+    ]
+  },
+  {
+    "story_id": "gurkenlabs/litiengine#953",
+    "metadata": {
+      "title": "Add runtime DisplayMode switching with GUI rescaling",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-04-25T09:09:15Z",
+      "reviewers": [],
+      "changed_files": 6
+    },
+    "issue_payload": {
+      "body": "## Context\n`DisplayMode` (WINDOWED / BORDERLESS / FULLSCREEN) could only be configured before game startup — there was no way to switch modes while the game was running. Additionally, GUI component sizes were tied to the window dimensions at initialization time and were not rescaled when the window size changed.\n\n## Summary\nWires `GameWindow` to respond to `GraphicConfiguration.setDisplayMode()` changes at runtime via a `ConfigurationChangedListener` registered in `init()`. The actual transition logic lives in a new private `applyDisplayMode` method.\n\n**Key transitions handled:**\n- **→ FULLSCREEN**: calls `gd.setFullScreenWindow(host)` via existing `prepareHostControl`\n- **← FULLSCREEN**: calls `gd.setFullScreenWindow(null)` to exit exclusive mode before re-applying\n- **→ BORDERLESS**: `prepareHostControl` now self-guards with `host.isDisplayable()` check and `dispose()` before calling `setUndecorated(true)`, covering both direct transitions and the FULLSCREEN→BORDERLESS fallback on unsupported hardware\n- **← BORDERLESS**: `dispose()`, then explicitly reset `setUndecorated(false)` / `setResizable(true)` before `prepareHostControl` (WINDOWED path doesn't restore these)\n- **Same-mode no-op**: `applyDisplayMode` short-circuits when `newMode == previousMode` to avoid redundant processing (since `ConfigurationGroup.set()` fires events even when old == new value)\n\nA convenience `setDisplayMode(DisplayMode)` is exposed on `GameWindow` as a single call-site alternative to going through the config directly.\n\n**Usage (either equivalent):**\n```java\nGame.window().setDisplayMode(DisplayMode.FULLSCREEN);\n// or\nGame.config().graphics().setDisplayMode(DisplayMode.BORDERLESS);\n```\n\n**Automatic proportional GUI rescaling on resolution change:**\n\n`GuiComponent` now stores its position and size as fractions of the window dimensions (`relativeX`, `relativeY`, `relativeWidth`, `relativeHeight`) at construction time via `updateRelativeLayout()`. These relative values are recomputed whenever position or size changes through `setWidth()`, `setHeight()`, or `setLocation()`. On each resolution change, `onResolutionChanged(Dimension)` recalculates the absolute position and size from these stored fractions, so every component scales proportionally with the window automatically — no developer override required for basic proportional scaling.\n\nFor example, a button at `(100, 50, 200, 100)` on an 800×600 window stores fractions `(0.125, 0.083, 0.25, 0.167)`. When the window resizes to 1600×1200, it becomes `(200, 100, 400, 200)` automatically. The relative fractions are preserved across multiple resolution changes, so resizing back to the original resolution restores the original pixel values exactly (no floating-point drift).\n\n**Per-component `autoScaling` flag:**\n\nProportional rescaling can be enabled or disabled on a per-component basis via `setAutoScaling(boolean)`. When disabled, the component retains its absolute pixel position and size across resolution changes. The resolution change event is still propagated to child components regardless of the parent's setting, so children with auto-scaling enabled will still scale even if the parent does not. Auto-scaling is enabled by default.\n\n```java\n// Opt out of proportional scaling for a specific component\nmyFixedSizePanel.setAutoScaling(false);\n```\n\nGame developers can still override `onResolutionChanged` at any level of the component hierarchy for custom layout logic that goes beyond proportional scaling:\n\n```java\n@Override\npublic void onResolutionChanged(Dimension resolution) {\n    super.onResolutionChanged(resolution); // proportional rescale + propagates to children\n    // custom re-layout logic\n    myButton.setLocation(resolution.getWidth() / 2 - 100, resolution.getHeight() / 2);\n}\n```\n\n`ScreenManager` lazily registers a `ResolutionChangedListener` on the first `add()` call and forwards all subsequent resolution changes to every registered screen, which then cascades through the entire component tree automatically via the inherited `GuiComponent.onResolutionChanged`.\n\n## Additional thoughts\nThe `ConfigurationChangedListener` is registered at the end of `init()` (after the window is made visible), guarded by `hostControl.isShowing()`, so config changes before startup still take the normal path through `prepareHostControl` in `init()` without double-applying.\n\nSwitching to/from BORDERLESS requires a `dispose()` + re-show cycle — this is an AWT constraint and will cause a brief visual flicker on those transitions. This is unavoidable without a full OS-level borderless-window API.\n\n`prepareHostControl` now defensively disposes the frame in its BORDERLESS case if it is still displayable (`host.isDisplayable()` guard). This prevents the `IllegalComponentStateException` that previously occurred when `setUndecorated(true)` was called on a displayable frame — notably when FULLSCREEN mode was unsupported and fell back to BORDERLESS internally, bypassing the disposal logic in `applyDisplayMode`.\n\nComponents created before the game window is available (e.g. in no-GUI test mode) fall back to setting their dimensions to the full new resolution on the first `onResolutionChanged` call, since relative fractions cannot be computed without valid window dimensions. In normal game operation, relative values are computed immediately at construction time and all subsequent resolution changes produce correct proportional scaling.\n\n## Quality assurance\n- [x] Wrote unit tests for new behaviour\n- [x] Documented new code thoroughly\n- [ ] Fixed issues that would be regarded as code smells by sonarcloud\n- [x] Ensured integrity of the build pipeline\n\n<!-- START COPILOT ORIGINAL PROMPT -->\n\n\n\n<details>\n\n<summary>Original prompt</summary>\n\n> \n> ----\n> \n> *This section details on the original issue you should resolve*\n> \n> <issue_title>Switching DisplayMode during runtime</issue_title>\n> <issue_description>As for now I only managed to set the Display Mode before starting through `Game.config().graphics().setDisplayMode()`. Is there any way that i could switch between Display Modes while the game is still running?</issue_description>\n> \n> ## Comments on the Issue (you are @copilot in this section)\n> \n> <comments>\n> <comment_new><author>@steffen-wilke</author><body>\n> Right now it is not possible to switch `DisplayModes` at runtime.</body></comment_new>\n> </comments>\n> \n\n\n</details>\n\n\n\n<!-- START COPILOT CODING AGENT SUFFIX -->\n\n- Fixes gurkenlabs/litiengine#369\n\n<!-- START COPILOT CODING AGENT TIPS -->\n---\n\n📍 Connect Copilot coding agent with [Jira](https://gh.io/cca-jira-docs), [Azure Boards](https://gh.io/cca-azure-boards-docs) or [Linear](https://gh.io/cca-linear-docs) to delegate work to Copilot in one click without leaving your project management tool."
+    },
+    "discussion_timeline": [
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot while I was able to verify that this PR indeed allows display mode switching at runtime, the biggest issue is with GUI component scaling: When initializing the GUI components, their sizes are often tied to window size, but they are not rescaled when the window size changes.",
+        "timestamp": "2026-03-26T23:41:53Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot+claude-sonnet-4.6 while I was able to verify that this PR indeed allows display mode switching at runtime, the biggest issue is with GUI component scaling: When initializing the GUI components, their sizes are often tied to window size, but they are not rescaled when the window size changes.",
+        "timestamp": "2026-03-28T12:20:27Z"
+      },
+      {
+        "author": "copilot-swe-agent",
+        "role": "CONTRIBUTOR",
+        "body": "\n> @copilot+claude-sonnet-4.6 while I was able to verify that this PR indeed allows display mode switching at runtime, the biggest issue is with GUI component scaling: When initializing the GUI component...\n\nAddressed in commit `1869a6a`.\n\nAdded `Screen.onResolutionChanged(Dimension)` — the default implementation resizes the screen container to the new window dimensions automatically. Game developers can override this method to also re-layout or rescale their child GUI components:\n\n```java\n@Override\npublic void onResolutionChanged(Dimension newResolution) {\n    super.onResolutionChanged(newResolution); // resizes the screen itself\n    // re-layout child components relative to the new size\n    myButton.setLocation(newResolution.getWidth() / 2 - 100, newResolution.getHeight() / 2);\n}\n```\n\n`ScreenManager` now registers a `ResolutionChangedListener` on the first `add()` call and forwards all subsequent resolution changes to every registered screen, so the hook is called automatically whenever the window is resized (including after a `DisplayMode` switch).",
+        "timestamp": "2026-03-28T12:31:59Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot+claude-opus-4.6 move the onResolutionChanged event handler to GuiComponent instead.",
+        "timestamp": "2026-03-28T16:20:53Z"
+      },
+      {
+        "author": "copilot-swe-agent",
+        "role": "CONTRIBUTOR",
+        "body": "\n> @copilot+claude-opus-4.6 move the onResolutionChanged event handler to GuiComponent instead.\n\nDone in `f959c87`. `onResolutionChanged(Dimension)` now lives on `GuiComponent` and recursively propagates to all child components. `Screen` inherits it directly. The `ScreenManager` resolution listener now cascades through the entire component tree automatically.",
+        "timestamp": "2026-03-28T16:28:35Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot any thoughts on storing the relative gui component size and position (in relation to the screen window) when initializing a guicomponent, and then recalculating the absolute size accordingly whenever the resolution / window size changes?",
+        "timestamp": "2026-03-28T16:33:31Z"
+      },
+      {
+        "author": "copilot-swe-agent",
+        "role": "CONTRIBUTOR",
+        "body": "\n> @copilot any thoughts on storing the relative gui component size and position (in relation to the screen window) when initializing a guicomponent, and then recalculating the absolute size accordingly ...\n\nImplemented in `cb68c57`.\n\n`GuiComponent` now stores its position and size as fractions of the window dimensions (`relativeX/Y/Width/Height`) via `updateRelativeLayout()`, which is called from the constructor and from `setWidth`/`setHeight`/`setLocation`. On each `onResolutionChanged` call, the absolute values are recalculated from these stored fractions — so every component scales proportionally with the window without the developer needing to override anything.\n\nFor example, a button at `(100, 50, 200, 100)` on an 800×600 window stores fractions `(0.125, 0.083, 0.25, 0.167)`. When the window resizes to 1600×1200, the button becomes `(200, 100, 400, 200)` automatically. The fractions are also updated whenever position/size is changed manually (via setters), so manual repositioning is preserved across subsequent resolution changes.",
+        "timestamp": "2026-03-28T16:50:17Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot+claude-opus-4.6 there should probably be a flag to enable / disble the relational scaling of gui components.",
+        "timestamp": "2026-03-28T17:01:16Z"
+      },
+      {
+        "author": "copilot-swe-agent",
+        "role": "CONTRIBUTOR",
+        "body": "\n> @copilot+claude-opus-4.6 there should probably be a flag to enable / disble the relational scaling of gui components.\n\nAdded in `9a59de1`. `GuiComponent` now has an `autoScaling` flag (enabled by default). Calling `setAutoScaling(false)` makes the component retain its absolute pixel position and size across resolution changes. Children still receive the resolution event regardless of the parent's setting, so scaling can be controlled independently at any level of the hierarchy.\n\n```java\n// Opt out of proportional scaling for a specific component\nmyFixedSizePanel.setAutoScaling(false);\n```\n\n\n> @copilot any thoughts on storing the relative gui component size and position (in relation to the screen window) when initializing a guicomponent, and then recalculating the absolute size accordingly ...\n\nAlready implemented in `cb68c57`. Each `GuiComponent` stores its position and size as fractions of the window dimensions at construction time via `updateRelativeLayout()`. On each resolution change, `onResolutionChanged` recalculates the absolute values from these stored fractions — proportional scaling happens automatically without any developer override needed.",
+        "timestamp": "2026-03-28T17:08:50Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@copilot that works most of the time, but sometimes setting the display mode dynamically yields this:\r\n```\r\nMar 28, 2026 6:32:35 PM de.gurkenlabs.litiengine.DefaultUncaughtExceptionHandler uncaughtException\r\nSEVERE: Game crashed! :(\r\njava.awt.IllegalComponentStateException: The frame is displayable.\r\n\tat java.desktop/java.awt.Frame.setUndecorated(Frame.java:931)\r\n\tat de.gurkenlabs.litiengine.GameWindow.prepareHostControl(GameWindow.java:281)\r\n\tat de.gurkenlabs.litiengine.GameWindow.applyDisplayMode(GameWindow.java:378)\r\n\tat de.gurkenlabs.litiengine.GameWindow.lambda$init$0(GameWindow.java:353)\r\n\tat de.gurkenlabs.litiengine.configuration.ConfigurationGroup.set(ConfigurationGroup.java:158)\r\n\tat de.gurkenlabs.litiengine.configuration.GraphicConfiguration.setDisplayMode(GraphicConfiguration.java:125)\r\n\tat de.gurkenlabs.litiengine.GameWindow.setDisplayMode(GameWindow.java:321)\r\n\tat de.gurkenlabs.artifactsofascension.Main.lambda$main$1(Main.java:81)\r\n\tat de.gurkenlabs.litiengine.input.Keyboard.lambda$executePressedKeys$1(Keyboard.java:249)\r\n\tat java.base/java.util.concurrent.ConcurrentHashMap$KeySetView.forEach(ConcurrentHashMap.java:4726)\r\n\tat de.gurkenlabs.litiengine.input.Keyboard.lambda$executePressedKeys$0(Keyboard.java:249)\r\n\tat java.base/java.util.concurrent.ConcurrentHashMap$KeySetView.forEach(ConcurrentHashMap.java:4726)\r\n\tat de.gurkenlabs.litiengine.input.Keyboard.executePressedKeys(Keyboard.java:245)\r\n\tat de.gurkenlabs.litiengine.input.Keyboard.update(Keyboard.java:195)\r\n\tat de.gurkenlabs.litiengine.GameLoop.updateInvariableEngineComponents(GameLoop.java:128)\r\n\tat de.gurkenlabs.litiengine.GameLoop.process(GameLoop.java:84)\r\n\tat de.gurkenlabs.litiengine.UpdateLoop.run(UpdateLoop.java:57)\r\n\r\n```",
+        "timestamp": "2026-03-28T17:33:37Z"
+      },
+      {
+        "author": "copilot-swe-agent",
+        "role": "CONTRIBUTOR",
+        "body": "\n> @copilot that works most of the time, but sometimes setting the display mode dynamically yields this:\r\n> ```\r\n> Mar 28, 2026 6:32:35 PM de.gurkenlabs.litiengine.DefaultUncaughtExceptionHandler uncaughtExc...\n\nFixed in `209daa3`. The crash happened because `setUndecorated(true)` requires the frame to be non-displayable, but `prepareHostControl` wasn't always ensuring this. Two root causes:\n\n1. **FULLSCREEN fallback**: When fullscreen isn't supported, `prepareHostControl` falls back to BORDERLESS internally — but `applyDisplayMode` only disposed the frame for direct BORDERLESS transitions, not this fallback path.\n2. **Same-mode re-set**: `ConfigurationGroup.set()` fires events even when old == new value, so re-setting the current mode could reach `setUndecorated` without disposal.\n\nFix: `prepareHostControl`'s BORDERLESS case now checks `host.isDisplayable()` and disposes if needed before calling `setUndecorated(true)`, covering all paths. `applyDisplayMode` also short-circuits when `newMode == previousMode`.",
+        "timestamp": "2026-03-28T17:41:16Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "@steffen-wilke I've tested this and it appears to be working. Can you please check out this branch and verify?\r\nhttps://github.com/user-attachments/assets/7ebf4941-2049-4098-9f0c-69377772f428\r\n\r\n",
+        "timestamp": "2026-03-28T21:03:55Z"
+      },
+      {
+        "author": "nightm4re94",
+        "role": "MEMBER",
+        "body": "This also fixes #327.",
+        "timestamp": "2026-05-27T19:08:37Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "8200155",
+        "message": "Initial plan",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-24T00:20:33Z"
+      },
+      {
+        "sha": "931d3c7",
+        "message": "Add runtime DisplayMode switching support to GameWindow\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/24c0e078-c882-4619-8954-197ff8b0fd8f",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-24T00:31:14Z"
+      },
+      {
+        "sha": "1869a6a",
+        "message": "Rescale registered screens when window resolution changes at runtime\n\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/5cbc6538-a7c5-43cf-9cb9-fc56c66df022\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-28T12:31:50Z"
+      },
+      {
+        "sha": "f959c87",
+        "message": "Move onResolutionChanged from Screen to GuiComponent with recursive child propagation\n\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/5f2e3abf-7b5b-4b71-84eb-bc3a1c253f8b\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-28T16:28:27Z"
+      },
+      {
+        "sha": "cb68c57",
+        "message": "Store relative position/size in GuiComponent for proportional auto-rescaling on resolution change\n\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/e72dbcec-6a87-4b4a-b969-0b3bb4be4dd2\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-28T16:50:07Z"
+      },
+      {
+        "sha": "9a59de1",
+        "message": "Add autoScaling flag to enable/disable proportional GUI rescaling per component\n\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/3cd38363-3176-4942-9572-90bc1cb640e7\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-28T17:08:40Z"
+      },
+      {
+        "sha": "209daa3",
+        "message": "Fix IllegalComponentStateException: dispose frame before setUndecorated in all BORDERLESS paths\n\nAgent-Logs-Url: https://github.com/gurkenlabs/litiengine/sessions/b00805e7-33c9-4bec-81fe-86c8036296d3\n\nCo-authored-by: nightm4re94 <26114385+nightm4re94@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-03-28T17:41:05Z"
+      }
+    ]
+  }
+]

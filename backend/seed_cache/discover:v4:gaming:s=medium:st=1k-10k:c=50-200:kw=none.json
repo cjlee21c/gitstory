@@ -1,0 +1,55 @@
+{
+  "pool": [
+    {
+      "repo": "ValveSoftware/GameNetworkingSockets",
+      "summary": "Tackles critical multiplayer challenges: UDP reliability, fragmentation, P2P networking, NAT traversal, and encryption with production-grade tradeoffs.",
+      "stars": 9817,
+      "language": "C++"
+    },
+    {
+      "repo": "recastnavigation/recastnavigation",
+      "summary": "Industry-standard pathfinding and navigation mesh generation; demonstrates spatial algorithms and performance optimization for real-time game AI.",
+      "stars": 7838,
+      "language": "C++"
+    },
+    {
+      "repo": "pterodactyl/panel",
+      "summary": "Game server management system balancing security, containerization, and multi-user infrastructure; shows full-stack architectural decisions.",
+      "stars": 9075,
+      "language": "PHP"
+    },
+    {
+      "repo": "cabaletta/baritone",
+      "summary": "Minecraft bot with complex pathfinding, world state management, and real-time decision-making in dynamic game environments.",
+      "stars": 9068,
+      "language": "Java"
+    },
+    {
+      "repo": "expr-lang/expr",
+      "summary": "Expression evaluation engine; demonstrates parser design, optimization, and safe execution—useful for game scripting and rule systems.",
+      "stars": 7965,
+      "language": "Go"
+    },
+    {
+      "repo": "gorse-io/gorse",
+      "summary": "Demonstrates scalable recommendation engine architecture balancing classical and LLM-based ranking strategies for personalized game content discovery.",
+      "stars": 9775,
+      "language": "Go"
+    },
+    {
+      "repo": "bpmn-io/bpmn-js",
+      "summary": "Showcases complex client-side rendering and editing of game workflow diagrams with real-time synchronization and extensible plugin architecture.",
+      "stars": 9623,
+      "language": "JavaScript"
+    },
+    {
+      "repo": "mozilla/nunjucks",
+      "summary": "Illustrates template engine design handling asynchronous operations critical for dynamic game UI rendering and server-side content generation.",
+      "stars": 8979,
+      "language": "JavaScript"
+    }
+  ],
+  "relaxations": [],
+  "notice": null,
+  "interest": "Gaming"
+}

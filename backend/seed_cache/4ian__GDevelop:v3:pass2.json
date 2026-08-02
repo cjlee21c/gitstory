@@ -1,0 +1,1148 @@
+[
+  {
+    "story_id": "4ian/GDevelop#2006",
+    "metadata": {
+      "title": "Refactor audio (pre)loading",
+      "labels": [
+        "🏁PR almost ready: final fixes",
+        "👀 Needs review"
+      ],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-02-22T19:45:07Z",
+      "reviewers": [
+        "4ian",
+        "arthuro555"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "The current way of loading audio has a problem. There is no real preloading, so when audio is played there is a slight delay (the time for the audio file to be actually loaded). This is because we use one new Howl instance every time we want to play a sound.\r\n\r\nThis PR has for goal to cache the Howl instance of every file and reuse them. That way it is also possible to add to audio resources an attribute to let the user preload and cache the Howl instance on the loading screen.\r\n\r\nThis PR also makes HowlerSound use Composition over Inheritance, something that is preferred for this codebase if I understood correctly (Though currently it is done in a dirty way). \r\n\r\nThere is one downside though, as the Howl instances are cached, it can make the game take some more memory as they never get properly unloaded. This could be fixed with an action to clear the cache and to clear one file/resource from the cache."
+    },
+    "discussion_timeline": [
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, now it is ready for proper reviewing.",
+        "timestamp": "2020-10-19T05:13:27Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "> My main concern is about running multiple times a sound, will this work? I'm afraid the Howl object would be shared so only one sound at a time of the same file would work?\r\n\r\nWell, I assumed so siince there is the whole IDs system, and that there is this as an example in the docs:  \r\n![image](https://user-images.githubusercontent.com/19349038/96512866-6e80e200-1261-11eb-8a46-f2ea82882709.png)  \r\nIf not though then I have a problem because the whole PR relies on that concept 😅 \r\n",
+        "timestamp": "2020-10-19T21:19:27Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> Well, I assumed so siince there is the whole IDs system\r\n\r\nAh nice, I think I did not understand how it works! If that's the case that's even better then :) \r\nI re-read the documentation and it seems that it's properly handled so no worries.",
+        "timestamp": "2020-10-19T21:37:06Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Sounds better than the old system then 👍👍",
+        "timestamp": "2020-10-19T21:38:26Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Very excited about these changes :) Let's triple check that all conditions/actions are working, in particular with multiple sounds and loading of preloaded sound/musics/not preloaded.\r\nMaybe a quick test game to make for this (or find one that would already exist, but I'm not sure)?",
+        "timestamp": "2020-10-19T21:49:34Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "I began to try adding typescript typecheking, sadly it doesn't support well overloaded functions :/ \r\nI added the chaining of HowlerSound methods to be consistent with howler.\r\nI marked setRate/getRate as deprecated as both rate and setRate/getRate were used in the code, and I think duplicated APIs are bad, so I kept the one consistent with the other APIs. This shouldn't impact most users, as long as they don't use it via JS.\r\nI fixed all the points you mentioned.",
+        "timestamp": "2020-10-20T20:17:25Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> I added the chaining of HowlerSound methods to be consistent with howler.\r\n\r\nLet me know what you think, but as explained in the comment I'm not a huge fan of these magic functions, they are impossible to statically type and probably a nightmare for JIT. Not sure why people like them, writing getXxx/setXxx is not really long nor verbose and very clear.\r\n\r\nAnyway, let me know what you think we should do. Keeping compatibility with Howler is interesting, but on the other hand in the future if we replace it, we'll have this kind of \"fluent\" api that does not look like anything else in the codebase to maintain.",
+        "timestamp": "2020-10-20T20:44:03Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "I think overloading is indeed not a very good idea. As we have autocompletion in the IDE and API docs (though I believe their generation is currently broken due to bad typing in gd.js), it shouldn't be really a problem for the users to find the syntax for GDevelop. In the worst sceneario, they can use the public `createHowlerSound` interface to get access to a raw Howl if they want to.\r\n\r\nDo you think I should also remove the chaining for setters? I think that a fluent api is better when mass-setting properties of a sound.",
+        "timestamp": "2020-10-20T20:50:15Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> In the worst sceneario, they can use the public createHowlerSound interface to get access to a raw Howl if they want to\r\n\r\nYep. Or we could add an accessor to the howler sound if really needed one day (let's not do it now).\r\n\r\nTotally ok for the fluent setters 👍 ",
+        "timestamp": "2020-10-20T21:02:41Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, I think all that's left is testing. Silver gave me a project for testing, let's try it out :)",
+        "timestamp": "2020-10-20T21:17:56Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, everything seems to work properly, I think the next step would be to let people try it out in their game to see if there is a breaking change as this is a massive rewrite of the sound system, and then it should be ready to merge I think.",
+        "timestamp": "2020-10-20T21:23:20Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Alright I think we've reached the point where we can now do a few days of testing with maybe a testing version for people to check that it works on their game :) I'll also test on iOS on Sunday. ",
+        "timestamp": "2020-10-22T16:36:36Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Apparently, according to testers, this is very broken. It's weird because the reported bugs seem to have appeared for things I have already tested and didn't modify (like music between scenes or volume). It's definitely not merge ready.",
+        "timestamp": "2020-10-22T16:45:42Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Could be related to events? Maybe the easiest way to debug is to add some `console.log` a bit everywhere to see what is being played/paused/stopped/etc. Should allow to quickly see if the behavior is correct or not.",
+        "timestamp": "2020-10-22T20:07:40Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Ok I fixed two major issues.\r\nThe first one was that my unloading actions didn't delete `HowlerSound`s using the unloaded `Howl`, so it resulted in semi unloaded zombie sounds with very weird behavior.\r\nMy second one was completely messing up the listeners by using the onload unnecessarily, and using normal functions instead of arrow functions making `this` not working properly.\r\n\r\nThere are still some other problems I need to fix though.\r\n\r\nI think the listeners are not a really good idea the more I think about it, because they sound like a memory leak.\r\nAs JS doesn't has destructors, we cannot remove the listeners. The listeners have a function that encloses `this`, and is stored in the `Howl` which is still accessible as it is stored in the sound manager, so a mark and sweep garbage collector will not collect the `HowlerSound` until it's associated `Howl` is collected too. Then maybe I am wrong, I am not the most experienced JavaScript user 😅 .",
+        "timestamp": "2020-10-23T12:08:59Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> The first one was that my unloading actions didn't delete HowlerSounds using the unloaded Howl, so it resulted in semi unloaded zombie sounds with very weird behavior.\r\n\r\nGood catch. When you launch an audio, it will continue to exist in memory even if you drop all references to it. This is because they are not garbage collected, they continue to exist in the browser memory - where JS objects that have no reference to them are garbage collected and removed from memory.\r\n\r\n>  garbage collector will not collect the HowlerSound until it's associated Howl is collected too.\r\n\r\nIndeed, if you drop all references to HowlerSound in the sound manager, it's still possible that the HowlerSound is living in memory as long as the associated Howl exists, because the associated Howl has listeners, so we have this \"chain\":\r\n\r\n`HowlerSound` -> listener function -> this pointing to `HowlerSound`.\r\n\r\nThis may mean that we need to clean the listeners in a `destroy` function in gdjs.HowlerSound. This was probably not needed before because dropping all references to gdjs.HowlerSound also meant dropping the only reference to the `Howl`.\r\n(in this `destroy` function, we call `off` on all listeners for the `id`)",
+        "timestamp": "2020-10-23T12:40:49Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "> This may mean that we need to clean the listeners in a destroy function in gdjs.HowlerSound. This was probably not needed before because dropping all references to gdjs.HowlerSound also meant dropping the only reference to the Howl.\r\n(in this destroy function, we call off on all listeners for the id)\r\n\r\nI am not a fan of this, If a user uses a `gdjs.HowlerSound` in JS events, it won't necessarily be managed by the Sound Manager and the destroy method could never get called. I think the public API should be memory leak free, and those listeners are redundant and only meant as a failsafe. Maybe we should just directly remove them?",
+        "timestamp": "2020-10-23T12:46:46Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> I am not a fan of this, If a user uses a gdjs.HowlerSound in JS events, it won't necessarily be managed by the Sound Manager and the destroy method could never get called. I think the public API should be memory leak free\r\n\r\nI agree it's less convenient, but that's also why an API is not necessarily public: we don't always want user to create gdjs.HowlerSound on their own. That's our choice to make this a public api or not. If we consider it's too risky because it's an implementation detail, we can just ask people to use the gdjs.SoundManager. And that's what they should already do :) \r\n\r\nThe API *is* leak free if we create a destroy method. Again it's surely less convenient to use and more error prone, but it's maybe the only solution.\r\n\r\nAs for why listeners were needed, I remember using an action to launch a sound on a channel, then using the condition to check if the sound was stopped (this can be useful to do something once the sound is finished).\r\nProblem: the sound was not immediately considered as playing by Howler, so the condition would be directly true.\r\n\r\nI'm ok to remove these listeners if we ensure this use case works correctly. Note that we can do this by choosing that a sound that is somehow \"loading\" is considered as playing (because it will play once the loading is done).\r\n\r\nOtherwise, we can still keep the listeners if we properly ensure that we call `off` on them. It was not needed before because of not sharing `Howl` objects. It's now probably needed, so better do it, even if it's at the cost of adding a few calls to a `destroy()` function. I'm ok with this because we can consider our `HowlerSound` as an implementation details that people should not use directly, marking it `private`. (and this is a good example of why exposing too much APIs as public can sometimes be harmful for the future :)) ",
+        "timestamp": "2020-10-23T12:57:45Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> Maybe we should just directly remove them?\r\n\r\nGive it a try if you wish, but it will be important to try to keep the guarantee that when you launch an action to play a sound, the sound is immediately after considered by GDevelop as:\r\n- playing, even if has a short loading before being actually launched.\r\n- stopped only when it reach the end or if it can't be played.\r\n\r\nWhich make me think.... maybe we don't need gdjs.HowerlSound at all! :) After all, it was just an abstraction to guarantee what I just wrote before (and also to clamp the rate, but it's something that is easy to do).\r\nMaybe we could directly use and store `Howl`s, and be sure that when we check if a sound is played, we check that either it's playing or it's loading.\r\nWould need careful tests, but maybe this could be a great simplification of this whole stuff... Give it a thought!\r\n",
+        "timestamp": "2020-10-23T13:08:16Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "I think HowlerSounds should most definitely be a public API. Controlling a sound is a very basic thing, if we close up too much the API, people that use JS (and according to what I see on the forum and discord, the number is quite significant) will be forced to be using the event tools which give a very bad developer experience. The howler sound is therefore necessary to document all of that. Granted, it should not be documented as a Howler sound, but through a ISound interface, as there are other implementations possible (like cocos sounds).",
+        "timestamp": "2020-10-23T15:26:41Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Something I just realized is that this is a breaking change for JavaScript devs, as the overloaded methods on HowlerSound have been replaced with the getter/setter ones!",
+        "timestamp": "2020-10-23T15:30:30Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Don't worry about backward compatibility for now, we can always add later adapter from old functions to the new get/set ones. Let's first ensure we have a 100% correct/not leaking implementation.",
+        "timestamp": "2020-10-23T15:44:19Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "I converted this PR to typescript, now I think the only thing left to do was to fix this bug: https://forum.gdevelop-app.com/t/gdevelop-music-improvements-testing/28256/11?u=arthuro555",
+        "timestamp": "2021-02-08T09:59:43Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "🤔 It seems typescript isn't recognizing gdjs.SoundManager anymore. Anyone knows what I might have done wrong?",
+        "timestamp": "2021-02-09T11:00:14Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Ok I fixed the bug that was reported on the forum back then. I posted a new build on the forum to let people hopefully test it out. All that is left to do now is fix the weird typescript error where it doesn't find `gdjs.SoundManager` anymore and a bit of typo fixing.",
+        "timestamp": "2021-02-09T14:58:52Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": ">  All that is left to do now is fix the weird typescript error where it doesn't find gdjs.SoundManager anymore and a bit of typo fixing.\r\n\r\nFor some reason Semaphore CI is not triggering, can you post the full error here?",
+        "timestamp": "2021-02-09T16:14:53Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "```\r\n$ tsc\r\nRuntime/runtimegame.ts:87:37 - error TS2551: Property 'SoundManager' does not exist on type 'typeof gdjs'. Did you mean 'JsonManager'?\r\n\r\n87       this._soundManager = new gdjs.SoundManager(\r\n                                       ~~~~~~~~~~~~\r\n\r\n  Runtime/jsonmanager.ts:27:16\r\n    27   export class JsonManager {\r\n                      ~~~~~~~~~~~\r\n    'JsonManager' is declared here.\r\n\r\nRuntime/runtimegame.ts:151:29 - error TS2694: Namespace 'gdjs' has no exported member 'HowlerSoundManager'.\r\n\r\n151     getSoundManager(): gdjs.HowlerSoundManager {\r\n                                ~~~~~~~~~~~~~~~~~~\r\n\r\nRuntime/runtimescene.ts:981:29 - error TS2724: 'gdjs' has no exported member named 'SoundManager'. Did you mean 'JsonManager'?\r\n\r\n981     getSoundManager(): gdjs.SoundManager {\r\n                                ~~~~~~~~~~~~\r\n\r\n\r\nFound 3 errors.\r\n\r\nerror Command failed with exit code 2.\r\n```",
+        "timestamp": "2021-02-09T16:17:06Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I see! Where in the code do you assign gdjs.SoundManger to gdjs.HowlerSoundManager? Look at how it's done for Pixi renderers to get an idea (at the end of each file).",
+        "timestamp": "2021-02-09T16:21:17Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "I didn't change it: https://github.com/4ian/GDevelop/pull/2006/files#diff-4ffbb004738df5211810d820b417a55bb34023e6df14b029303bdef385bf21bcR731",
+        "timestamp": "2021-02-09T16:23:02Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Seems like the `import type { ... } from '...'` is making the namespace \"ignored\" (see the opacity on gdjs):\r\n\r\n![image](https://user-images.githubusercontent.com/1280130/107403424-621cdf80-6b05-11eb-83b7-2a0ea704a0e5.png)\r\n\r\nNot sure why but surely because this kind of \"global\" namespace is a specific TypeScript thing.",
+        "timestamp": "2021-02-09T17:34:45Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "To avoid losing too much time on this, you can translate all the `export`s to `declare` in Howler.d.ts\r\nNot as nice, but it will work for now?",
+        "timestamp": "2021-02-09T21:08:02Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Indeed, it worked. Thanks, I would have never guessed this was the cause.",
+        "timestamp": "2021-02-09T21:57:07Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "[According to this forum user who found other issues, the PR works fine now](https://forum.gdevelop-app.com/t/gdevelop-music-improvements-testing/28256/15?u=arthuro555)",
+        "timestamp": "2021-02-10T07:42:35Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Great news! I'm a bit behind in terms of reviews between this, the array/boolean variables and BitmapText, but I'll take a look :) ",
+        "timestamp": "2021-02-10T13:30:20Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "No worries, take your time.",
+        "timestamp": "2021-02-10T13:33:22Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Can you check the \"Game Feel demo\"? When firing enough time at various targets, at some point the sound effects are not working anymore. The background music effect is still played, but no more fire/impact.\r\n\r\nI've tried multiple times and it seems that it's fine when you fire on nothing, but as soon as you start firing enough on different targets, there will be multiple sound effects, and at some point it seems that one stops working entirely (fire sound), then quickly the rest are also stopping.",
+        "timestamp": "2021-02-10T17:32:49Z"
+      },
+      {
+        "author": "arthuro555",
+        "role": "CONTRIBUTOR",
+        "body": "Indeed, i can reproduce this issue too. I didn't manage to find where the issue could lie yet. What bothers me the most is that there isn't any kind of error/warning Message in the console.",
+        "timestamp": "2021-02-10T18:30:14Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "We may be leaking audio resources in one way or the other (like stopped sounds are never cleared), so when we try to play a new one, it's not launched because there already are too much created? \r\nIs it possible that it's triggering because we're playing a sound while another is played, so the Howl ids are confused or something like this?",
+        "timestamp": "2021-02-11T07:49:20Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I tried looking at the `Howler` global object with this version (left) and the old version (right):\r\n\r\n![image](https://user-images.githubusercontent.com/1280130/107612742-373aa480-6c47-11eb-8741-f25c692a6875.png)\r\n\r\n(this is after firing enough rounds to stuck the sound in the left version)\r\n\r\nI don't see any problem at first sight on the new version. It's actually better as expected because there is only 3 howls (one for the background music, one for the fire effect and one for the impact SFX), rather than one for each sound that was played (this is actually a memory leak/bad management of howls in the current version!).\r\n\r\nMy hypothesis is that somehow the howls are stuck and when you try to play them it's not doing anything.",
+        "timestamp": "2021-02-11T07:59:43Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "If I put a breakpoint in the playSound method of a HowlerSoundManager, and log `this`: \r\n![image](https://user-images.githubusercontent.com/1280130/107613399-86350980-6c48-11eb-9b7a-370cac7f8394.png)\r\n\r\nNot sure if this is related, but HowlerSound `_id` has a mix of undefined and null. Looks suspicious?\r\n\r\nEDIT: And none of these are considered stopped:\r\n![image](https://user-images.githubusercontent.com/1280130/107613550-d613d080-6c48-11eb-85fc-e768c7717f2d.png)\r\n\r\nEDIT2: Because of undefined/null, trying to call getSeek will sometimes return the Howl itself:\r\n![image](https://user-images.githubusercontent.com/1280130/107613764-3dca1b80-6c49-11eb-9fc0-4a5daccd8717.png)\r\n\r\nSo there is at least definitely two problems:\r\n- sounds that are ended are never cleaned, and never considered stopped (which used to be the case before, so this has to be fixed).\r\n- id are set to undefined/null for some reason.",
+        "timestamp": "2021-02-11T08:07:53Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "466fe8f",
+        "message": "[WIP] Refactor music loading",
+        "author": "arthuro555",
+        "timestamp": "2020-10-03T08:51:13Z"
+      },
+      {
+        "sha": "c2c42c4",
+        "message": "Merge branch 'master' into music-refactor",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T01:58:51Z"
+      },
+      {
+        "sha": "37a0ac7",
+        "message": "Convert HowlerSound to ES6 class, make preloading optional",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T03:35:39Z"
+      },
+      {
+        "sha": "2401f41",
+        "message": "Remove debug code",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T03:36:54Z"
+      },
+      {
+        "sha": "a4aba15",
+        "message": "Describe error type",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T03:38:22Z"
+      },
+      {
+        "sha": "a4921b0",
+        "message": "Add actions to control loading of audio files",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T04:47:16Z"
+      },
+      {
+        "sha": "274b22f",
+        "message": "Fix play free music action",
+        "author": "arthuro555",
+        "timestamp": "2020-10-19T15:15:53Z"
+      },
+      {
+        "sha": "0186b8e",
+        "message": "Rework the sound management again",
+        "author": "arthuro555",
+        "timestamp": "2020-10-20T20:13:37Z"
+      },
+      {
+        "sha": "eb94b2e",
+        "message": "Get rid of overloaded methods",
+        "author": "arthuro555",
+        "timestamp": "2020-10-20T21:14:39Z"
+      },
+      {
+        "sha": "63a377e",
+        "message": "Use else if while loading and run prettier",
+        "author": "arthuro555",
+        "timestamp": "2020-10-20T21:16:49Z"
+      },
+      {
+        "sha": "bf91f79",
+        "message": "Fix Howl event listeners",
+        "author": "arthuro555",
+        "timestamp": "2020-10-21T23:20:19Z"
+      },
+      {
+        "sha": "5fd02da",
+        "message": "Multiple fixes and more ts types",
+        "author": "arthuro555",
+        "timestamp": "2020-10-23T11:09:41Z"
+      },
+      {
+        "sha": "6f8de88",
+        "message": "More Fixes",
+        "author": "arthuro555",
+        "timestamp": "2020-10-23T12:21:44Z"
+      },
+      {
+        "sha": "2c2dfec",
+        "message": "Rename removeFromContainer to clearContainer",
+        "author": "arthuro555",
+        "timestamp": "2020-10-23T12:26:24Z"
+      },
+      {
+        "sha": "7f81051",
+        "message": "Remove redundant listeners\n\nAnd other fixes",
+        "author": "arthuro555",
+        "timestamp": "2020-10-23T15:22:16Z"
+      },
+      {
+        "sha": "617906c",
+        "message": "Apply review instructions",
+        "author": "arthuro555",
+        "timestamp": "2020-10-23T16:06:25Z"
+      },
+      {
+        "sha": "cdaca53",
+        "message": "Merge branch 'master' into music-refactor",
+        "author": "arthuro555",
+        "timestamp": "2020-11-14T10:54:06Z"
+      },
+      {
+        "sha": "c88e42e",
+        "message": "Multiple fixes",
+        "author": "arthuro555",
+        "timestamp": "2020-11-15T04:11:22Z"
+      },
+      {
+        "sha": "96662ec",
+        "message": "Merge master",
+        "author": "arthuro555",
+        "timestamp": "2021-02-07T22:53:54Z"
+      },
+      {
+        "sha": "9d3aa23",
+        "message": "Cancel accidental change",
+        "author": "arthuro555",
+        "timestamp": "2021-02-07T22:57:34Z"
+      },
+      {
+        "sha": "d1e1d24",
+        "message": "Move howler.d.ts to types",
+        "author": "arthuro555",
+        "timestamp": "2021-02-08T09:54:56Z"
+      },
+      {
+        "sha": "8946855",
+        "message": "Fix howler events",
+        "author": "arthuro555",
+        "timestamp": "2021-02-09T11:36:15Z"
+      },
+      {
+        "sha": "1cba403",
+        "message": "Merge branch 'master' into music-refactor",
+        "author": "arthuro555",
+        "timestamp": "2021-02-09T11:36:42Z"
+      },
+      {
+        "sha": "d9de7fb",
+        "message": "Fix spatial sound extension",
+        "author": "arthuro555",
+        "timestamp": "2021-02-09T11:49:06Z"
+      },
+      {
+        "sha": "6bcd46d",
+        "message": "Fix typesctipt errors",
+        "author": "arthuro555",
+        "timestamp": "2021-02-09T21:56:16Z"
+      },
+      {
+        "sha": "b1b075a",
+        "message": "Apply review instructions",
+        "author": "arthuro555",
+        "timestamp": "2021-02-10T16:50:56Z"
+      },
+      {
+        "sha": "e179186",
+        "message": "Replace spread operator with Object.assign",
+        "author": "arthuro555",
+        "timestamp": "2021-02-13T22:28:35Z"
+      },
+      {
+        "sha": "05e9ff1",
+        "message": "Use '__default' when playing a sound",
+        "author": "arthuro555",
+        "timestamp": "2021-02-19T16:45:19Z"
+      },
+      {
+        "sha": "efb6c75",
+        "message": "Run prettier",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-02-21T20:31:56Z"
+      },
+      {
+        "sha": "a6297e9",
+        "message": "Merge branch 'master' into music-refactor",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-02-22T08:14:02Z"
+      }
+    ]
+  },
+  {
+    "story_id": "4ian/GDevelop#1453",
+    "metadata": {
+      "title": "Replaced downshift with autocomplete.",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-03-19T21:45:22Z",
+      "reviewers": [
+        "HarsimranVirk",
+        "4ian"
+      ],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "Resolves #1534 \r\nThis change was in response to issue #1441. I have tried to implement autocomplete to mimic the behavior of the previous downshift component, and also improve it (pop up closes on pressing enter, ESC doesn't delete the input text).\r\n\r\nI couldn't integrate i18n due to a persistent error (storybook logs i18n not defined), tried a lot of workarounds but couldn't find a way.\r\n(Also, changed the code style from class-based components to hooks for styling. And this is my first pull request to a major project ^_^ )\r\n\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "> Is your updated version showing icons? If not, it's a must have to keep in the new version\r\n\r\n`const renderMenu = option => {\r\n  if (option.type !== 'seperator') {\r\n    return (\r\n      <MenuItem>\r\n        {option.renderIcon && (\r\n          <ListItemIcon>{option.renderIcon()}</ListItemIcon>\r\n        )}\r\n        {option.value}\r\n      </MenuItem>\r\n    );\r\n  } else {\r\n    return <Divider />;\r\n  }\r\n};`\r\n\r\n`renderOption={(option, state) => renderMenu(option)}`\r\n\r\nI have added this code now and it renders the icon :)\r\n\r\n![Screenshot from 2020-02-23 01-14-46](https://user-images.githubusercontent.com/39851078/75098424-05ff3980-55dc-11ea-81b5-855a33acdbc9.png)\r\n\r\n> While this is not a major version bump, it's still a bit \"risky\" to upgrade the minor version of Material-UI as this is impacting literally the whole application (any regression would be a bad thing).\r\n\r\nYes, I understand changing versions of dependencies can have a drastic effect, but somehow Autocomplete and TextField were working together after upgrading the version. Also, as of now autocomplete may not be very stable, since material-ui/lab fixes it in every alpha release.\r\n\r\n> Also should we use 4.9.3 as it's the very last version and can have maybe interesting bug fixes?\r\n\r\nMaybe, but I guess I'm the least qualified person to suggest that, considering neither I know much about the GDevelop codebase, nor material-ui.\r\n\r\n> it's very surprising to have a function called styles => find a name with a verb :)\r\n\r\n> Are you sure styles.container exists?\r\n\r\nFixed the other noob mistakes ^_^\r\n \r\nSome screenshots from WebApp: \r\n\r\n![Screenshot from 2020-02-23 02-02-49](https://user-images.githubusercontent.com/39851078/75098889-7a88a700-55e1-11ea-9001-afe9b71a2fee.png)\r\n\r\n![Screenshot from 2020-02-23 02-03-24](https://user-images.githubusercontent.com/39851078/75098944-04d10b00-55e2-11ea-9ae1-4eedd43e329a.png)\r\n\r\n![Screenshot from 2020-02-23 02-05-10](https://user-images.githubusercontent.com/39851078/75098898-912efe00-55e1-11ea-9ea9-fe29419f6133.png)\r\n\r\n![Screenshot from 2020-02-23 02-16-19](https://user-images.githubusercontent.com/39851078/75098994-917bc900-55e2-11ea-9334-aeef65522415.png)\r\n",
+        "timestamp": "2020-02-22T20:44:25Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "UPDATE: The autocomplete component is removed after selecting a value, but if it is nested inside some other component(s), then it's parent nodes will keep rendering. Like in this case, autocomplete is nested inside a snackbar, after selecting a value, the snackbar keeps rendering until I click somewhere else.\r\n\r\n![Screenshot from 2020-02-23 12-11-49](https://user-images.githubusercontent.com/39851078/75105049-86eb1f00-5636-11ea-8b5b-42856c0aaf2f.png)\r\n\r\nI have tried to blur input, but it doesn't work, can you suggest something?\r\n\r\n",
+        "timestamp": "2020-02-23T07:00:11Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I think you're not that far from the solution, let me know if you have more time to continue this :) ",
+        "timestamp": "2020-02-25T19:26:48Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Sure thing, no pressure! (and good luck!) :)",
+        "timestamp": "2020-02-25T19:55:01Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "> Why is render even used? That seems like an anti pattern: it's the responsibility of the parent component to know if this component must be rendered. This component should not hide itself or anything like this.\r\n\r\nI didn't look into the code and was trying to close the popup by using the render. Stupid mistake :(\r\nAnyway, in the latest commit, I dug into the code and found this, https://github.com/4ian/GDevelop/blob/6155606d20830dfb01299f815fb72c92afc380c4/newIDE/app/src/EventsSheet/InlinePopover.js#L28-L32,\r\n\r\nSo, now I have passed this function as a prop through ParameterComponent (then ObjectField, then ObjectSelecter, and finally passed it to SemiControlledAutocomplete) and it closes the popup after selecting something.\r\n\r\n> You can see that the styling is not the same as other fields when the autocomplete is shown in a popup.\r\n\r\nI have tried to mimic the styling as much as I could. I'd still test throughout the app to find any inconsistencies. Also, I accidentally found another bug, the dividers in options popup were selectable, I have added some code to disable their selection.\r\n\r\n![Screenshot from 2020-02-29 03-17-41](https://user-images.githubusercontent.com/39851078/75595661-55010f00-5ab3-11ea-8b08-020309b40a53.png)\r\n\r\nThis is what happens when the divider is selected.\r\n\r\n![Screenshot from 2020-02-29 03-20-01](https://user-images.githubusercontent.com/39851078/75595736-9b566e00-5ab3-11ea-8d27-98d88458f0b5.png)\r\n\r\nThis is how it looks now, the divider isn't styled exactly like before though.\r\n\r\n> the box should disappear once Esc has been pressed.\r\n\r\nThis is also solved now, pressing Esc closes the popup.\r\nI'd test it throughout the app and let you know if it breaks something :)\r\nOne more thing, what should I do for these failing checks?",
+        "timestamp": "2020-02-29T00:04:23Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> Also, I accidentally found another bug, the dividers in options popup were selectable, I have added some code to disable their selection.\r\n\r\nGreat!  :)\r\n\r\n> This is how it looks now, the divider isn't styled exactly like before though\r\n\r\nThat looks fine I would say :) \r\n\r\n> I'd test it throughout the app and let you know if it breaks something :)\r\n\r\nCool, let me know when you're confident this is working well :) Take a look at all the places using the component: https://github.com/4ian/GDevelop/search?q=semicontrolledautocomplete&unscoped_q=semicontrolledautocomplete\r\n\r\nFor example, the dialog to edit a group, the debugger (there is an autocomplete to select an object to create when you select a scene), various parameters are using an autocomplete (keyboard keys, scene names, etc...), the resource selectors, like the field to select a font in the Text object editor or the fields to select an image in the tiled sprite/panel sprite object editors.\r\n\r\n> One more thing, what should I do for these failing checks?\r\n\r\nTake a look at the tests: https://semaphoreci.com/4ian/gd/branches/pull-request-1453/builds/8\r\nand try to understand why they are failing. One is failing because you updated material-ui which now adds a new CSS class, so the \"snapshot\" test is failing:\r\n![image](https://user-images.githubusercontent.com/1280130/75609557-899bb780-5b01-11ea-81a6-286e17a51d89.png)\r\n\r\nRun the test locally (`npm run test`, see the README), you'll see that you can ask the test runner to update this \"snapshot\" for you. More info about what are snapshot tests: https://jestjs.io/docs/en/snapshot-testing\r\n\r\nThe other thing failing is the Flow static typing (this is similar to Typescript):\r\n![image](https://user-images.githubusercontent.com/1280130/75609609-0b8be080-5b02-11ea-88b7-b0add6609114.png)\r\n\r\nThis is signaling to you that you're either misusing JavaScript/creating potential bugs or you surely forgot to update the `type Props = { ... }` that are declaring what props your component is accepting. More info about Flow: https://flow.org/ - again it's similar to TypeScript.",
+        "timestamp": "2020-02-29T14:46:23Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Well I started to explain what Flow is but you've already been updating types :) Still in case you're not familiar, take a quick look. Try to understand what the error messages are telling (run `npm run flow` locally to get them) and to fix them. Usually they are telling you about something that you've not considered or not declared and so that is either \"incorrect\" or potentially buggy.",
+        "timestamp": "2020-02-29T15:05:51Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "> One is failing because you updated material-ui which now adds a new CSS class, so the \"snapshot\" test is failing\r\n\r\nI locally tested this and it does fail for a new class. How should I resolve this? Should I update the snapshot?\r\n![Screenshot from 2020-03-01 16-16-12](https://user-images.githubusercontent.com/39851078/75624186-12852280-5bd8-11ea-83bf-c6a94225fb81.png)\r\nAnd what should I do for these? Use typeof in the if conditions? \r\n\r\n> but avoid typeof as much as possible\r\n\r\nI didn't use it at all, maybe, this is why the tests are failing?\r\n\r\n",
+        "timestamp": "2020-03-01T10:53:52Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Update the snapshot yeah, it will appear in the code in the PR :)\r\n\r\nYou can in certain case use typeof to check if something is a string. But right now the Flow error messages are telling you that \"there is no value property\" or \"there is no onClick property\" in DataSource.\r\n=> Is this true? If no, why is Flow complaining? Surely because the type DataSource is not having these properties? In this case should you add them? :) ",
+        "timestamp": "2020-03-01T13:18:32Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Alright, this is nice progress! Mostly nitpickings on the code. I think we should be able to start making extra manual tests to ensure this is working well on Firefox/Chrome, Safari (if you have it, otherwise I'll try) - in other words check as much as possible the app :) ",
+        "timestamp": "2020-03-01T23:39:19Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "@4ian okay so I guess SemiControlledAutocomplete is done as a component, now I have to pass onRequestClose() as a prop to all the inline editor fields. I could only figure out ObjectField, KeyField and VariableField (Object, global and scene variables) which use Autocomplete for inline editing, am I missing some fields? (There are 12 fields which can be edited inline and I have checked them all, only these 5 directly or indirectly use autocomplete)",
+        "timestamp": "2020-03-03T15:43:47Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I'm unsure about onRequestClose 🤔\r\nI do agree that it can be interesting to have it so that the parent can close itself, in the case of an inline popover in the events sheet.\r\n\r\nBut this is actually a new feature, i.e: a different task than what this PR was initially for (which was \"just\" replacing the autocomplete by a new component that works better on mobile and does not erase the input when Escape is pressed).\r\n\r\nLet's go step by step: first let's polish this so that it's ready to merge, and then we can suggest an improvement, that will be easy to implement! Just a few props to pass... But still, it's more thing to review, more potential bugs, more potential missed thing that could break on desktop/mobile/whatever (you never know) - so let's keep it for later :)",
+        "timestamp": "2020-03-03T20:18:34Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "@4ian I had already added that in ObjectField in the earlier commits, should I remove it then? ",
+        "timestamp": "2020-03-03T20:54:29Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Yes please, let's remove for now - a bit of extra work but will be better to add later if needed.",
+        "timestamp": "2020-03-03T21:33:32Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "@4ian So I have removed onRequstClose as a prop from all the fields I guess, but I've kept it in prop type definitions and also in the handling functions of autocomplete (even though it does nothing right now, but can be used in the future). \r\n\r\n> I do agree that it can be interesting to have it so that the parent can close itself, in the case of an inline popover in the events sheet.\r\n\r\nWe can maybe do this for other components too? (like TextField) I'd love to work on that after we're done with this :)",
+        "timestamp": "2020-03-04T10:03:17Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> We can maybe do this for other components too? (like TextField) I'd love to work on that after we're done with this :)\r\n\r\nIf we want Esc to close the inline popover, I think we could do it with some events on the inline popover component itself - so as not disturb the poor other components that have nothing to do with this :) (events bubble up in the tree of components).\r\n\r\nI will take a new look a the PR. As this is upgrading material-ui, I will probably need to set up a beta test to ensure there is no regression in the whole app.",
+        "timestamp": "2020-03-04T21:42:22Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Here we go, this is your branch online: https://editor-beta.gdevelop-app.com/ (don't share this apart for testing).\r\n\r\nFor now I've just tested quickly and not found any obvious regression :) \r\nThe new autocomplete seems to work well, but has one issue: the existing text is not shown. So if I open an existing condition/action with one (or more) objects, the fields are empty. Same in the inline popover, and same in the Tiled Sprite/Panel Sprite object editors.\r\nThis is the kind of \"details\" that we need to care about :) Can you take a look?",
+        "timestamp": "2020-03-04T22:18:23Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "I've seen only one thing, hand cursor on items, this hand is not present on current version.\r\n![mmmmm](https://user-images.githubusercontent.com/1670670/75935737-6f0a6b00-5e80-11ea-9d13-c7cda2312769.gif)\r\n\r\nImages are broken on gif but it's working few minutes ago, don't worries.\r\n\r\nWhy not display the list directly when we click on?\r\nList is showing only after a second click in the text input or if we start write.\r\nAnd the list isn't visible if the input is empty.\r\nIf we showing the list, user can save one click,\r\nAnd for mobile/tablet user see the list avoid to write for select an item.\r\n",
+        "timestamp": "2020-03-05T00:29:38Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Would be nice to fix the hand indeed, as we avoid displaying the hand in the rest of the IDE.\r\nFor opening the list, I was assuming it was a material-ui autocomplete default behavior - maybe there are props to tweak this?",
+        "timestamp": "2020-03-05T08:10:03Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "I guess maybe hand is the default material ui styling for listbox, we've used custom listitem component, which doesn't show the hand cursor but listbox does. Also, yes there is a prop for opening list. @4ian Im aware of the issue you mentioned, I had removed the default value (which shows the existing value when we open autocomplete) because it threw some errors regarding controlled and uncontrolled input field.\r\nI'll look into all of these issues this evening :)",
+        "timestamp": "2020-03-05T08:27:51Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "1. Fixed the hand cursor thing.\r\n2. Text field shows the existing value.\r\n3. Okay now about the list opening thing, I've fixed that but I'm really not sure about it.\r\nhttps://github.com/4ian/GDevelop/blob/4362e8dd429620fece83ad2a7e5e5ac4c7a6d70c/newIDE/app/src/UI/SemiControlledAutoComplete.js#L133\r\nSo, earlier I was using this prop to control whether the list should open on focus or not. Now I've stopped using this prop and started using the default material-ui behavior. Am I missing something @4ian ? \r\n\r\n> Why not display the list directly when we click on?\r\n\r\n> And the list isn't visible if the input is empty.\r\nIf we showing the list, user can save one click,\r\n\r\nThe default behavior doesn't have these issues, do you prefer them @Bouh ? What do you suggest @4ian ?",
+        "timestamp": "2020-03-05T18:46:17Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "The current behavior in current beta have not these things indeed, but it can be an improvement todo these.\r\nLike i said for tablet/phone user. And it's faster than write and see the choices.\r\nAnd yeah like said 4ian, [auto complete](https://material-ui.com/components/autocomplete/) display list by default :)\r\nIn the instruction editor, in action \"Link two object\" for example when we select this action , the object field is focus by default and we see the list. This is cool because we see the possibility, and fast because we can just scroll with mouse or touch :)\r\n\r\nYou have made a nice rework! The change are invisible 👏",
+        "timestamp": "2020-03-05T19:06:58Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I think we're fine always showing the list. It was not done previously because the it was hiding parameters in the action/condition editor... but as we're moving soon to a new the editor, we can surely keep it opened by default.\r\n\r\nI've republished the latest changes on editor-beta.gdevelop-app.com. Make sure to open it, wait a bit, close it and re-open it to get it updated (as it's cached offline as a PWA) (we need to add a message to trigger the reload btw)",
+        "timestamp": "2020-03-05T23:02:27Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "After have clear the cache.\r\n![image](https://user-images.githubusercontent.com/1670670/76037860-61b8b380-5f48-11ea-952b-e991ecdf205f.png)\r\n",
+        "timestamp": "2020-03-06T00:19:22Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "@4ian I've come across another bug. We cannot select anything from the popup in EventsSheet with touch (mouse click or keyboard works fine). I've confirmed this exists in the current version too. I don't know if there is a problem with autocomplete or EventsSheet :/",
+        "timestamp": "2020-03-06T10:37:29Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> I've come across another bug. We cannot select anything from the popup in EventsSheet with touch (mouse click or keyboard works fine). \r\n\r\nThis is indeed an existing bug. Let's ignore this as it's not a regression of what you've done. This being said, still try to remove the \"onRequestClose\" and see if it's better.",
+        "timestamp": "2020-03-06T15:31:36Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "> This being said, still try to remove the \"onRequestClose\" and see if it's better.\r\n\r\nThough removing onRequestClose doesn't fix that bug but I'm still thinking to remove it either way.\r\n\r\n> I think we could do it with some events on the inline popover component itself - so as not disturb the poor other components that have nothing to do with this \r\n\r\nMaybe we'll find some other way, so let's remove the onRequestClose. What do you suggest?\r\n",
+        "timestamp": "2020-03-06T16:40:22Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I still added a few comments. I know it's a bit of pain because I want some \"perfect\" code, but to be precise I want a code that is as simple and correct as possible: not extra stuff if not needed, proper typing, no useless code, functions as short as possible.\r\nThe reason is that this is easing the maintenance in the long term. Having a component with 2/3 useless stuff, and typing not working because Flow does not have the definition of the HOC api of material-ui withStyle, will create problems down the road.\r\nIf we aim right now for a component as minimal, simple and clean as possible, we avoid mis-understanding in the future, we avoid bugs and we allow ourselves to have something that is easy to understand and replace :) ",
+        "timestamp": "2020-03-08T19:48:54Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "Yes I understand @4ian :) Even I was thinking about it having too much bloating stuff in the render() function. This would surely result in performance issues in the long run. I believe its best to refactor stuff :) ",
+        "timestamp": "2020-03-08T19:56:29Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "@4ian I'm stuck at implementing these two functions:\r\nhttps://github.com/4ian/GDevelop/blob/8b294ae3694be64d625e7b256c5e931c923177e0/newIDE/app/src/UI/SemiControlledAutoComplete.js#L169-L179\r\n\r\nThey are meant to work with class components and I'm not sure how to deal with them with functional component. Right now I've used forwardRef to pass the ref for focus() and it works (I don't know if it is the right way or not). Should I use forwardRef? How should I proceed with forceInputValueTo() ? ",
+        "timestamp": "2020-03-12T10:41:35Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "To expose methods, you need to use React.forwardRef indeed, with the `Props` and the `Interface` as types, Interface being a type defining the functions. Then you use `useImperativeHandle`: https://github.com/4ian/GDevelop/search?q=useImperativeHandle&unscoped_q=useImperativeHandle\r\n\r\nFor example, see this example for `ScrollView` which has a method `scrollTo`: https://github.com/4ian/GDevelop/blob/9536bda67447163555b8b166a95719be669e2006/newIDE/app/src/UI/ScrollView.js\r\n\r\nyou should be able to re-implement focus and forceInputValueTo with `useImperativeHandle` :)",
+        "timestamp": "2020-03-12T13:52:26Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Looks good overall :) I see that you had to add $FlowFixMe - ideally we'll sort this out to be sure we can have proper typing of SemiControlledAutoComplete in the whole codebase :) ",
+        "timestamp": "2020-03-13T16:43:14Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "I've updated editor-beta.gdevelop-app.com :) \r\nIf you can fix the conflicts in package-lock.json (I would recommend to erase the file and re-run npm install), we should I think be good to go?",
+        "timestamp": "2020-03-15T13:33:31Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "Color on text don't use styles from themes\r\n![image](https://user-images.githubusercontent.com/1670670/76702644-8e4c9800-66cb-11ea-85e1-807e476b08f8.png)\r\n\r\n\r\nAlso this input here should be clear after a choice, this can be done with a props to pass on the input component? Or should be done like actually in the group file by clear the state of input, (This doesn't work btw, that' why i ask if something can be done in this PR because it's related to list input :) )\r\n\r\n\r\n> I've updated editor-beta.gdevelop-app.com :)\r\n\r\nWhich branch on git is used for this url ?\r\n\r\n",
+        "timestamp": "2020-03-15T13:45:06Z"
+      },
+      {
+        "author": "HarsimranVirk",
+        "role": "CONTRIBUTOR",
+        "body": "> I would recommend to erase the file and re-run npm install\r\n\r\nIt didn't work :(\r\n\r\n> Color on text don't use styles from themes\r\n\r\n@Bouh I'd take a look into it. Though, I don't understand why is that so? It uses all the other styling from theme, but not the text?\r\n\r\n> The new autocomplete seems to work well, but has one issue: the existing text is not shown.\r\n\r\nNow, about the clearing of input after a choice, so the input shows the existing value. After selecting a value, it becomes the 'existing' value and therefore it is shown in the input. It'd be really complex to differentiate between the actual existing value and the value which is just selected.\r\n\r\n\r\n\r\n\r\n\r\n\r\n",
+        "timestamp": "2020-03-15T14:38:05Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "I've run electron app on my pc with your branch and it's good. Surely my browser cache doesn't clear properly.. sorry.",
+        "timestamp": "2020-03-16T13:13:18Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "> Color on text don't use styles from themes\r\n\r\nI've updated the editor-beta.gdevelop-app.com yesterday ;) And it requires a cache clear or an opening/close/re-open to update itself otherwise.",
+        "timestamp": "2020-03-16T13:31:49Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "So unless there is a major issue this seems ready to go?",
+        "timestamp": "2020-03-16T13:39:40Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "Yes",
+        "timestamp": "2020-03-16T13:41:11Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Found that we lose focus when selecting an object - we should probably fix this by removing blurOnSelect?",
+        "timestamp": "2020-03-16T19:21:00Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5502109",
+        "message": "Replaced downshift with autocomplete.",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-22T14:51:23Z"
+      },
+      {
+        "sha": "6c667ab",
+        "message": "Added functinality to render Icons",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-22T19:34:31Z"
+      },
+      {
+        "sha": "2db1267",
+        "message": "removed compile warnings",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-22T20:37:25Z"
+      },
+      {
+        "sha": "7ec131c",
+        "message": "Added functionality to not render after pressing Enter",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-22T21:41:39Z"
+      },
+      {
+        "sha": "29d7751",
+        "message": "Disabled selectable dividers, fixed ui behavior",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-28T23:23:51Z"
+      },
+      {
+        "sha": "b3391f0",
+        "message": "added computeTextFieldStyleProps",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-02-29T07:52:40Z"
+      },
+      {
+        "sha": "627c6cc",
+        "message": "Renamed functions, passed flow test locally, updated snapshot",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-01T18:14:07Z"
+      },
+      {
+        "sha": "c4d50dc",
+        "message": "Removed onRequest prop from fields passed earlier, fixed filterFunction, implemented immutable way",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-04T09:38:37Z"
+      },
+      {
+        "sha": "70342bb",
+        "message": "replaced var with const",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-04T09:46:39Z"
+      },
+      {
+        "sha": "5d0e92a",
+        "message": "Fixed hand cursor in listbox",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-05T16:23:44Z"
+      },
+      {
+        "sha": "43f46a4",
+        "message": "Shows the existing value, always open up the list on focus",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-05T18:28:39Z"
+      },
+      {
+        "sha": "5607da2",
+        "message": "fixed dark theme issue",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-06T10:29:51Z"
+      },
+      {
+        "sha": "fb1e912",
+        "message": "Removed useless destructuring of styles object",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-06T10:41:05Z"
+      },
+      {
+        "sha": "926950f",
+        "message": "Removed onRequestClose entirely",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-08T18:27:31Z"
+      },
+      {
+        "sha": "c5094f4",
+        "message": "Removed the commented code",
+        "author": "Harsimran Singh Virk",
+        "timestamp": "2020-03-08T18:41:28Z"
+      },
+      {
+        "sha": "5849bc5",
+        "message": "Converted into functional component",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-13T10:45:02Z"
+      },
+      {
+        "sha": "fe0ba09",
+        "message": "Merge branch 'master' of https://github.com/HarsimranVirk/GDevelop",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-13T10:48:08Z"
+      },
+      {
+        "sha": "fee6cc2",
+        "message": "Fixed flow typing",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-15T12:58:53Z"
+      },
+      {
+        "sha": "8a85bd9",
+        "message": "fixing conflicting package-lock.json",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-15T13:54:59Z"
+      },
+      {
+        "sha": "2331313",
+        "message": "Another attempt to resolve conflict",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-16T08:52:20Z"
+      },
+      {
+        "sha": "2c25f80",
+        "message": "Merge branch 'master' of https://github.com/4ian/GDevelop",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-16T09:23:20Z"
+      },
+      {
+        "sha": "e044a6b",
+        "message": "Removed blurOnSelect",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-17T09:48:08Z"
+      },
+      {
+        "sha": "39840fd",
+        "message": "Removed type State",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-17T11:09:54Z"
+      },
+      {
+        "sha": "0be1f38",
+        "message": "Fixed menu open",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-19T10:19:00Z"
+      },
+      {
+        "sha": "fdafb49",
+        "message": "Fixed text overflow",
+        "author": "HarsimranVirk",
+        "timestamp": "2020-03-19T18:15:12Z"
+      }
+    ]
+  },
+  {
+    "story_id": "4ian/GDevelop#2590",
+    "metadata": {
+      "title": "Temporary files system improved for multi-users compatibility on Linux ",
+      "labels": [],
+      "qualities": [
+        "availability",
+        "usability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-05-06T18:31:10Z",
+      "reviewers": [
+        "Oxey405",
+        "4ian",
+        "Bouh",
+        "arthuro555"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Closes #2507\r\nClose https://forum.gdevelop-app.com/t/gdevelop-5-0-0-108-unusable-in-a-multiuser-environnment/32105 \r\nImproved the tmp folder paths (resolved path folder conflicts) :\r\nadded the UID of the user in them so that there are no more conflicts when multiple instances of GDevelop5 are launched on different accounts on the same machine."
+    },
+    "discussion_timeline": [
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "Yeah I know Arthuro runned the command but it seems that prettier did wrong !",
+        "timestamp": "2021-04-28T10:40:59Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "What are the pros and cons of using username vs uid in the name of the temporary folders?",
+        "timestamp": "2021-04-28T16:17:38Z"
+      },
+      {
+        "author": "Bouh",
+        "role": "COLLABORATOR",
+        "body": "> What are the pros and cons of using username vs uid in the name of the temporary folders?\r\n\r\nPros: understandable folder for human.\r\nCons: [Throws a SystemError if a user has no username or homedir.](https://nodejs.org/api/os.html#os_os_userinfo_options)\r\n\r\n",
+        "timestamp": "2021-04-28T17:14:16Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "> > What are the pros and cons of using username vs uid in the name of the temporary folders?\r\n> \r\n> Pros: understandable folder for human.\r\n> Cons: [Throws a SystemError if a user has no username or homedir.](https://nodejs.org/api/os.html#os_os_userinfo_options)\r\n\r\nYes but actually we don't need it to be understandable by humans. The Pros is that UID on windows send -1 but Username send a string wich contain the first name of the user wich is still better than having -1",
+        "timestamp": "2021-04-28T18:03:00Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "So this pull request is denied or is it ok ?",
+        "timestamp": "2021-05-01T17:55:09Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "I think I finally managed to correct everything @4ian !",
+        "timestamp": "2021-05-04T16:33:42Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "So for recap, the tmp folder of GDevelop is `GDTMP-[uid]`.\r\nIf we CAN'T get the uid we return nothing (sadly)\r\nThis folder belongs to the actual user with this UID.\r\nInside this `GDTMP-[uid]` we have all the tmp folders.\r\nSo if multiples users share the same tmp we are going to have mutliple folders. \r\nEach one is attached to the user that have the uid.\r\nI hope I explained goodly !",
+        "timestamp": "2021-05-04T16:48:09Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "Also, if the CI fail it's because this fork is based upon a one that has failed the CI.",
+        "timestamp": "2021-05-04T16:49:26Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "@Bouh or @4ian could anyone review the last push ?",
+        "timestamp": "2021-05-05T12:10:18Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "> Did a few additional changes, looks good! Will merge when tests are passing.\r\n\r\nCI passed",
+        "timestamp": "2021-05-06T08:20:13Z"
+      },
+      {
+        "author": "4ian",
+        "role": "OWNER",
+        "body": "Merged! Thanks for working on this! :) ",
+        "timestamp": "2021-05-06T18:31:21Z"
+      },
+      {
+        "author": "Oxey405",
+        "role": "CONTRIBUTOR",
+        "body": "You did some of the job....",
+        "timestamp": "2021-05-07T15:55:34Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "0a7ab43",
+        "message": "Improved tmp folders for multi-users compatibility (for linux users)",
+        "author": "BuildTools",
+        "timestamp": "2021-04-27T20:48:21Z"
+      },
+      {
+        "sha": "362d980",
+        "message": "Improved tmp folders for multi-users compatibility (for linux users)",
+        "author": "BuildTools",
+        "timestamp": "2021-04-27T20:49:55Z"
+      },
+      {
+        "sha": "b3a06eb",
+        "message": "Delete package-lock.json",
+        "author": "Oxey405",
+        "timestamp": "2021-04-27T21:02:04Z"
+      },
+      {
+        "sha": "7ebe2d1",
+        "message": "Delete package-lock.json",
+        "author": "Oxey405",
+        "timestamp": "2021-04-27T21:02:59Z"
+      },
+      {
+        "sha": "f47e92f",
+        "message": "minor changes",
+        "author": "BuildTools",
+        "timestamp": "2021-04-27T21:04:54Z"
+      },
+      {
+        "sha": "4312659",
+        "message": "Remove lock files",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-04-27T21:11:57Z"
+      },
+      {
+        "sha": "4a7dc7f",
+        "message": "Add back lock files",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-04-27T21:13:26Z"
+      },
+      {
+        "sha": "9a7b1f6",
+        "message": "Run prettier",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-04-27T21:23:49Z"
+      },
+      {
+        "sha": "bad8634",
+        "message": "Merge branch 'improvedsysfile' of https://github.com/Oxey405/GDevelop into improvedsysfile",
+        "author": "BuildTools",
+        "timestamp": "2021-04-28T10:42:40Z"
+      },
+      {
+        "sha": "54f6626",
+        "message": "Merge branch 'master' of https://github.com/4ian/GDevelop into improvedsysfile",
+        "author": "BuildTools",
+        "timestamp": "2021-04-28T10:46:15Z"
+      },
+      {
+        "sha": "001d84f",
+        "message": "Remove accidental changes",
+        "author": "Arthur Pacaud",
+        "timestamp": "2021-04-28T11:02:57Z"
+      },
+      {
+        "sha": "e7dd28d",
+        "message": "Changed to username",
+        "author": "BuildTools",
+        "timestamp": "2021-04-28T12:45:57Z"
+      },
+      {
+        "sha": "17ef825",
+        "message": "Fixed dumb optionalRequire forgot",
+        "author": "BuildTools",
+        "timestamp": "2021-04-28T12:49:02Z"
+      },
+      {
+        "sha": "98c69b2",
+        "message": "handling correctly errors with os.userInfo()",
+        "author": "BuildTools",
+        "timestamp": "2021-05-01T20:11:52Z"
+      },
+      {
+        "sha": "0aa6e21",
+        "message": "Changed variable to const",
+        "author": "BuildTools",
+        "timestamp": "2021-05-02T16:37:59Z"
+      },
+      {
+        "sha": "a243a1d",
+        "message": "Fixed variable scopes and improved exceptions handling",
+        "author": "BuildTools",
+        "timestamp": "2021-05-02T19:29:19Z"
+      },
+      {
+        "sha": "1968eec",
+        "message": "Improved System file (final commit I hope)",
+        "author": "BuildTools",
+        "timestamp": "2021-05-03T16:43:50Z"
+      },
+      {
+        "sha": "4164f3b",
+        "message": "Revert modifications maded in index.js",
+        "author": "BuildTools",
+        "timestamp": "2021-05-04T16:30:40Z"
+      },
+      {
+        "sha": "d33ad26",
+        "message": "Delete index.js",
+        "author": "Oxey405",
+        "timestamp": "2021-05-05T14:24:18Z"
+      },
+      {
+        "sha": "f30e0d0",
+        "message": "Added GetUserUID.js",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T14:25:08Z"
+      },
+      {
+        "sha": "ad7f156",
+        "message": "revert changes",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T14:33:33Z"
+      },
+      {
+        "sha": "40b0c83",
+        "message": "Fixed GetUserUID",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T15:02:09Z"
+      },
+      {
+        "sha": "f2a15a3",
+        "message": "Fixed broken GetUserID and all modified scripts",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T15:30:17Z"
+      },
+      {
+        "sha": "2007f82",
+        "message": "Fixed format",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T17:50:11Z"
+      },
+      {
+        "sha": "d6f8679",
+        "message": "Fixed problems A G A I N",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T18:05:09Z"
+      },
+      {
+        "sha": "fa5086f",
+        "message": "Fixed format & missing optionalRequires",
+        "author": "BuildTools",
+        "timestamp": "2021-05-05T18:17:29Z"
+      },
+      {
+        "sha": "a79824e",
+        "message": "Update LocalEventsFunctionCodeWriter.js",
+        "author": "Florian Rival",
+        "timestamp": "2021-05-05T20:32:32Z"
+      },
+      {
+        "sha": "750a578",
+        "message": "Update GetUserUID.js",
+        "author": "Florian Rival",
+        "timestamp": "2021-05-05T20:33:19Z"
+      },
+      {
+        "sha": "d106db0",
+        "message": "Rename GetUserUID.js to LocalUserInfo.js",
+        "author": "Florian Rival",
+        "timestamp": "2021-05-05T20:33:49Z"
+      },
+      {
+        "sha": "9588985",
+        "message": "Update LocalEventsFunctionCodeWriter.js",
+        "author": "Florian Rival",
+        "timestamp": "2021-05-05T20:34:03Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1738 @@
+[
+  {
+    "story_id": "commontk/CTK#753",
+    "metadata": {
+      "title": "Dicombrowser support import multiple dirs",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-10-06T20:48:18Z",
+      "reviewers": [],
+      "changed_files": 10
+    },
+    "issue_payload": {
+      "body": "This PR addresses [2014: allow selection of subset of directories for dicom import](https://issues.slicer.org/view.php?id=2014).\r\n\r\nHere is the updated interface:\r\n\r\n![dicom-import-file-dialog](https://user-images.githubusercontent.com/219043/31247436-9b5ae878-a9de-11e7-8592-d58ab934ae90.png)\r\n\r\nFeatures:\r\n* Support for multi selection of DICOM directories\r\n* Add enum `ctkDICOMBrowser::ImportDirectoryMode` with `ImportDirectoryCopy` and `ImportDirectoryAddLink`\r\n* Introduction of new settings keys `DICOM/ImportDirectoryMode` and `DICOM/DontConfirmImportDirectory`\r\n* Migrating of old settings named `MainWindow/DontConfirmCopyOnImport`\r\n* Improve pythonic API adding `Q_PROPERTY`: `ImportDirectoryMode` and `SkipConfirmImportDirectory`\r\n\r\nCc: @fedorov @pieper @lassoan @cpinter\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Nice improvements!  LGTM (didn't try)",
+        "timestamp": "2017-10-05T19:13:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "Much needed feature, looks great, thank you JC!",
+        "timestamp": "2017-10-05T19:17:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "One comment - why do you need this import confirmation at all? To me, this just adds unnecessary complexity. Import is not an irreversible operation, so if user clicks \"import\", I think it is safe to assume that the user indeed wants to import, and I do not see any reason to ask again.",
+        "timestamp": "2017-10-05T19:18:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Looks nice, thanks!\r\n\r\nA nitpick: \"Skip import directory confirmation\" is a negative statement (equivalent to \"don't show confirmation\"), something we do not normally allow.\r\n\r\nI agree with @fedorov. In the light of https://issues.slicer.org/view.php?id=4360#c15257, if confirmation would be skipped by default (i.e. the \"Show confirmation\" would be off by default), then the second popup would not be that big of an issue (and it would not appear in a different screen than the first one because there would be no first one).",
+        "timestamp": "2017-10-05T19:24:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "I've been always importing multiple directories by selecting multiple directories in File explorer and dragging them to the application screen. Unfortunately, Slicer kept showing the \"copy/link\" and \"number of imported patients/studies/series\" popups for each folder. Does this development addresses that issue as well?\r\n",
+        "timestamp": "2017-10-05T19:26:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> Unfortunately, Slicer kept showing the \"copy/link\" and \"number of imported patients/studies/series\" popups for each folder. Does this development addresses that issue as well?\r\n\r\n@lassoan  This is addressed by the use of `onImportDirectories` in Slicer instead of `onImportDirectory`. (aka a batch import)\r\n\r\n>  A nitpick: \"Skip import directory confirmation\" is a negative statement (equivalent to \"don't show confirmation\"), something we do not normally allow.\r\n\r\n@cpinter  The proposed implementation is \"matches\" the API of `ctkMessageBox`. I could have \"Show import directory confirmation\" checkbox .. but its value would be opposed to the one displayed in the confirmation dialog.\r\n\r\n> why do you need this import confirmation at all?\r\n\r\n@fedorov I kept the original idea ... \r\n\r\nThat said, considering we now have multi selection .. it gives an opportunity to quickly abort and update the selection.\r\n\r\nMoving we could also display a summary of what would be imported (number of folders, etc ...)\r\n",
+        "timestamp": "2017-10-05T20:00:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> I kept the original idea ...\r\n\r\nI guess by the \"original idea\" you mean that even though user has a checkbox for \"Copy on import\" in the current import DICOM dialog, the user is asked one more time whether they want to copy or import in the confirmation popup.\r\n\r\nI am not sure what motivated the original idea. I find Slicer to be quite busy with popups, and this development may be a good opportunity to get rid of one. I don't see a need for this secondary prompt. I understand secondary confirmation is important for operations that are irreversible, or potentially dangerous, but in this situation I am struggling to justify it.",
+        "timestamp": "2017-10-05T20:25:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> why do you need this import confirmation at all [...]  I am struggling to justify it.\r\n\r\nI am removing it then.",
+        "timestamp": "2017-10-05T20:32:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "@jcfr I expressed my view on this, but perhaps other folks have a good argument against it.\r\n\r\n@lassoan @cpinter @pieper do you have any concerns about removing the confirmation popup?",
+        "timestamp": "2017-10-05T20:34:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "The popup does not seem to be necessary. It would be better to remove it.",
+        "timestamp": "2017-10-05T20:42:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Agreed - I think it's leftover from the earliest implementation of ctkDICOM and can be removed.",
+        "timestamp": "2017-10-05T20:45:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "> The proposed implementation is \"matches\" the API of ctkMessageBox. I could have \"Show import directory confirmation\" checkbox .. but its value would be opposed to the one displayed in the confirmation dialog.\r\n\r\nWhat you say was my point exactly with https://github.com/Slicer/Slicer/pull/767. A decision has been made there about this, and I think if there was a consensus, then we should treat it as a convention.\r\n\r\n@fedorov I agree with you. I never felt that confirmation dialog useful, only when it showed \"0 series, 0 studies, ...\". I think that dialog can be removed, but an error message on failed import would be still useful.",
+        "timestamp": "2017-10-05T20:46:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> then we should treat it as a convention.\r\n\r\nAgreed.\r\n\r\nThat said, we will remove the checkbox.",
+        "timestamp": "2017-10-05T20:53:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> I never felt that confirmation dialog useful, only when it showed \"0 series, 0 studies, ...\". I think that dialog can be removed, but an error message on failed import would be still useful.\r\n\r\nLet's make sure we talk about the same dialog then!\r\n\r\nWhat I suggested to remove is this popup:\r\n\r\n![image](https://user-images.githubusercontent.com/313942/31252008-cead5044-a9ed-11e7-896c-1ba6ada14335.png)\r\n\r\nI agree confirmation after import is completed is useful!",
+        "timestamp": "2017-10-05T20:54:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "> I agree confirmation after import is completed is useful!\r\n\r\nBut make sure there is one popup at the end, not a popup for each directory (as it is the case now when you drag&drop multiple folders from File explorer).",
+        "timestamp": "2017-10-05T20:57:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> But make sure there is one popup at the end, not a popup for each directory (as it is the case now when you drag&drop multiple folders from File explorer).\r\n\r\nIt is also handled.\r\n \r\nSee https://github.com/jcfr/CTK/blob/656a35e7b4cd6924bf4e35cb5f68bf01475b45ea/Libs/DICOM/Widgets/ctkDICOMBrowser.cpp#L719-L735\r\n",
+        "timestamp": "2017-10-05T20:59:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I haven't tried the branch but as far as I understand based on the discussion this does not address https://issues.slicer.org/view.php?id=4360\r\nI'll accept your decisions here, and later may just make sure the confirmation and the extension suggestion popups appear on the same display. It will solve the main problem there (which was the confusion that after closing the first popup I didn't get back control over Slicer, and took a while to realize that there was another modal dialog on the other screen - too many popups right after one another!).\r\n\r\nThanks!",
+        "timestamp": "2017-10-05T21:12:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "The confirm dialog has been removed and few bugs were fixed.\r\n\r\nChanges are now integrated in https://github.com/commontk/CTK/commit/b1d9fb53fd67488adb63edca42068f7549fee21c",
+        "timestamp": "2017-10-06T20:49:08Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "6c149c2",
+        "message": "STYLE: Refactor ctkDICOMBrowserTest1 to use testing macros",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T04:54:42Z"
+      },
+      {
+        "sha": "e01652e",
+        "message": "BUG: Fix ctkFileDialogEventTranslatorPlayerTest1 sorting file lists",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T15:47:01Z"
+      },
+      {
+        "sha": "8907190",
+        "message": "ENH: Update ctkFileDialog API adding support for setting selection mode",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T04:55:28Z"
+      },
+      {
+        "sha": "e797a43",
+        "message": "ENH: Update ctkDICOMBrowser to support importing multiple directories",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T04:57:02Z"
+      },
+      {
+        "sha": "2833bd7",
+        "message": "ENH: ctkDICOMBrowser: Improve import of multiple directories\n\n* Adds comboxBox \"Import Directory Mode\" at the bottom of the import dialog\n  with options: \"Copy\" and \"Add Link\".\n  Associated settings is \"DICOM/ImportDirectoryMode\"\n\n* Adds checkbox \"Confirm Import Directory\" at the bottom of the import dialog. It\n  indicates if the import confirmation dialog should be displayed.\n  Associated settings is \"DICOM/DontConfirmImportDirectory\"\n\n* Only display import stats once\n\n* Functions \"onImportDirectories\" and \"onImportDirectory\" now accept\n  two optionals parameter:\n\n  - mode: parameter of type ImportDirectoryMode indicating how files should be imported (default sets to \"ImportDirectoryAddLink\")\n  - confirm: parameter of type bool indicating if import confirmation dialog should be displayed (default sets to \"true\")",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T18:50:25Z"
+      },
+      {
+        "sha": "ad8a52d",
+        "message": "COMP: Conditionally add DICOMWidgets tests depending on CTKData_DIR",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T19:27:30Z"
+      },
+      {
+        "sha": "96d7e3f",
+        "message": "BUG: ctkDICOMBrowser: Add test \"testDefaults\"",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-05T23:58:42Z"
+      },
+      {
+        "sha": "291fd9f",
+        "message": "BUG: ctkDICOMBrowser: Fix test \"testDefaults\"\n\nThis commit fixes the following error reported when instantiating\na ctkDICOMBrowser.\n\nError:\n\n```\n202: ********* Start testing of ctkDICOMBrowserTester *********\n202: Config: Using QTest library 4.8.7, Qt 4.8.7\n202: PASS   : ctkDICOMBrowserTester::initTestCase()\n202: QWARN  : ctkDICOMBrowserTester::testDefaults() QSqlQuery::exec: database not open\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() SQL failed\n202:  Bad SQL: SELECT Version from SchemaInfo;\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() Error text:\n202: QWARN  : ctkDICOMBrowserTester::testDefaults() QSqlQuery::exec: database not open\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() SQL failed\n202:  Bad SQL: CREATE TABLE IF NOT EXISTS main.Filenames_backup (Filename TEXT PRIMARY KEY NOT NULL )\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() Error text:\n202: QWARN  : ctkDICOMBrowserTester::testDefaults() QSqlQuery::exec: database not open\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() SQL failed\n202:  Bad SQL: INSERT INTO Filenames_backup SELECT Filename FROM Images;\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() Error text:\n202: QWARN  : ctkDICOMBrowserTester::testDefaults() QSqlQuery::exec: database not open\n202: QDEBUG : ctkDICOMBrowserTester::testDefaults() SQL failed\n202:  Bad SQL: DROP TABLE IF EXISTS 'SchemaInfo';\n[...]\n```",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T00:51:14Z"
+      },
+      {
+        "sha": "8e075d6",
+        "message": "ENH: ctkDICOMBrowser: Refactor introducing databaseDirectorySettingsKey()",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T03:06:39Z"
+      },
+      {
+        "sha": "59a5757",
+        "message": "BUG: ctkDICOMBrowser: Add ImportDirectories and ImportDirectory test",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T18:25:00Z"
+      },
+      {
+        "sha": "b41d6da",
+        "message": "BUG: ctkDICOMBrowser: Fix ImportDirectories test\n\nThis commit fixes issue with ctkDICOMDatabase::instancesForSeries identified\nin previous commit.",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T18:25:50Z"
+      },
+      {
+        "sha": "0a2869b",
+        "message": "ENH: ctkDICOMBrowser: Rename \"onImportDir...\" function to \"importDir...\"\n\nTo maintain backward compatibility, deprecates \"onImportDirectory\" in favor\nof \"importDirectory\".",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T18:37:18Z"
+      },
+      {
+        "sha": "a2116f2",
+        "message": "ENH: ctkDICOMBrowser: Remove import confirmation dialog\n\nSee https://github.com/commontk/CTK/pull/753",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T18:52:56Z"
+      },
+      {
+        "sha": "f7881c2",
+        "message": "BUG: ctkDICOMBrowserTest: Add testImportDirectoryMode",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T19:44:21Z"
+      },
+      {
+        "sha": "e2d9186",
+        "message": "BUG: Update ctkDICOMBrowser to fix \"testImportDirectoryMode\"",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T20:00:37Z"
+      },
+      {
+        "sha": "b80d550",
+        "message": "ENH: ctkDICOMDatabase: Display schema queries only if LoggedExecVerbose is true",
+        "author": "Jean-Christophe Fillion-Robin",
+        "timestamp": "2017-10-06T20:38:24Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#858",
+    "metadata": {
+      "title": "ENH: Use display tables to allow showing derived and custom columns in DICOM browser",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-04-15T20:39:44Z",
+      "reviewers": [
+        "cpinter",
+        "pieper",
+        "lassoan",
+        "jcfr"
+      ],
+      "changed_files": 23
+    },
+    "issue_payload": {
+      "body": "- The displayed fields are in the same tables as the raw DICOM tags, with additional fields:\r\n  - Timestamp fields for insertion and displayed field generation\r\n  - Patients: displayed patient name (human readable), number of studies\r\n  - Studies: number of series\r\n  - Series: generic \"size\" column, and number of images and frames\r\n- A new ColumnDisplayProperties table is added that contains the display properties for the patient, study, series tables:\r\n  - Displayed column name\r\n  - Visibility\r\n  - Weight: determines order, smaller values for columns towards the left (\"heaviest sinks down\")\r\n  - Format: format strings for dates and names for example (TBD)"
+    },
+    "discussion_timeline": [
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "This is a change originally implemented (partially) at the CTK Hackfest in 2013. It has now been resurrected and finished.\r\n\r\nIt provides a more human readable (column headers, patient names, series descriptions, etc.), more usable (date added, number of studies, etc.), and more configurable DICOM browser.\r\n\r\nThis is what it looks like with the defaults in Slicer:\r\n![image](https://user-images.githubusercontent.com/1325980/55830381-c708e800-5ade-11e9-817a-624337c53ae2.png)\r\n\r\n@pieper @jcfr @lassoan ",
+        "timestamp": "2019-04-09T19:44:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I plan make the changes in Slicer after this has been integrated. (Besides the CTK hash update it's just an additional Application Setting about the DICOM schema update, which I want to set to AskUser instead of the CTK default AlwaysUpdate).",
+        "timestamp": "2019-04-09T19:49:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Really nice!\r\n\r\nFYI @nolden ",
+        "timestamp": "2019-04-09T20:16:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Thanks for the review @jcfr ! I'll address the cmoments tomorrow.\r\n\r\nSo is there anything to do with the ...DisplayFields... functions/variables/comments?",
+        "timestamp": "2019-04-09T23:36:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "Few comments on the display fields:\r\n* I think \"Number of images\" should be renamed to \"Number of instances\".\r\n* Should \"Study Description\" and \"Series Description\" be used in place of \"Description\"?",
+        "timestamp": "2019-04-11T16:42:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "> I think \"Number of images\" should be renamed to \"Number of instances\"\r\n\r\nWe thought about this, and decided that the average user probably won't understand what are instances, and they are almost always images\r\n\r\n> Should \"Study Description\" and \"Series Description\" be used in place of \"Description\"?\r\n\r\nBoth are fine with me and we can change it, but then I'd need to increase the schema version again.\r\nWhat would be the advantage of using the long forms?",
+        "timestamp": "2019-04-11T17:34:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "The original idea of the DICOM database to strictly store only original DICOM values. This resulted in a barely usable DICOM browser with severe limitations. Due to inconsistencies and complexities of DICOM and how it is implemented in various software, the raw DICOM field values are not meaningful for users. They need to be processed, merged, interpreted for the user before displaying them.\r\n\r\nFor example, for some RT IODs, \"Series description\" field is always empty and a completely different field is used for storing series description. \"Description\" field fill rules can construct the description from fields depending on what kind of series is that, what device generated it, what other fields are specified, etc.\r\n\r\nSimilarly, we would not like to show number of instances to the user. Instead, we want to report the number of slices (regardless of a volume is stored in an enhanced format in a single file or in a legacy format in one file per slice).\r\n\r\nSo, the difference in names is not just for sake of simplification but also to indicate that it is not a 1-to-1 mapping to some DICOM field.",
+        "timestamp": "2019-04-11T18:04:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "> regardless of a volume is stored in an enhanced format in a single file or in a legacy format in one file per slice\r\n\r\nThe current implementation actually does show the number of instances that belongs to the series, but this is one of the few things we'd like to improve later.\r\n\r\nAbout the series description: that's right, if we keep the name it might suggest that it contains the SeriesDescription tag, which is not always true (which is currently in case of some RT-specific modalities).",
+        "timestamp": "2019-04-11T18:16:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "@fedorov @pieper Are there further concerns, e.g. about the column names discussed above?",
+        "timestamp": "2019-04-15T14:45:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> For example, for some RT IODs, \"Series description\" field is always empty and a completely different field is used for storing series description. \"Description\" field fill rules can construct the description from fields depending on what kind of series is that, what device generated it, what other fields are specified, etc.\r\n>\r\n> Similarly, we would not like to show number of instances to the user. Instead, we want to report the number of slices (regardless of a volume is stored in an enhanced format in a single file or in a legacy format in one file per slice).\r\n\r\nAbout \"number of images\" vs \"number of instances\" - I think it should be quite easy to conceptualize \"instance\" for the user. The advantage is that the column name would be more generic and consistent with the content of that column for a variety of series types. Considering your explanation, I agree it makes sense to deviate from direct mapping between column names and DICOM attribute names. So \"instance\" may not map to the \"DICOM instance\", but refer to the instance of \"thing\" being counted. For example, in RTSTRUCT - you probably would want to count contours, or structures - does it make sense to refer to either one as \"image\"? In SEG - you would count frames, or segments, probably not images. What would \"Number of images\" mean when referring to RWWM or SR modalities? I just think it is an unnecessary and confusing simplification.\r\n\r\nEDIT: Another \"neutral\" name for that column could be \"Count\" or something of that kind.\r\n\r\nAbout \"series description\" and \"study description\". Adding \"Study\" and \"Series\" for the \"Description\" would not imply they map one-to-one to the DICOM content, but would just make the appearance of the table more consistent. For example, you already say \"Study ID\", \"Series #\", \"Number of Studies\", \"Number of Series\" - it just looks inconsistent to drop that specification for the \"Description\" column.",
+        "timestamp": "2019-04-15T15:49:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "As I think about this, this approach of not mapping attributes one-to-one to DICOM is great if someone is using Slicer and nothing else. But I think it will be quite confusing for the users who work with different tools, as the table view they will see is likely to be very different in Slicer from other tools that (I think) just display DICOM attribute values. Did you think about this? Did you consider supporting a configuration mode for the DICOM browser that would allow to switch to the behavior consistent with non-Slicer tools?",
+        "timestamp": "2019-04-15T15:56:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "> they will see is likely to be very different in Slicer from other tools\r\n\r\nThe current customizations of fields are only for cases where\r\n\r\n* The raw DICOM tag is not human readable (like patient name, which is probably processed in other software as well)\r\n* The raw DICOM tag is empty for certain modalities (like RT series descriptions), where the user will appreciate some information vs none\r\n\r\nSo no field is really \"changed\" in the DICOM browser. I don't think it will cause a problem when using different tools with this initial version.\r\nHowever your point is a good one, and I agree that we should keep this in mind when extending the mechanism with new plugins, or the existing ones with new ways of processing tags.\r\n\r\nAbout the column names:\r\n* I think that your explanation for study/series description fields make sense, and I'd be okay with either * The instances/images question is trickier, because if we choose instances, then the number of images in a single file volume will be off, but if we choose images, then the SEG/RTSS/etc. modalities will be off. However, as the number of instances for almost all modalities except volumes is 1 (am I mistaken?), this piece of information is only useful for volumes, which may have 1 instance, but many slices.\r\n\r\nI'll wait until @pieper @lassoan and maybe @jcfr chime in, and then make any necessary changes if the consensus is to change these.",
+        "timestamp": "2019-04-15T16:09:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> The current customizations of fields are only for cases where\r\n\r\nRight. I am just thinking about the situation where user has certain expectations about what to see in a certain field, based on viewing it in another tool DICOM table, and then they see something different (which could be much much more informative!) in Slicer ... Maybe a related suggestion is to somehow mark those fields that have been altered?\r\n\r\n> The instances/images question is trickier, because if we choose instances, then the number of images in a single file volume will be off, but if we choose images, then the SEG/RTSS/etc. modalities will be off. However, as the number of instances for almost all modalities except volumes is 1 (am I mistaken?), this piece of information is only useful for volumes, which may have 1 instance, but many slices.\r\n\r\nBy \"instance\" I meant a generic countable item stored in a DICOM series, which would be modality-specific. Maybe \"Count\" or even \"#\" is a better and more neutral name instead of \"Number of images\" or \"Number of instances\"? Maybe it would it be possible to show in tooltip what this number refers to for the specific series?",
+        "timestamp": "2019-04-15T16:20:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "> I think it will be quite confusing for the users who work with different tools\r\n\r\nI don't know any reasonably usable software that would not separate the patient browser from DICOM metadata view. Do you know any? Then we could learn from that. If anybody is interested in raw DICOM fields then the metadata browser is there.\r\n\r\n> About \"number of images\" vs \"number of instances\"\r\n\r\nI agree that \"images\" term is simplification (what if it is an RTPLAN, etc.). We thought it should be acceptable, since this term has been used for example in OsiriX for many years (https://www.osirix-viewer.com/wp2015/wp-content/uploads/2015/09/Database-1024x576.png). We could use another word, but I would avoid \"instance\", since that would mislead users to think that it is raw DICOM value. What columns names are displayed in software that you have access to?",
+        "timestamp": "2019-04-15T16:25:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> I don't know any reasonably usable software that would not separate the patient browser from DICOM metadata view. \r\n\r\nI think there is a misunderstanding on either my or your side. An example of scenario I had in mind is the following:\r\n1. User views DICOM study in the DICOM browser of some software, and sees series description is set to blank for one of the series.\r\n2. User then loads that same study in Slicer, and none of the series in that study is blank, as seen in the Slicer DICOM browser.\r\n\r\nI think the above could cause confusion.\r\n\r\n> We could use another word, but I would avoid \"instance\", since that would mislead users to think that it is raw DICOM value. What columns names are displayed in software that you have access to?\r\n\r\nAvoiding instances is fine with me. \"Count\" or \"#\" could be a neutral name.",
+        "timestamp": "2019-04-15T16:32:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "What about adding an small icon on the right side of the \"Description\" in the column header. Mouse over the icon and it displays how the text was generated.",
+        "timestamp": "2019-04-15T17:41:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "How about this:\r\nI change the ColumnDisplayProperties table defaults so that\r\n\r\n* Number of images will be '#'\r\n* Description will be 'Series description' and 'Study description' for the Series and Studies tables, respectively\r\n* Keep schema version the same, because the data tables do not change, so no update is necessary",
+        "timestamp": "2019-04-15T17:53:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Thinking a bit more, I think '#' won't be good after all. We use that symbol for objects' number identifier. For example we have 'Series #' in the same table and also 'Echo #'.\r\n\r\nWhat about 'Count' in the column header and 'DisplayedCount' in the schema. Note that a version bump will be needed after all.",
+        "timestamp": "2019-04-15T17:58:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I pushed the changes that prefix Description with Study/Series and rename 'Number of images' to 'Count'.\r\n\r\nIf this is fine for everyone, I'd appreciate if this could be merged soon. Thanks a lot!",
+        "timestamp": "2019-04-15T18:25:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> If this is fine for everyone, I'd appreciate if this could be merged soon. Thanks a lot!\r\n\r\nWorks for me. \r\n\r\nI suggest we integrate at 4.30pm EST today.",
+        "timestamp": "2019-04-15T18:52:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "No concerns, thanks!",
+        "timestamp": "2019-04-15T19:32:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Excellent, thanks! I'm doing a test build with Slicer then will update it to contain the CTK changes along with the new application setting for the DICOM database.\r\n\r\nPlease let me know if there are any issues with this one, or ideas for later.",
+        "timestamp": "2019-04-15T20:57:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "> Please let me know if there are any issues with this one, or ideas for later.\r\n\r\nOnce you have examples / design patterns how DICOM plugins should initialize the new modality-specific column items, would be great if you could update this issue with the pointers!",
+        "timestamp": "2019-04-15T21:22:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "The CTK hash has been updated (and the new app setting added) in https://github.com/Slicer/Slicer/commit/75fceb26fb40397eac1b06fb2030c7b040f861ad\r\n\r\nI'll add information about how to create new plugins and what they can do. Jc suggested this page, and I think it's a good place for this: https://www.slicer.org/wiki/Documentation/Nightly/Modules/DICOM#Information_for_Developers",
+        "timestamp": "2019-04-15T22:07:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "FYI I updated the wiki page mentioned above.",
+        "timestamp": "2019-04-16T16:05:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Thanks Csaba. If you would like to more easily reference classes in wiki text, you could use the doxygen template. See https://www.slicer.org/wiki/Documentation/Nightly/WikiCheatSheet#Doxygen\r\n\r\nExamples are available here: https://www.slicer.org/wiki/Template:Documentation/Nightly/doxygen-class-url\r\n",
+        "timestamp": "2019-04-16T16:59:43Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "9c2af28",
+        "message": "ENH: Use display tables to allow showing derived and custom columns in DICOM browser\n\n- The displayed fields are in the same tables as the raw DICOM tags, with additional fields:\n  - Timestamp fields for insertion and displayed field generation\n  - Patients: displayed patient name (human readable), number of studies\n  - Studies: number of series\n  - Series: generic \"size\" column, and number of images and frames\n- A new ColumnDisplayProperties table is added that contains the display properties for the patient, study, series tables:\n  - Displayed column name\n  - Visibility\n  - Weight: determines order, smaller values for columns towards the left (\"heaviest sinks down\")\n  - Format: format strings for dates and names for example (TBD)\n\n-----------------\nOriginal commits:\n\n  ENH: Add option to confirm Remove action\n\n  ENH: Add autoSelectSeries and selectionMode properties to DICOM table manager\n\n  - autoSelectSeries property controls whether or not series are automatically selected when selection changes in the studies table\n  - selectionMode can be single or extended selection. If autoSelectSeries property is on and single selection is active, then the first series is selected from the list\n\n  ENH: Emit schemaUpdated when all steps are done; Reduce updates\n\n  - schemaUpdated signal is now emitted as before: once all the schema update steps are finished\n  - Column swaps now do not trigger geometry update on each swap in applyColumnProperties, which can be dozens of times\n  - Make ctkDICOMTableView::tableView callable from python\n\n  ENH: Add progress dialog for display fields update\n\n  - Display fields update has now a progress dialog, implemented similarly to schema update and import\n  - Coding style fixes\n\n  ENH: New fields in DICOM database, display fields update speedup, schema update option\n\n  - Add new size and number of frames fields\n  - Considerable speedup of updateDisplayedFields by wrapping the apply step (update queries) in a transaction\n  - Add property in DICOM browser for schema update option, which determines whether to always update schema, never do it, or ask user. Default is always update\n  - Fix typos and style\n\n  ENH: Add patient and study numbers to DICOM tables\n\n  ENH: Allow setting column display properties\n\n  Column display properties of the DICOM database can now be set externally. When it happens, then\n  - Update ColumnDisplayProperties table in database\n  - Trigger applyColumnProperties to update table view (header name, visibility, and order for columns)\n\n  Patient sex is now a visible column in the patient table by default\n\n  ENH: Add support for DICOM table column weights\n\n  The column with the lower weight is towards the left. Defaults are set, which show the same order as before, except for two changes\n  - Human-readable patient name is on the left in the patients table and the raw patient name is not visible any more\n  - Date added column is the rightmost in all tables\n\n  ENH: Generate human-readable patient name\n\n  ENH: Add calculation of number of images in series\n\n  STYLE: Document displayed field generator classes\n\n  ENH: Apply column display properties in DICOM table view\n\n  - DICOM table view applies column display properties from database\n  - Clean up style in ctkDICOMTableView\n\n  ENH: Column properties initialization\n\n  - Fill ColumnDisplayProperties table with the defaults\n    - Weight and Format fields are not yet utilized!\n  - Add functions to get column display properties\n  - Rearrange functions in ctkDICOMDatabase so that Private functions are together\n  - Further cleaning up style\n\n  ENH: Set displayed fields updated timestamps\n\n  - Type of DisplayedFieldsUpdatedTimestamp field changed to DATETIME for easier comparison when doing SELECT\n  - Set the value of the field when applying the displayed fields\n  - Fix many of the indentation problems (there are 3 different styles in this one class alone)\n\n  ENH: Add DICOM displayed fields in the original database tables\n\n  - Instead of separate tables, the displayed fields are now in the same tables as the raw DICOM tags, with additional timestamp fields for insertion and displayed field generation\n  - A new ColumnDisplayProperties table is added that contains the display properties for the patient, study, series tables:\n    - Displayed column name\n    - Visibility\n    - Weight: determines order, smaller values for columns towards the left (\"heaviest sinks down\")\n    - Format: format strings for dates and names for example (TBD)\n\n  ENH: DICOM browser shows display tables\n\n  ENH: Pass cached tags by reference to DICOM displayed field roles\n\n  ENH: Use display tables to allow showing derived and custom columns in DICOM browser !WIP!\n\n    Original commits:\n\n    COMP: Fixed merge issues in display table merge, builds fine\n\n    Fixed bug when split DICOM data was inserted one after the other in Display* tables\n\n    Deletion from database works for display tables too; Some bugfixes\n\n    Inserting one patient/study/series has the expected result in the Display* tables\n\n    Fixed function signatures for getting display fields\n\n    Changed way of getting the display field maps\n\n    Generate and use internal patient UID for the display tables WIP\n\n    Add UIDs in the display tables\n\n    ctkDICOMDatabase::getCachedTags changed to return empty string if the cached field is empty or the field is not in the instance\n\n    Fixed rules (still WIP)\n\n    Added merge helper functions\n\n    Added initial implemntation for default displayed field generator rule\n\n    Empty field names are passed to the mergeDisplayFieldsForInstance function\n\n    Added empty names maps; Implemented getDisplayFieldsForInstance for the RT series description rule\n\n    Changed DisplayPatients table schema: renamed MRN to PatientID; Added role headers in the CMakeLists file\n\n    Completed rule interface\n\n    Fixed new files query for updateDisplayedFields; Added applyDisplayFieldsChanges method to insert or update display fields after generation is done\n\n    Added skeleton of ctkDICOMDisplayedFieldGenerator and a few example rules\n\n    Added skeleton for ctkDICOMDatabase::updateDisplayedFields\n\n    Input data assembled and passed to the displayed field generator (not tested)\n\n    Update display fields method body implemented\n\n    Added display tables to DICOM database schema; Merged from lassoan/276-dicom-database-display-tables",
+        "author": "Csaba Pinter",
+        "timestamp": "2013-05-21T20:54:53Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#881",
+    "metadata": {
+      "title": "BUG: Escape single quote in DICOM database SQL statement",
+      "labels": [],
+      "qualities": [
+        "security",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-09-02T21:47:58Z",
+      "reviewers": [
+        "pieper"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "Re https://issues.slicer.org/view.php?id=4709"
+    },
+    "discussion_timeline": [
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Looks good, but why don't we do it with all the other fields? For example, physician's name can contain single-quote, too. ",
+        "timestamp": "2019-08-29T02:02:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "It occurred to me but didn't seem likely even for the physician name. If you give me a list of fields you want me to escape the same way I'll add those.",
+        "timestamp": "2019-08-29T02:06:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "It is very common in person names (O'Leary...) and can easily occur in any description fields. Are there any other restricted characters? Does \\ have to be encoded as \\\\? ",
+        "timestamp": "2019-08-29T02:20:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "I don't think this is the source of the issue - the data was imported correctly in the first place, but the error happened when it converted to the new schema.  Can you point to the commits involved in the database update?",
+        "timestamp": "2019-08-29T14:00:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Sorry I had only a little time in the evening and didn't pay enough attention. I'll track this down now.",
+        "timestamp": "2019-08-29T14:17:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Actually it would help a lot if I had that data and could debug into it. Without it it's just guesswork.",
+        "timestamp": "2019-08-29T14:18:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Anyway, I did some guesswork and pushed a new change :) It escapes the single quote character in every field that is being processed during update.",
+        "timestamp": "2019-08-29T14:24:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Thanks for digging into this @cpinter \r\n\r\nI still don't understand why this became an issue for converting when the data imported correctly before.  Do you have any ideas on that?  Without that it makes it hard to know if the fix is correct.\r\n\r\nI can't share the exact dataset (PHI) and I haven't had time to check, but I can do more debugging/testing at some point as needed.  For now I'd be happy just understanding what changed - can you point to the commits that handle the database update?",
+        "timestamp": "2019-08-29T16:13:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I also don't understand how the initial insertion can be fine without having to sanitize, but then fails later.\r\n\r\nThis is the original commit\r\nhttps://github.com/commontk/CTK/commit/9c2af28e84da1abb986036317d75009d4c149923\r\nAnd a few follow-up commits - basically whatever I committed to CTK lately. This is quite a big change, and I'm not sure how reading it would help. If you have specific questions I'm happy to answer though.",
+        "timestamp": "2019-08-29T16:23:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Yes, I was looking through and it seems that this squashed commit has everything lumped together and I don't see what would have led to this issue.\r\n\r\nSpecifically though if you look at the error message it's in an `UPDATE` to the `Studies` table - do you know where that would happening?\r\n\r\n```\r\n Bad SQL: UPDATE Studies SET DisplayedNumberOfSeries='3', InstitutionName='BRIGHAM & WOMEN'S HOSPITAL', PatientsUID=4, ReferringPhysician='x^x^^^', StudyDate='2019xxxx', StudyDescription='MRI BRAIN FUNCTIONAL', StudyInstanceUID='1.2.xx' WHERE StudyInstanceUID='1.2.x'\r\n```\r\n",
+        "timestamp": "2019-08-29T19:05:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "This PR should fix the issue.\r\n\r\nThe updated values are set here: https://github.com/commontk/CTK/blob/master/Libs/DICOM/Core/ctkDICOMDatabase.cpp#L929\r\nAnd then the update command is called here:\r\nhttps://github.com/commontk/CTK/blob/master/Libs/DICOM/Core/ctkDICOMDatabase.cpp#L1066",
+        "timestamp": "2019-08-29T19:55:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Maybe this PR is not enough after all. We need to make sure the displayed field generator does not override the original value with some problematic value. It's here:\r\nhttps://github.com/commontk/CTK/blob/master/Libs/DICOM/Core/ctkDICOMDisplayedFieldGenerator.cpp#L116",
+        "timestamp": "2019-08-29T19:58:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Oh well yes, this is where the problem is: https://github.com/commontk/CTK/blob/master/Libs/DICOM/Core/ctkDICOMDatabase.cpp#L1066\r\n\r\nThis uses QString formatting to build the SQL query instead of the usual `prepare` and `bind` that is used elsewhere.  It should be changed to match the rest of the QSqlQuery usage and the problem should go away.",
+        "timestamp": "2019-08-29T20:07:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Also line 1144 and anywhere else where sql statements are created.",
+        "timestamp": "2019-08-29T20:10:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "OK. I'll change the queries to use prepare everywhere in this class.",
+        "timestamp": "2019-08-29T20:10:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Line 1144 seems to be just a closing brace...",
+        "timestamp": "2019-08-29T20:11:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "> Line 1144 seems to be just a closing brace...\r\n\r\nSorry, meant 1104, but you have the idea. 😄 \r\n\r\nI don't have the exact commit handy but I ran into this exact issue with the code when it was first written back seven or eight years ago when first testing it with data from `Brigham and Women's Hospital` and that's why we changed to using the `prepare` and `bind` calls.",
+        "timestamp": "2019-08-29T20:14:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "One question, maybe you know this by heart. The prepare/bind way just replaces strings, or is there something \"more intelligent\" going on there? Because the displayStudiesFieldUpdateList and its similar counterparts are longer strings involving multiple fields, and if it's just string replacement then it's fine, but if it somehow forces to bind values for fields, then it probably won't work like this.",
+        "timestamp": "2019-08-29T20:15:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I updated the PR. It is not working yet (crashes), but it will be something like this. I have to go now though, sop I'll fix this tomorrow.",
+        "timestamp": "2019-08-29T21:49:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "This should do it. @pieper can you please test with your dataset?",
+        "timestamp": "2019-08-29T23:48:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Hmm, sorry, no, still not working.  But it's closer.  Now the error is:\r\n\r\n```\r\nSQL failed\r\n Bad SQL: UPDATE Studies SET DisplayedNumberOfSeries = ? , InstitutionName = ? , PatientsUID = ? , ReferringPhysician = ? , StudyDate = ? , StudyDescription = ? , StudyInstanceUID = ? StudyInstanceUID UID = ? ;\r\nError text:  Parameter count mismatch\r\n```",
+        "timestamp": "2019-09-01T21:57:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "I took a look but didn't see anything obvious here about the parameter counts, but maybe it's related to the comment I added in the code about a missing WHERE clause?  We can chat again about it if you want to walk through the logic together.",
+        "timestamp": "2019-09-01T22:08:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Interesting. I tried a simple import then update and it worked for me. Based on the error message, a WHERE seems to be missing. Not sure what's going on. Is it OK if I check it out on Tuesday?",
+        "timestamp": "2019-09-01T23:54:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Oh yes, Tuesday sounds great!",
+        "timestamp": "2019-09-01T23:58:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "I changed the statement. I think I accidentally pasted the StudyInstanceUID on the WHERE instead the UID... Not sure how it worked when I tried it. I hope it's going to be good now.",
+        "timestamp": "2019-09-02T00:00:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Tested and it looks good to me - thanks @cpinter! 👍 ",
+        "timestamp": "2019-09-02T21:47:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Okay, I updated Slicer to use this, so we should be good to go.  I'll try to check in the nightly build.",
+        "timestamp": "2019-09-02T22:10:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpinter",
+        "role": "MEMBER",
+        "body": "Thank you very much! Sorry for the problems!",
+        "timestamp": "2019-09-03T12:42:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": ":tada: ",
+        "timestamp": "2019-09-03T12:55:38Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ebd2b26",
+        "message": "BUG: Escape single quote in DICOM database SQL statement\n\nRe https://issues.slicer.org/view.php?id=4709",
+        "author": "Csaba Pinter",
+        "timestamp": "2019-08-29T01:54:25Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#804",
+    "metadata": {
+      "title": "BUG: Fixed maximum update rate computation in ctkVTKAbstractView",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-05-25T14:40:05Z",
+      "reviewers": [
+        "sankhesh",
+        "lassoan",
+        "jcfr"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Render window's DesiredUpdateRate property was used to determine maximum update rate of ctkVTKAbstractView. This had two issues:\r\n\r\n1. VTK often significantly overestimates rendering time and so DesiredUpdateRate have to be set to quite low value (few fps) to get acceptable quality rendering. However, if ctkVTKAbstractView uses this value as maximum update rate, it would severely limit the achievable actual refresh rate. Separating the two values allow controlling quality settings and event compression separately.\r\n\r\n2. When DesiredUpdateRate was set to \"still update rate\" (0.0001 fps; this is the default value) then rendering was never enforced. This caused indefinitely delayed rendering updates on MacOSX, when events were continuously generated on the GUI (e.g., by moving image slice selector slider continuously, see https://issues.slicer.org/view.php?id=4496). DesiredUpdateRate is set to 60.0 by default now, which results in smooth updates, while still effectively suppressing rendering request submitted in quick succession."
+    },
+    "discussion_timeline": [
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] is operating system development -> can be different between operating systems.",
+        "timestamp": "2018-05-25T04:38:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] MacOSX -> macOS",
+        "timestamp": "2018-05-25T04:39:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] and not suitable -> and is not suitable",
+        "timestamp": "2018-05-25T04:40:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] unnecesarily -> unnecessarily",
+        "timestamp": "2018-05-25T04:41:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] suppresses -> suppressing",
+        "timestamp": "2018-05-25T04:41:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] that VTK usually makes the rendering much faster and lower quality than DesiredUpdateRate would dictate\r\n\r\n@martinken @sankhesh Would appreciate your input on this.\r\n\r\nFor reference, Paraview is hard-coding the FPS to 33:\r\n1. VTK `RenderEvent` is invoked\r\n2. [pqInteractiveViewLink::drawViewLink](https://github.com/Kitware/ParaView/blob/a0ca11aca4c0a00394a5b200191476c65ba6faef/Qt/Core/pqInteractiveViewLink.cxx#L275-L317) is called\r\n3. Then `this->Internal->LazyFinalRenderTimer.start()`is called  ( timeout [hard-coded to 30ms](https://github.com/Kitware/ParaView/blob/a0ca11aca4c0a00394a5b200191476c65ba6faef/Qt/Core/pqInteractiveViewLink.cxx#L58-L76) )\r\n4. after `LazyFinalRenderTimer` timeout, this method is finally called: [pqInteractiveViewLink::finalRenderDisplayView](https://github.com/Kitware/ParaView/blob/a0ca11aca4c0a00394a5b200191476c65ba6faef/Qt/Core/pqInteractiveViewLink.cxx#L307-L317)",
+        "timestamp": "2018-05-25T05:03:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": " :+1:  \r\n\r\nWould also be great to fix the typo and squash with this commit",
+        "timestamp": "2018-05-25T05:05:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "sankhesh",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] @jcfr, That reference code you pointed out in ParaView is intended to prevent infinite a stack overflow due to infinite `Render` calls on two *linked* views. \r\n\r\nIn general, ParaView limits the frame rate to 500FPS for still render and 20 FPS for interactive render. See [vtkPVRenderView::StillRender](https://github.com/Kitware/ParaView/blob/e7510429ee5c74a50fb7b9afba7f06383b9dc91d/ParaViewCore/ClientServerCore/Rendering/vtkPVRenderView.cxx#L1339-L1364)",
+        "timestamp": "2018-05-25T09:51:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "I won't have a chance to build and test until next week sometime, but this sounds great - I would vote for integrating this and testing it out in the nightlies.",
+        "timestamp": "2018-05-25T10:59:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] Do you refer to this->GetRenderWindow()->SetDesiredUpdateRate(0.002); and this->GetRenderWindow()->SetDesiredUpdateRate(5.0); calls? These values are in FPS already, so desired frame rate is 0.002 FPS and 5.0FPS (not 500FPS and 20FPS). Also, setting desired update rate does not limit the frame rate, it just controls rendering quality for certain actors. \r\n\r\nSetDesiredUpdateRate(5.0) illustrates the issue with the rendering quality estimation. This is probably set to such a low value, because if you set to a reasonable interactive frame rate (at least 20-30 FPS) then you would get very low rendering quality. What we have to do now as a workaround is to set the desired frame rate to a few FPS to get high-quality rendering at 30 FPS. I understand that getting the quality tuning heuristics right is very difficult (the graphics card driver may do its own throttling and the OS and other applications may interfere with the estimation, etc), but the error for the GPU volume renderer seems unreasonably high.\r\n\r\nExample (Windows 10, GTX 1060, i7):\r\nDesired frame rate: 1 FPS\r\n=> actual frame rate with GPU volume rendering: very high quality @ 29 FPS\r\n=> actual frame rate with CPU volume rendering: very high quality @ 5 FPS\r\nDesired frame rate: 10 FPS\r\n=> actual frame rate with GPU volume rendering: high quality @ 36 FPS\r\n=> actual frame rate with CPU volume rendering: low quality @ 29 FPS\r\nDesired frame rate: 30 FPS\r\n=> actual frame rate with GPU volume rendering: very low quality (this is a problem!) @ 43 FPS\r\n=> actual frame rate with CPU volume rendering: low quality @ 29 FPS\r\n\r\nCPU volume renderer's frame rate and quality are acceptable.\r\nHowever, GPU volume renderer provides very low quality rendering when desired frame rate is set to 30, while it can actually render in very high quality at 30fps (we just need to set desired frame rate to 1 FPS to get that).\r\n\r\nThis is a low-priority issue in Slicer, as users can set the desired quality level with a slider and it does not matter much that the frame rate scale is off. I just provided these details, as it may be useful for you to know that to get optimal rendering quality then (at least on some configurations) you have to set 1-2 magnitudes lower DesiredFrameRate value than your actually desired frame rate.",
+        "timestamp": "2018-05-25T13:39:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "sankhesh",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] > However, GPU volume renderer provides very low quality rendering when desired frame rate is set to 30, while it can actually render in very high quality at 30fps (we just need to set desired frame rate to 1 FPS to get that).\r\n\r\nThat seems like an issue in the volume mapper logic. I remember that the mapper uses the vtkRenderWindow's desired update rate along with the last frame render time to come up with the  downsampling ratio. I think the issue might be with the first frame.",
+        "timestamp": "2018-05-25T14:09:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "sankhesh",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKAbstractView.h] > Also, setting desired update rate does not limit the frame rate, it just controls rendering quality for certain actors.\r\n\r\nRight! That's the logic used to get as close as possible to the desired frame rate without actually disrupting the whole pipeline.",
+        "timestamp": "2018-05-25T14:12:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Thanks @lassoan  :+1: \r\n\r\nAnd thanks @sankhesh  for the comments.\r\n\r\n\r\n\r\n>>   However, GPU volume renderer provides very low quality rendering when desired frame rate is set to 30, while it can actually render in very high quality at 30fps (we just need to set desired frame rate to 1 FPS to get that).\r\n\r\n> That seems like an issue in the volume mapper logic. I remember that the mapper uses the \r\n> vtkRenderWindow's desired update rate along with the last frame render time to come up with the downsampling ratio. I think the issue might be with the first frame.\r\n\r\nShould we create an issue in VTK tracker ? \r\n",
+        "timestamp": "2018-05-25T14:55:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "sankhesh",
+        "role": "CONTRIBUTOR",
+        "body": "> Should we create an issue in VTK tracker ?\r\n\r\nhttps://gitlab.kitware.com/vtk/vtk/issues/17324",
+        "timestamp": "2018-05-25T17:41:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "simonesneault",
+        "role": "NONE",
+        "body": "We faced the same issue (GPU rendering not following the wanted FPS) and ended up patching the logic in \r\nvtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(double allocatedTime)\r\nHere is the method we used \r\n```\r\nvoid vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(\r\n  double allocatedTime)\r\n{\r\n  if (!this->AutoAdjustSampleDistances)\r\n  {\r\n    this->ReductionFactor = 1.0 / this->ImageSampleDistance;\r\n    return;\r\n  }\r\n\r\n  if (this->TimeToDraw)\r\n  {\r\n    double oldFactor = this->ReductionFactor;\r\n    double timeToDraw;\r\n    if (allocatedTime < 1.0)\r\n    {\r\n      if( this->TimeToDraw == this->BigTimeToDraw )\r\n        {\r\n        timeToDraw = this->TimeToDraw;\r\n        }\r\n      else\r\n        {\r\n        timeToDraw = this->SmallTimeToDraw;\r\n        }\r\n      if (timeToDraw == 0.0)\r\n      {\r\n        timeToDraw = this->BigTimeToDraw / 3.0;\r\n      }\r\n    }\r\n    else\r\n    {\r\n      timeToDraw = this->BigTimeToDraw;\r\n    }\r\n\r\n    // This should be the case when rendering the volume very first time\r\n    // 10.0 is an arbitrary value chosen which happen to a large number\r\n    // in this context\r\n    if (timeToDraw == 0.0)\r\n    {\r\n      timeToDraw = 10.0;\r\n    }\r\n\r\n    double fullTime = timeToDraw / this->ReductionFactor;\r\n    if (timeToDraw == BigTimeToDraw && allocatedTime > 1.0)\r\n    {\r\n      this->ReductionFactor = 1;\r\n    }\r\n    else\r\n    {\r\n      double l_wanted_fps = 1. / ( allocatedTime * 3. );\r\n      double l_current_fps = 1. / timeToDraw;\r\n      this->ReductionFactor *= l_current_fps / l_wanted_fps;\r\n      this->ReductionFactor = vtkMath::Round( this->ReductionFactor * 50. ) / 50.;\r\n    }\r\n    // Clamp it\r\n    if (1.0 / this->ReductionFactor > this->MaximumImageSampleDistance)\r\n    {\r\n      this->ReductionFactor = 1.0 / this->MaximumImageSampleDistance;\r\n    }\r\n    if (1.0 / this->ReductionFactor < this->MinimumImageSampleDistance)\r\n    {\r\n      this->ReductionFactor = 1.0 / this->MinimumImageSampleDistance;\r\n    }\r\n  }\r\n}\r\n```\r\nTo be compared with : \r\n```\r\nvoid vtkOpenGLGPUVolumeRayCastMapper::ComputeReductionFactor(\r\n  double allocatedTime)\r\n{\r\n  if (!this->AutoAdjustSampleDistances)\r\n  {\r\n    this->ReductionFactor = 1.0 / this->ImageSampleDistance;\r\n    return;\r\n  }\r\n\r\n  if (this->TimeToDraw)\r\n  {\r\n    double oldFactor = this->ReductionFactor;\r\n\r\n    double timeToDraw;\r\n    if (allocatedTime < 1.0)\r\n    {\r\n      timeToDraw = this->SmallTimeToDraw;\r\n      if (timeToDraw == 0.0)\r\n      {\r\n        timeToDraw = this->BigTimeToDraw / 3.0;\r\n      }\r\n    }\r\n    else\r\n    {\r\n      timeToDraw = this->BigTimeToDraw;\r\n    }\r\n\r\n    // This should be the case when rendering the volume very first time\r\n    // 10.0 is an arbitrary value chosen which happen to a large number\r\n    // in this context\r\n    if (timeToDraw == 0.0)\r\n    {\r\n      timeToDraw = 10.0;\r\n    }\r\n\r\n    double fullTime = timeToDraw / this->ReductionFactor;\r\n    double newFactor = allocatedTime / fullTime;\r\n\r\n    // Compute average factor\r\n    this->ReductionFactor = (newFactor + oldFactor) / 2.0;\r\n\r\n    // Discretize reduction factor so that it doesn't cause\r\n    // visual artifacts when used to reduce the sample distance\r\n    this->ReductionFactor =\r\n      (this->ReductionFactor > 1.0) ? 1.0 : (this->ReductionFactor);\r\n\r\n    if (this->ReductionFactor < 0.20)\r\n    {\r\n      this->ReductionFactor = 0.10;\r\n    }\r\n    else if (this->ReductionFactor < 0.50)\r\n    {\r\n      this->ReductionFactor = 0.20;\r\n    }\r\n    else if (this->ReductionFactor < 1.0)\r\n    {\r\n      this->ReductionFactor = 0.50;\r\n    }\r\n\r\n    // Clamp it\r\n    if (1.0 / this->ReductionFactor > this->MaximumImageSampleDistance)\r\n    {\r\n      this->ReductionFactor = 1.0 / this->MaximumImageSampleDistance;\r\n    }\r\n    if (1.0 / this->ReductionFactor < this->MinimumImageSampleDistance)\r\n    {\r\n      this->ReductionFactor = 1.0 / this->MinimumImageSampleDistance;\r\n    }\r\n  }\r\n}\r\n```\r\nas it was back in VTK 8.1.1\r\n",
+        "timestamp": "2018-09-10T14:55:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thanks @simonesneault. Could you please post this suggestion to the associated [VTK bug report](https://gitlab.kitware.com/vtk/vtk/issues/17324)?",
+        "timestamp": "2018-09-10T17:23:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "simonesneault",
+        "role": "NONE",
+        "body": "Done",
+        "timestamp": "2018-09-11T08:49:53Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f32301c",
+        "message": "BUG: Fixed maximum update rate computation in ctkVTKAbstractView\n\nRender window's DesiredUpdateRate property was used to determine maximum update rate of ctkVTKAbstractView. This had two issues:\n\n1. VTK often significantly overestimates rendering time and so DesiredUpdateRate have to be set to quite low value (few fps) to get acceptable quality rendering. However, if ctkVTKAbstractView uses this value as maximum update rate, it would severely limit the achievable actual refresh rate. Separating the two values allow controlling quality settings and event compression separately.\n\n2. When DesiredUpdateRate was set to \"still update rate\" (0.0001 fps; this is the default value) then rendering was never enforced. This caused indefinitely delayed rendering updates on MacOSX, when events were continuously generated on the GUI (e.g., by moving image slice selector slider continuously, see https://issues.slicer.org/view.php?id=4496). DesiredUpdateRate is set to 60.0 by default now, which results in smooth updates, while still effectively suppressing rendering request submitted in quick succession.",
+        "author": "Andras Lasso",
+        "timestamp": "2018-05-25T04:23:19Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#827",
+    "metadata": {
+      "title": "ENH: Add pauseRender function to ctkVTKAbstractView",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-09-23T22:10:54Z",
+      "reviewers": [
+        "Sunderlandkyl",
+        "finetjul",
+        "lassoan"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "The pauseRender function allows applications to pause the invocation of forceRender from scheduleRender calls.\r\nUseful for temporarily disabling rendering until all elements of the view have been correctly set.\r\nUnpausing will call scheduleRender if scheduleRender was called while the view was paused.\r\n\r\nAlso adds a test for pauses and unpausing rendering using a ctkVTKSliceView.\r\n\r\nRelated issue: https://github.com/openigtlink/SlicerOpenIGTLink/issues/61"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "Comments have been addressed.",
+        "timestamp": "2018-09-06T20:48:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "> Please explain how different it is from renderEnabled.\r\n\r\nGood point. There is a very important difference (rendering requests arriving while renderEnabled(false) makes rendering requests to be forgotten, while they are just delayed while rendering is paused) but it may not be obvious at first.\r\n\r\nAnother important advantage of pauseRender is that it can be called from high-level application code, where it is not clear if a certain change will eventually require re-rendering or not. When pauseRender is turned off, rendering will only be performed if it was requested while rendering was paused (in contrast, after renderEnabled(false) you must always re-render).\r\n\r\nI think renderEnabled is mostly made obsolete by the new mechanism.",
+        "timestamp": "2018-09-07T12:46:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "finetjul",
+        "role": "MEMBER",
+        "body": "Thanks, I understand better. I'm not sure I would get rid of renderEnabled however. I can think of some scenarii where you really want to discard rendering requests, and when you re-activate rendering, you don't want to trigger a delayed rendering request. Maybe that behavior could be merged with the new pause rendering (e.g. ```resumeRender(bool i_ignorePausedRenderingRequests = false)```.\r\n\r\nHere is one scenario:\r\n  - you know VTK is triggering rendering requests for wrong reasons (by the vtkWidgets for example) and you don't have time/knowledge/... to investiguate the root issue, maybe you could wrap the erronous VTK code with some \"render pausing\" block and when you re-enable rendering, you want to discard the rendering requests. It might not be a correct but I hope you get the idea..\r\n",
+        "timestamp": "2018-09-07T13:17:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "I agree that we should keep renderEnabled, I meant that pauseRender could replace it in most use cases.",
+        "timestamp": "2018-09-07T13:36:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "finetjul",
+        "role": "MEMBER",
+        "body": "Gotcha, then I'm all for it. Just add documentation to explain the difference between the 2 techniques and we're all set :-) \r\n",
+        "timestamp": "2018-09-07T14:01:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "Changes made.",
+        "timestamp": "2018-09-07T15:44:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "Changes should be implemented.",
+        "timestamp": "2018-09-08T03:15:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Thinking more about it, what about the following `ctkVTKAbstractView` API: \r\n\r\n```\r\nint ctkVTKAbstractView::setRenderPaused(bool)\r\nint ctkVTKAbstractView::pauseRender()\r\nint ctkVTKAbstractView::resumeRender()\r\nbool ctkVTKAbstractView::isRenderPaused()\r\n```\r\n\r\nwhere:\r\n\r\n* calling `pauseRender()` would increment a \"pause counter\", `resumeRender` would decrement it\r\n* `pauseRender()` equivalent to `setRenderPaused(true)` and return \"pause counter\" value\r\n* `resumeRender()` equivalent to `setRenderPaused(false)` and return \"pause counter\" value\r\n* `isRenderPaused()` returns true if \"pause counter\" > 0\r\n* if calling `resumeRender()` leads to a \"pause counter\" reaching 0, `scheduleRender()` is called\r\n* calling `resumeRender()` if \"pause counter\" is already 0 is equivalent to calling `scheduleRender()`\r\n\r\nI think this would greatly simplify the management of paused state implemented in Slicer.  See https://github.com/Slicer/Slicer/pull/1016#issuecomment-419618055\r\n",
+        "timestamp": "2018-09-08T06:49:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "There are two options for implementing this API:\r\n- Option A. `bool pauseRender(bool)`\r\n- Option B. `pauseRender()` / `resumeRender()`\r\n\r\nI don't think it's a good idea to implement both on the public API, as they are very similar. It would just increase API complexity without significant benefits.\r\n\r\nFor me difference in ease-of-use is marginal (as both of them just two lines).\r\n\r\nHowever, I've searched the Qt API a bit and found that although there is a very common example for option A (`bool blockSignals(bool)`), it seems that option B is chosen for more methods:\r\n\r\nA:\r\n- QObject::blockSignals(bool)\r\n\r\nB:\r\n- QMutex::lock()/unlock()\r\n- QWidget::grab...()/release...()\r\n- QGuiApplication::setOverrideCursor(const QCursor &cursor)/restoreOverrideCursor()\r\n\r\nSo, it seems reasonable to choose the somewhat simpler and more frequently used option B. The API would be:\r\n\r\n    int ctkVTKAbstractView::setRenderPaused(bool)\r\n    int ctkVTKAbstractView::pauseRender()\r\n    int ctkVTKAbstractView::resumeRender()\r\n    bool ctkVTKAbstractView::isRenderPaused()\r\n\r\n",
+        "timestamp": "2018-09-08T13:15:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "Implemented the new interface:\r\n\r\n```\r\nint ctkVTKAbstractView::setRenderPaused(bool)\r\nint ctkVTKAbstractView::pauseRender()\r\nint ctkVTKAbstractView::resumeRender()\r\nbool ctkVTKAbstractView::isRenderPaused()\r\n```\r\n\r\nTested in Slicer, and the methods are callable through python.\r\n",
+        "timestamp": "2018-09-08T19:36:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> setRenderPaused(bool) is not needed if we have pauseRender()/resumeRender()\r\n\r\nI think keeping `setRenderPaused(bool)` as a slot makes sens, it allows easy connection with signal\r\n\r\n```\r\nint ctkVTKAbstractView::pauseRender()\r\n{\r\n  return  this>setRenderPaused(true);\r\n}\r\n\r\nint ctkVTKAbstractView::resumeRender()\r\n{\r\n  return  this>setRenderPaused(false);\r\n}\r\n```\r\n\r\nThe layout manage in Slicer would also have a similar API\r\n\r\n\r\n",
+        "timestamp": "2018-09-09T00:45:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "I've added the warning message and fixed some formatting issues.",
+        "timestamp": "2018-09-09T01:08:13Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "fcc3bc2",
+        "message": "ENH: Add functions for pausing rendering to ctkVTKAbstractView\n\nCalling pauseRender() increments and resumeRender() de-increments the pause render count.\nWhile the pause render count is greater than 0, the invocation of forceRender() from scheduleRender() calls is prevented.\nUseful for temporarily disabling rendering until all elements of the view have been correctly set.\nUnpausing will invoke scheduleRender() if scheduleRender() was called while the view was paused.\n\nAlso adds a test for pauses and unpausing rendering using a ctkVTKSliceView.",
+        "author": "Kyle Sunderland",
+        "timestamp": "2018-09-08T03:13:26Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#675",
+    "metadata": {
+      "title": "ENH: Update version of DCMTK to 3.6.1_201610.12",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2016-10-27T20:16:00Z",
+      "reviewers": [
+        "fbudin69500",
+        "che85",
+        "jcfr"
+      ],
+      "changed_files": 15
+    },
+    "issue_payload": {
+      "body": ""
+    },
+    "discussion_timeline": [
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "@che85 this depends on patched ITK here, correct?\n\nhttps://github.com/fbudin69500/ITK/tree/update_DCMTK\n",
+        "timestamp": "2016-10-21T13:53:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "che85",
+        "role": "CONTRIBUTOR",
+        "body": "Yes, correct.\n",
+        "timestamp": "2016-10-21T14:03:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "che85",
+        "role": "CONTRIBUTOR",
+        "body": "Wait, no I didn't update the revision tag from the External.cmake here. So actually this PR doesn't depend on the patched ITK...\n",
+        "timestamp": "2016-10-21T14:10:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "Right, but CTK reused ITK from Slicer, and that ITK is the patched one. CTK does depend on ITK, so if you were to compile it standalone without updating ITK hash in CTK externals, I would expect CTK build to fail.\n",
+        "timestamp": "2016-10-21T14:15:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "che85",
+        "role": "CONTRIBUTOR",
+        "body": "I will check this out.\n",
+        "timestamp": "2016-10-21T14:19:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "che85",
+        "role": "CONTRIBUTOR",
+        "body": "@fedorov You were right. It doesn't build with the currently defined ITK revision in https://github.com/commontk/CTK/blob/master/CMakeExternals/ITK.cmake#L28\n\nShould I update this or just wait for further action of Francois?\n",
+        "timestamp": "2016-10-21T15:37:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "Additional fixes will need to be done to ITK to fix Slicer issues you identified, so things will change.\n\nI would not spend any more time on this until we hear back from @thewtex and @fbudin69500.\n",
+        "timestamp": "2016-10-21T15:41:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "fbudin69500",
+        "role": "NONE",
+        "body": "This looks good to me but a decision has to be made on the DCMTK commit to choose for the update:\n18e2abbd930f00fb41c1cea42cec04ccf0cf8637 (08/23/2016)\nefe1a177eac040b6d41aae0db7714cd970e12bc5 (10/12/2016)\n",
+        "timestamp": "2016-10-27T18:17:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "fbudin69500",
+        "role": "NONE",
+        "body": "@jcfr  @thewtex  Since Slicer and CTK do not require C++11 features, this patch is good to be merged.\n",
+        "timestamp": "2016-10-27T19:44:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Thanks for the patches.\n\nNext will be the update of Slicer ?\n",
+        "timestamp": "2016-10-27T20:16:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "fbudin69500",
+        "role": "NONE",
+        "body": "yes :)\n",
+        "timestamp": "2016-10-27T20:17:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "fedorov",
+        "role": "MEMBER",
+        "body": "Note that we are waiting for some additional merges to DCMTK, and possibly release of the next snapshot early November (@michaelonken is coordinating this). If/when this happens, we will need to go through the update process again.\n",
+        "timestamp": "2016-10-27T20:59:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "thewtex",
+        "role": "CONTRIBUTOR",
+        "body": "Nice work all!\n",
+        "timestamp": "2016-10-27T21:54:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "nolden",
+        "role": "MEMBER",
+        "body": "@fbudin69500 why does it matter whether Slicer or CTK uses C++ 11 features? \n",
+        "timestamp": "2016-10-28T15:53:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> why does it matter whether Slicer or CTK uses C++ 11 features? \n\n@nolden  At that point in time, it doesn't really for CTK and Slicer. That said, some folks that depends on ITK which depends on DCMTK build their project (e.g BRAINSTools maintained by @hjmjohnson) are using C++11, this is why this came up in the discussion. @fbudin69500 was doing some testing build BRAINSTools and found the issue.\n\nThe good news is that @michaelonken mentioned that they work working on fixing DCMTK.\n\nEt voila, hope this clarify things.\n",
+        "timestamp": "2016-10-28T16:32:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "nolden",
+        "role": "MEMBER",
+        "body": "Ok, thanks @jcfr . MITK already uses C++11 features and passes \nCMAKE_CXX_STANDARD:STRING=11 to all external projects in the SuperBuild. \nNo problems so far but good to know before the next CTK/DCMTK update\n",
+        "timestamp": "2016-10-29T10:05:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "fbudin69500",
+        "role": "NONE",
+        "body": "@nolden DCMTK requires the CMake variable boolean \"DCMTK_USE_CXX11_STL\" to specify that it needs to be built with C++11 support. My guess is that when it is built with MITK, it is actually not build with C++11 features. Let me know if I am mistaken.\n",
+        "timestamp": "2016-10-31T15:04:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "hjmjohnson",
+        "role": "CONTRIBUTOR",
+        "body": "New version of DCMTK still does not compile with C++11\n\nIn file included from /scratch/johnsonhj/src/BT-11/DCMTK/ofstd/tests/tvariant.cc:5:\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:61:9: warning: type definition in a constexpr function\n\n      is a C++14 extension [-Wc++14-extensions]\n\n        struct test { alignas(OFvariant_traits<Index+1,Alternatives...>::alignment()) first_alternative a; };\n\n        ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:61:23: error: requested alignment is less than minimum\n\n      alignment of 4 for type 'first_alternative' (aka 'float')\n\n        struct test { alignas(OFvariant_traits<Index+1,Alternatives...>::alignment()) first_alternative a; };\n\n                      ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:61:16: note: in instantiation of member class 'test'\n\n      requested here\n\n        struct test { alignas(OFvariant_traits<Index+1,Alternatives...>::alignment()) first_alternative a; };\n\n               ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:61:74: note: in instantiation of member function\n\n      'OFvariant_traits<1, float, bool>::alignment' requested here\n\n        struct test { alignas(OFvariant_traits<Index+1,Alternatives...>::alignment()) first_alternative a; };\n\n                                                                         ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:61:16: note: in instantiation of member class 'test'\n\n      requested here\n\n        struct test { alignas(OFvariant_traits<Index+1,Alternatives...>::alignment()) first_alternative a; };\n\n               ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/include/dcmtk/ofstd/ofvriant.h:316:21: note: in instantiation of member function\n\n      'OFvariant_traits<0, int, float, bool>::alignment' requested here\n\n    alignas(traits::alignment()) std::uint8_t m_Content[traits::size()];\n\n                    ^\n\n/scratch/johnsonhj/src/BT-11/DCMTK/ofstd/tests/tvariant.cc:60:31: note: in instantiation of template class\n\n      'OFvariant<int, float, bool>' requested here\n\n    OFvariant<int,float,bool> v0( true );\n\n                              ^\n\n1 warning and 1 error generated.\n\nFrom: Jean-Christophe Fillion-Robin notifications@github.com\nReply-To: commontk/CTK reply@reply.github.com\nDate: Friday, October 28, 2016 at 11:32 AM\nTo: commontk/CTK CTK@noreply.github.com\nCc: Hans Johnson hans.j.johnson@gmail.com, Mention mention@noreply.github.com\nSubject: Re: [commontk/CTK] ENH: Update version of DCMTK to 3.6.1_201610.12 (#675)\n\nwhy does it matter whether Slicer or CTK uses C++ 11 features? \n\n@nolden At that point in time, it doesn't really for CTK and Slicer. That said, some folks that depends on ITK which depends on DCMTK build their project (e.g BRAINSTools maintained by @hjmjohnson) are using C++11, this is why this came up in the discussion. @fbudin69500 was doing some testing build BRAINSTools and found the issue.\n\nThe good news is that @michaelonken mentioned that they work working on fixing DCMTK.\n\nEt voila, hope this clarify things.\n\n—\nYou are receiving this because you were mentioned.\nReply to this email directly, view it on GitHub, or mute the thread.\n",
+        "timestamp": "2016-11-04T15:00:36Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2fe450e",
+        "message": "ENH: Update version of DCMTK to 3.6.1_201610.12",
+        "author": "Christian Herz",
+        "timestamp": "2016-10-21T05:54:22Z"
+      },
+      {
+        "sha": "4378923",
+        "message": "ENH: added comment for used DCMTK revision",
+        "author": "Christian Herz",
+        "timestamp": "2016-10-27T20:04:18Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#973",
+    "metadata": {
+      "title": "ENH: Improve usability of Directory Button by using native dialog",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-06-10T19:07:38Z",
+      "reviewers": [
+        "jcfr",
+        "finetjul",
+        "jamesobutler",
+        "lassoan"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "This aims to improve directory selection by using the native dialog instead of Qt's own widget-based dialog design.\r\n\r\nSee 3D Slicer forum discussion of how users have been doing other methods to avoid using widgets that use Qt's widget-based dialog.\r\nhttps://discourse.slicer.org/t/using-native-file-dialog-for-selecting-files-and-folders/17926\r\n\r\n| Qt widget-based dialog | Native dialog (on Windows)|\r\n|-------------------------|--------------------------------|\r\n|![image](https://user-images.githubusercontent.com/15837524/120825251-3051dd80-c527-11eb-83a4-1a0c2c03971c.png)|![image](https://user-images.githubusercontent.com/15837524/120825677-9e96a000-c527-11eb-8200-2c2a4cecc8ae.png)|\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you for working on this. Native file dialogs are now probably preferred by most users, so I think it is a good idea to use them by default.\r\n\r\nIs there a reason why you switched from ctkFileDialog to QFileDialog instead of just using the `DontUseNativeDialog` flag to choose between native and CTK style? You could even change the default to use native dialog, but keep the door open for using the CTK style dialog to reduce the potential undesired impact of the change.",
+        "timestamp": "2021-06-04T17:26:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "I switched from ctkFileDialog to QFileDialog because the customizations of ctkFileDialog appeared to be mostly related to modifying the functionality of a Qt widget-based dialog. So switching to the native file dialog is essentially going back to using a QFileDialog without those additional customizations.\r\n\r\nWe can't just remove the following `DontUseNativeDialog` specification as there is other code in the class that requires the use of a Qt widget-based dialog with calls such as `setBottomWidget`.\r\nhttps://github.com/commontk/CTK/blob/01ab373d01e6e8718af42f856278b61bb18fbcfe/Libs/Widgets/ctkFileDialog.cpp#L130-L135\r\n",
+        "timestamp": "2021-06-04T19:07:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "The extra features don't have to be deleted, but they would only be used if dontusenativedialog flag is enabled.",
+        "timestamp": "2021-06-04T19:20:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] @lassoan What is the appropriate syntax here?",
+        "timestamp": "2021-06-04T23:07:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] `if (!(q->Options & DontUseNativeDialog))`",
+        "timestamp": "2021-06-05T00:14:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] ```suggestion\r\nif (!(q->Options & DontUseNativeDialog))\r\n```",
+        "timestamp": "2021-06-05T00:15:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] With that change:\r\n> Error\tC7624\tType name 'QFileDialog::Options' cannot appear on the right side of a class member access expression\tCTKWidgets\tC:\\S5R-nightly\\CTK\\Libs\\Widgets\\ctkFileDialog.cpp\t81\t\r\n\r\n> Error\tC2065\t'DontUseNativeDialog': undeclared identifier\tCTKWidgets\tC:\\S5R-nightly\\CTK\\Libs\\Widgets\\ctkFileDialog.cpp\t81",
+        "timestamp": "2021-06-05T14:29:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] With that change:\r\n\r\n> Error\tC2065\t'q': undeclared identifier\tCTKWidgets\tC:\\S5R-nightly\\CTK\\Libs\\Widgets\\ctkFileDialog.cpp\t145",
+        "timestamp": "2021-06-05T14:30:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] Probably you need to add the scope - QFileDialog::DontUseNativeDialog",
+        "timestamp": "2021-06-05T17:31:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] I haven't compiled the code. You need to use the scope wherever Options is defined in(d->, q->, this->...).",
+        "timestamp": "2021-06-05T17:34:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thanks for the updates. These small changes are much less likely to cause any regressions in any CTK-based projects. Just need to sort out those few syntax errors.",
+        "timestamp": "2021-06-05T17:35:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] It was the first error I mentioned that was mostly tripping me up. The documentation at https://doc.qt.io/qt-5/qfiledialog.html regarding `Options`, `options` was confusing, but I was able to get it working with `options()`. I've pushed that update.",
+        "timestamp": "2021-06-05T20:56:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "finetjul",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] The comment is misleading, `init()` is not being called in this function",
+        "timestamp": "2021-06-07T06:25:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "finetjul",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] The comment is misleading, `init()` is not being called in this function",
+        "timestamp": "2021-06-07T06:27:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "finetjul",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] I would have moved that condition in `init()` directly, in case there are (or will be added) other important operations in `init()` that are not related to to native/not native.",
+        "timestamp": "2021-06-07T06:30:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "I've pushed an update based on @finetjul 's suggestions",
+        "timestamp": "2021-06-07T20:05:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "Thoughts on latest updates @lassoan @finetjul ?",
+        "timestamp": "2021-06-09T17:09:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] I think @finetjul's suggestion was to not return but put the content that is only relevant for non-native dialog (which is currently all the content of this method) in the if branch. That way if some more features are added in the future there is smaller chance that it will be accidentally skipped.",
+        "timestamp": "2021-06-09T22:02:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] What happens if donusenativedialog flag is set after init()? If you don't want to allow changing native/non-native flag after initialization (which may be a good idea, because it is probably rarely needed and it would take some effort to implement correctly) then it would be safer to store a the value of the DontUseNativeDialog flag in a member variable and use that (instead of checking options(), which may change).",
+        "timestamp": "2021-06-09T22:08:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you!\r\nI had just two comments that should be easy to address.",
+        "timestamp": "2021-06-09T22:09:41Z",
+        "source": "review"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] I've pushed an additional commit with changes to a member variable. See if this matches what you were thinking.",
+        "timestamp": "2021-06-10T16:04:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you, this looks good to me.",
+        "timestamp": "2021-06-10T16:57:42Z",
+        "source": "review"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] ```suggestion\r\n  if (!this->UsingNativeDialog)\r\n```",
+        "timestamp": "2021-06-11T15:36:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "jamesobutler",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Widgets/ctkFileDialog.cpp] I've pushed commit with change to #977",
+        "timestamp": "2021-06-11T15:55:15Z",
+        "source": "review_inline"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "f9872a9",
+        "message": "ENH: Update ctkFileDialog to use native dialog by default",
+        "author": "James Butler",
+        "timestamp": "2021-06-04T15:20:02Z"
+      },
+      {
+        "sha": "858ed65",
+        "message": "ENH: Add member variable for checking native dialog usage",
+        "author": "James Butler",
+        "timestamp": "2021-06-10T16:02:33Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#1231",
+    "metadata": {
+      "title": "ENH: Add option to set current component in ctkVTKVolumePropertyWidget",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "security"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-05-12T17:45:54Z",
+      "reviewers": [
+        "copilot-pull-request-reviewer",
+        "Sunderlandkyl",
+        "lassoan"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "This commit adds the option to set the current component in ctkVTKVolumePropertyWidget, allowing editing of components other than the first one."
+    },
+    "discussion_timeline": [
+      {
+        "author": "copilot-pull-request-reviewer",
+        "role": "NONE",
+        "body": "## Pull Request Overview\n\nThis PR introduces a new property to allow editing of a non-default volume component in the ctkVTKVolumePropertyWidget. The changes include:\n- Adding a new Q_PROPERTY, accessor, and mutator for the current component.\n- Updating volume property functions to retrieve transfer functions based on the selected component.\n- Implementing the corresponding getter and setter methods in the source file.\n\n### Reviewed Changes\n\nCopilot reviewed 2 out of 2 changed files in this pull request and generated 2 comments.\n\n| File | Description |\n| ---- | ----------- |\n| Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h | Added the Q_PROPERTY and declarations for currentComponent to support selecting a volume component. |\n| Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.cpp | Updated transfer function retrieval to use the current component and implemented the getter and setter logic. |",
+        "timestamp": "2025-05-09T17:54:58Z",
+        "source": "review"
+      },
+      {
+        "author": "copilot-pull-request-reviewer",
+        "role": "NONE",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h] [nitpick] Consider expanding the documentation comment to specify the valid range or expected behavior for the 'currentComponent' property to aid future maintainers.\n```suggestion\n  /// Represents the index of a component in the volume property, starting from 0.\n  /// Must be a non-negative integer. The maximum value depends on the number of components\n  /// in the associated volume property. Defaults to 0 (first component).\n```",
+        "timestamp": "2025-05-09T17:54:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "copilot-pull-request-reviewer",
+        "role": "NONE",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.cpp] [nitpick] If other parts of the application rely on changes to the volume component, consider emitting a dedicated signal from setCurrentComponent to notify listeners of the update.",
+        "timestamp": "2025-05-09T17:54:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.cpp] VTK can crash if the component is out of range.\r\n\r\n```python\r\np=vtk.vtkVolumeProperty()\r\np.GetScalarOpacity(1) # OK\r\np.GetScalarOpacity(10) # CRASH\r\n```\r\n\r\nIt could be nice to make things more robust in VTK, but for now let's just make sure that we don't crash the application for unexpected inputs. If the component index is <0 or >=VTK_MAX_VRCOMP (currently 4) then we could disable the widget.",
+        "timestamp": "2025-05-09T18:04:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h] Maybe add a note that valid index range is 0 <= index < VTK_MAX_VRCOMP.",
+        "timestamp": "2025-05-09T18:08:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you, looks good, just added some minor comments",
+        "timestamp": "2025-05-09T18:09:17Z",
+        "source": "review"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h] Copilot's suggestion was incorrect: the maximum value does not depend on the \"on the number of components in the associated volume property\". In the final version of the commit change the maximum value to VTK_MAX_VRCOMP-1.",
+        "timestamp": "2025-05-09T18:41:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h] Yup, I've already made the change locally.",
+        "timestamp": "2025-05-09T18:42:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.h] Good!\r\n\r\nThis round of review by copilot was very poor. One unnecessary nitpick, one false comment, and it did not catch an actual problem (crash for invalid input).",
+        "timestamp": "2025-05-09T18:49:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "@lassoan, it shouldn't crash anymore when the current component is out of range.",
+        "timestamp": "2025-05-09T20:07:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.cpp] It is simple to disable the widget like this, but it may interfere with enabling/disabling of the widget by the parent widget. For example, the volume rendering widget may enable/disable the volume property widget based on some higher-level logic. So, I think we need to disable each child widget.",
+        "timestamp": "2025-05-10T00:43:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you, it looks good, I just added one more comment that would need to be addressed before merging.",
+        "timestamp": "2025-05-10T00:46:22Z",
+        "source": "review"
+      },
+      {
+        "author": "Sunderlandkyl",
+        "role": "CONTRIBUTOR",
+        "body": "[Libs/Visualization/VTK/Widgets/ctkVTKVolumePropertyWidget.cpp] Ok, I've disabled the child widgets.",
+        "timestamp": "2025-05-12T15:11:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "This looks perfect now, thank you!",
+        "timestamp": "2025-05-12T16:40:33Z",
+        "source": "review"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "@jcfr This retired ubuntu-20.04 build prevents successful completion of CI and therefore blocks merging of the pull request. Could you please update the github actions - perhaps update the stable build to use ubuntu-22.04?",
+        "timestamp": "2025-05-12T16:46:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Integrating bypassing rules as corresponding failure is being address in the following pull request:\r\n* https://github.com/commontk/CTK/pull/1233",
+        "timestamp": "2025-05-12T17:45:42Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thank you @jcfr !",
+        "timestamp": "2025-05-12T19:16:01Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "03e5a91",
+        "message": "ENH: Add option to set current component in ctkVTKVolumePropertyWidget\n\nThis commit adds the option to set the current component in ctkVTKVolumePropertyWidget, allowing editing of components other than the first one.",
+        "author": "Kyle Sunderland",
+        "timestamp": "2025-05-12T15:11:18Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#847",
+    "metadata": {
+      "title": "Fix QtDesigner crash in debug mode",
+      "labels": [],
+      "qualities": [
+        "availability",
+        "testability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-07-25T18:36:35Z",
+      "reviewers": [
+        "lassoan",
+        "jcfr"
+      ],
+      "changed_files": 3
+    },
+    "issue_payload": {
+      "body": "Debug-mode Qt Designer crashed when tried to instantiate a ctkMatrixWidget because of an assert failure.\r\nIt may be useful to know that some operations fail, but making the Qt Designer crash is a too strong way of notifying developers (especially when developers only use CTK and not intend to fix its potential internal errors).\r\n\r\nFixed by converting assert to a debug log.\r\n\r\nSee user problem report here: https://discourse.slicer.org/t/designer-will-not-load-with-slicer-widgets/5496/4"
+    },
+    "discussion_timeline": [
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "+1\r\n\r\nI would prefer it if we could get rid of all asserts.",
+        "timestamp": "2019-01-25T14:32:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "@jcfr What do you think about the new CTK_VALIDATE macro that only logs a warning but does not terminate the application on failure? (I've forced push updated code that uses this macro)",
+        "timestamp": "2019-01-25T17:09:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Done. Renamed macro to CTK_SOFT_ASSERT.",
+        "timestamp": "2019-01-25T18:31:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "One last nitpick, i suggest to use the `do {...} while (0)` idiom.\r\n\r\nFor reference, see https://stackoverflow.com/questions/923822/whats-the-use-of-do-while0-when-we-define-a-macro",
+        "timestamp": "2019-01-25T18:40:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "I have never understood why people assume it's okay to ignore these conditions in release mode.  I prefer either exceptions or the vtkErrorMacro followed by graceful cleanup approach for anything that really \"shouldn't happen\".  When people use asserts they allow release mode code to silently ignore that the program has gotten into a bad state.  If you are going to allow a user to go into a bad state then at least leave a log message.",
+        "timestamp": "2019-01-25T19:11:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Fully agree.\r\n\r\nDo you think we should log in release mode builds, too?",
+        "timestamp": "2019-01-26T05:26:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "> should log in release mode builds, too\r\n\r\nit depends ... \r\n\r\nif we decide \"yes\", then in the case of this PR, the check in `ctkMatrixWidgetPrivate::updateGeometries` being not a critical error, I still recommend to do:\r\n```\r\n#ifndef QT_NO_DEBUG\r\nCTK_SOFT_ASSERT(this->Table->columnWidth(j) == newWidth);\r\n#endif\r\n```\r\n\r\nIt basically started to be asserted with the transition to Qt5, it is something we should be fixed/investigated and having the debug version reporting a message is valuable. I looked into it not long ago but got side tracked.\r\n\r\n",
+        "timestamp": "2019-01-26T06:22:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "For our typical use cases I think it's best if debug and release builds behave identically to the extent we can.  That makes it easier to replicate user issues and compare log files.",
+        "timestamp": "2019-01-26T13:30:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "nolden",
+        "role": "MEMBER",
+        "body": "> \r\n> \r\n> For our typical use cases I think it's best if debug and release builds behave identically to the extent we can. That makes it easier to replicate user issues and compare log files.\r\n\r\nI fully agree. The \"assert\" macro and its optimization in release mode doesn't make much sense unless it is in super time-critical loop which UI code probably isn't ;) ",
+        "timestamp": "2019-01-26T14:07:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "Thanks for all the feedbacks. It is good that we all agree on this.\r\n\r\nI've updated the macro to log warning regardless of build mode and it uses do{}while(0) idiom.",
+        "timestamp": "2019-01-26T18:33:05Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "704d175",
+        "message": "Fix QtDesigner crash in debug mode\n\nDebug-mode Qt Designer crashed when tried to instantiate a ctkMatrixWidget because of an assert failure.\nIt may be useful to know that some operations fail, but making the Qt Designer crash is a too strong way of notifying developers (especially when developers only use CTK and not intend to fix its potential internal errors).\n\nFixed by adding a new CTK_SOFT_ASSERT macro that just logs a warning instead of terminating the application (and does it both in debug and release mode, to make application behavior consistent). It should be possible to use this macro instead of Q_ASSSERT where crashing the application in unexpected situations in debug mode should be avoided.",
+        "author": "Andras Lasso",
+        "timestamp": "2019-01-25T17:07:13Z"
+      }
+    ]
+  },
+  {
+    "story_id": "commontk/CTK#1154",
+    "metadata": {
+      "title": "ENH: Virtualize DICOM database",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-12-13T15:57:11Z",
+      "reviewers": [
+        "jcfr",
+        "pieper",
+        "lassoan"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "This generalizes the ctkDICOMDatabase code to ease hard-coded restrictions about DICOM files always being on disk.  Now the schema includes a `URL` field of the SQLite database so certain file-specific operations are only performed on filePaths while URL are handled independently.  Entries in the `Images` table of the database may now have either a `URL` or a `fileName` or both and new accessors are provided to get `URL`s at the series and instance level.\r\n\r\nAlso this contains a fix to the ctkDICOMTagCache so that tags are always stored internally as uppercase hex, so a string like \"0010,000d\" will always be turned into \"0010,000D\" for storage in the database.  Both forms can be used to query tags.  This avoids the situation where some cache entries were duplicated because different code used either upper or lower case to refer to the same tag.  Using only upper case should improve storage use and improve performance by avoiding unneeded cache misses."
+    },
+    "discussion_timeline": [
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "This should be merged by squashing so the commit message will be fixed.",
+        "timestamp": "2023-11-16T00:03:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "Proposed commit message for `squash & merge` integration:\r\n\r\n```\r\nENH: Update DICOM Database with URL Support and Tag Cache Optimization\r\n\r\nThis generalizes the ctkDICOMDatabase code to ease hard-coded restrictions about\r\nDICOM files always being on disk. Now the schema includes a `URL` field of the\r\nSQLite database so certain file-specific operations are only performed on filePaths\r\nwhile URL are handled independently. Entries in the `Images` table of the database\r\nmay now have either a `URL` or a `fileName` or both and new accessors are provided\r\nto get `URL`s at the series and instance level.\r\n\r\nSchema version is updated from version `0.7.0` to `0.8.0`.\r\n\r\nAlso this contains a fix to the `ctkDICOMTagCache` so that tags are always stored\r\ninternally as uppercase hex, so a string like \"0010,000d\" will always be turned\r\ninto \"0010,000D\" for storage in the database. Both forms can be used to query\r\ntags. This avoids the situation where some cache entries were duplicated because\r\ndifferent code used either upper or lower case to refer to the same tag. Using\r\nonly upper case should improve storage use and improve performance by avoiding\r\nunneeded cache misses.\r\n\r\nCo-authored-by: Andras Lasso <lasso@queensu.ca>\r\n```",
+        "timestamp": "2023-12-12T16:24:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcfr",
+        "role": "MEMBER",
+        "body": "@Punzo Do you have any suggestion related to naming and/or approach that would make rebasing of https://github.com/commontk/CTK/pull/1142 easier ?",
+        "timestamp": "2023-12-12T16:43:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "Punzo",
+        "role": "CONTRIBUTOR",
+        "body": "> @Punzo Do you have any suggestion related to naming and/or approach that would make rebasing of #1142 easier ?\r\n\r\nI have already had a videocall with Steve and we agreed on this infrastructure. Once it will be merged, then I will rebase my PR. \r\nThe idea would be that the url variable values would be like:\r\n\r\n`protocol+infrastructure://information`\r\n\r\nexamples can be:\r\nA) how I will store my \"url\" for DIMSE in CTK: `dimse+ctk://connectionName/studyInstanceUID/seriesInstanceUID/SOPInstanceUID`\r\nb) and for Steve would be: `dicomweb+gcp://IP/studyInstanceUID/seriesInstanceUID/SOPInstanceUID`\r\netc...\r\n\r\n@pieper please confirm if this is accurate.",
+        "timestamp": "2023-12-13T08:27:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "Punzo",
+        "role": "CONTRIBUTOR",
+        "body": "> A) how I will store my \"url\" for DIMSE in CTK: dimse+ctk://connectionName/studyInstanceUID/seriesInstanceUID/SOPInstanceUID\r\n> b) and for Steve would be: dicomweb+gcp://IP/studyInstanceUID/seriesInstanceUID/SOPInstanceUID\r\n\r\nmaybe we should add this in somewhere as docs, maybe in the description of https://github.com/commontk/CTK/pull/1154/files#diff-47b3a2aabeea5b49d2da30b70b2dfc96ec78db4fcae06d5cfea45bd0bbe07e67R194 ?",
+        "timestamp": "2023-12-13T08:30:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "pieper",
+        "role": "MEMBER",
+        "body": "Thanks @Punzo for doublechecking.\r\n\r\nI agree on the URL scheme description but since we don't rely on it in the CTK code at this point it's more of an application level thing to define.  Yesterday @jcfr , @lassoan , and I talked about moving what I have now in the [DICOMLogic](https://github.com/pieper/DICOMLogic) repo into the a pure-python package under CTK organization (with a final name TBD) and using that as a place to define higher level usage.  We plan to hash out details at [Project Week 40](https://projectweek.na-mic.org/PW40_2024_GranCanaria/).   I'll start a project page for this.",
+        "timestamp": "2023-12-13T15:23:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "> maybe we should add this in somewhere as docs, maybe in the description of\r\n\r\nWe can amend the documentation in your pull request (that will be the first use of this new database field in CTK). We could describe that `dimse+ctk` protocol is reserved for the CTK visual DICOM browser, while any other protocols are free to use. When other protocols emerge then we can add them to the documentation as well, to reduce the chance of unintended name clashes.",
+        "timestamp": "2023-12-13T15:41:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "lassoan",
+        "role": "MEMBER",
+        "body": "@pieper I think it is ready for integration, just need to squash the commits and update the commit message as @jcfr suggested. Maybe also add @Punzo as coauthor.",
+        "timestamp": "2023-12-13T15:42:59Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "3b8182e",
+        "message": "ENH: allow URL \"filenames\" in database\n\nAllow the ctkDICOMDatabase to hold URLs for retrieving\ninstances in addition to traditional filenames (really\nfilepaths).\n\nEnsure that any code that tries to calculate absolute file\npaths from relative paths does not mangle the URLs.  Do this\nby detecting the URL sceme (e.g. http in http://) and ignore\nthese when calculating abolute paths.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-10-25T14:59:14Z"
+      },
+      {
+        "sha": "fbae32f",
+        "message": "ENH: Always use upper case hex for tags\n\nPreviously, the TagCache database would store whatever hex string\nwas passed in, so depending on how the tags were specified duplicate\nentries could end up being cached, such as \"0010,000d\" and '0010,000D\".\nThis wasted space, but also caused inefficiencies.\n\nAlthough usage varies, the DICOM standard uses upper case hex both\nin the body of the standard text, and when defining the DICOM JSON\nand XML models. (https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_f.2.html)\n\nThis change always converts tags to upper case hex when storing\nand query of the tag cache.  Users of the library can still pass\nlower case hex tags to methods, but they will be converted\nto upper case internally, so most use cases will be unchanged.\n\nThe only externally visible method where the behavior will change is:\n`Q_INVOKABLE void getCachedTags(const QString sopInstanceUID, QMap<QString, QString> &cachedTags);`\nPreviously tags could have been of mixed case depending on how\nthey were specified for caching.  Now they will be all upper case hex.\n\nCurrently, the only known use of `getCachedTags` is internnally\nto `ctkDICOMDatabase` so this change of behavior is unlikely to cause\nproblems in practice.\n\nNote also that while the DICOM standard models for JSON and XML omit\nthe comma between group and element, but `ctkDICOMTagCache` implementation\nretains the comma in the API and the database.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-05T17:27:04Z"
+      },
+      {
+        "sha": "03e6ecc",
+        "message": "ENH: applying DICOM display updates even if some fail\n\nPreviously, if some data imported into the `ctkDICOMDatabase` had\nincomplete information then the display field updates would abort.\n\nWith this change, a more informative message is generated to support\ntroubleshooting of any failed updates, but the rest of the process\ncompletes so that any valid display field updates can be shown\nto the user.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-05T17:33:24Z"
+      },
+      {
+        "sha": "ff515f9",
+        "message": "ENH: use fileName in dicom db only for files\n\nReverts https://github.com/commontk/CTK/commit/3b8182ecc40189e9b34d0dcba2e6ba6b5086a4cd\n\nPlan is to keep using fileName only for file paths and add\na URL field to be used explicitly for URLs so this logic is\nno longer needed.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-13T21:33:13Z"
+      },
+      {
+        "sha": "5200de9",
+        "message": "ENH: Updates dicom db schema to support urls\n\nAdds a URL field to the Images schema and provides\naccessor methods for it.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-13T23:45:13Z"
+      },
+      {
+        "sha": "8f9f14a",
+        "message": "BUG: Fix dicom db insert with URL field\n\nWe should be checking the return value of QSqlQuery::exec\nto catch problems.\n\nFiled an issue to track this:\n\nhttps://github.com/commontk/CTK/issues/1155",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-14T00:31:23Z"
+      },
+      {
+        "sha": "0c47c6a",
+        "message": "ENH: Allow file or url to be null in dicom-schema.sql\n\nSince neither of these are required fields, the NOT NULL constraint is not appropriate.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-14T19:06:17Z"
+      },
+      {
+        "sha": "d6be887",
+        "message": "ENH: update dicom db schema and api for files and urls\n\nSchema now has URL column of size 2048 (which based on research\nis suggested as the max size for URLs).  The schema now\nallows either field to be NULL and does not require the\nFilename column to be unique.\n\nThe api now icnludes a urlsForSeries option to get the list\nof URLs for a given series instance uid.\n\nThe fileValue method now accepts either filePaths or URLs with\nfilePaths being given priority if both exist.",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-14T23:37:41Z"
+      },
+      {
+        "sha": "2bfc42a",
+        "message": "Merge branch 'master' into virtualize-database",
+        "author": "Steve Pieper",
+        "timestamp": "2023-11-16T00:01:57Z"
+      },
+      {
+        "sha": "df63274",
+        "message": "ENH: Add index for URL to dicom database schema\n\nBased on suggestion from @jcfr\n\nhttps://github.com/commontk/CTK/pull/1154#discussion_r1424301591",
+        "author": "Steve Pieper",
+        "timestamp": "2023-12-13T15:16:14Z"
+      }
+    ]
+  }
+]

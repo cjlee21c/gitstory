@@ -1,0 +1,1773 @@
+[
+  {
+    "story_id": "PaperMC/Paper#1397",
+    "metadata": {
+      "title": "Async Chunk Loading and Generation",
+      "labels": [
+        "type: feature",
+        "scope: performance"
+      ],
+      "qualities": [
+        "performance",
+        "availability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-09-26T22:21:45Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "# Async Chunk Loading and Generation - BETA\r\n\r\n**STAGE:**\r\nSTABLE: Should be safe for production. No known bugs at this time. Nearing ready for merge\r\nCustom World Gens are now supported. Conversion from pre 1.13 worlds is supported and async!\r\n\r\n**BETA TESTERS:** \r\nLatest builds of this will be provided (as Paperclip patchers) here: https://aikar.co/async.jar\r\n\r\n**DISCLAIMER:**\r\nAgain this is beta - please ensure you have backups.\r\n\r\nThese builds are now to the point they should be safe to run in production.\r\nThere has not been any reported issues yet of any data loss.\r\n\r\nHowever, bugs could lead to server crashes, but they should mostly be worked out now.\r\n\r\n**TODO LIST:**\r\nSEE: https://github.com/PaperMC/Paper/projects/2\r\n\r\n**DONATE:**\r\nLots of effort has went into making this happen. Want to say thanks and donate? \r\n[![Foo](http://aikar.co/donate.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=payments%40starlis%2ecom&lc=US&item_name=AsyncChunksDonation&no_note=0&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHostedGuest)"
+    },
+    "discussion_timeline": [
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build to jar is updated with latest updates\r\n\r\nThere is still an issue with entities created during world generation though thats going to be tough to resolve due to bad logic on mojangs part ",
+        "timestamp": "2018-09-02T03:38:23Z"
+      },
+      {
+        "author": "Lachney",
+        "role": "NONE",
+        "body": "Some logs I got while testing using async.jar\r\nhttps://gist.github.com/Lachney/b65f339988bce6b4468a19948d967893\r\nhttps://gist.github.com/Lachney/73e3e0833a7b104e4708692f8ee9c8e7\r\nhttps://gist.github.com/Lachney/930ebff98afa4d63511a5f37e27c41df",
+        "timestamp": "2018-09-02T06:40:12Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "New beta build up!\r\n\r\nAll known bugs should now be fixed. I need testers to find bugs!\r\nBut please, test on a COPY of your production world, do not run this on your live server until it looks like no more major bugs are seen.\r\n",
+        "timestamp": "2018-09-03T01:01:28Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "New build uploaded with even better performance for chunk conversions, as I've solved hopefully all the concurrency concerns with datafixers.\r\nAlso made spawn chunks load async.",
+        "timestamp": "2018-09-04T05:57:55Z"
+      },
+      {
+        "author": "andris155",
+        "role": "NONE",
+        "body": "Server crash:\r\nhttps://pastebin.com/mAmhZqnd",
+        "timestamp": "2018-09-07T08:39:17Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@andris155 does it happen consistently? Thanks that's helpful ",
+        "timestamp": "2018-09-07T12:14:32Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Note it was due to a random teleport ",
+        "timestamp": "2018-09-07T12:15:03Z"
+      },
+      {
+        "author": "andris155",
+        "role": "NONE",
+        "body": "Sometimes when players use Randomteleport sign. I tested other randomteleport plugin, but same error.",
+        "timestamp": "2018-09-07T12:29:21Z"
+      },
+      {
+        "author": "andris155",
+        "role": "NONE",
+        "body": "Couldn't generate chunk (plotworld:19,-16) error (Generator: PlotSquared)\r\nhttps://pastebin.com/2rzNdkk6",
+        "timestamp": "2018-09-07T12:32:04Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Beta Build updated with more fixes to some of the reported issues by @andris155 \r\n\r\nThe PlotSquared one is not fixed yet though, as that one is trickier and is going to require keeping those on main thread it seems.",
+        "timestamp": "2018-09-09T06:40:39Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "At this point, if you do not use any plugin providing custom world generators, and you take adequate backups and are ok with any risks running these builds, I think we've reached the point it is testable in production on your real world.\r\n\r\nAgain, please ensure you back up correctly and understand there still could be issues.\r\n\r\nhttps://aikar.co/async.jar - Updated to Paper 231",
+        "timestamp": "2018-09-09T06:42:58Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "New Beta Build up with even more improvements based on latest paper 238 with the Tab Complete fix:\r\nhttps://aikar.co/async.jar  - BETA DOWNLOAD LINK\r\n\r\nAgain this is beta - please ensure you have backups.\r\n\r\nAs said above, these builds are now to the point they should be safe to run in production.\r\nThere has not been any reported issues yet of any data loss.\r\n\r\nHowever, bugs could lead to server crashes, but they should mostly be worked out now.\r\n\r\nNo known bugs outside of using Custom World Generators such as PlotSquared.\r\nDo not use this build with PlotSquared if you have plots (re)generate\r\n\r\n",
+        "timestamp": "2018-09-10T04:17:15Z"
+      },
+      {
+        "author": "andris155",
+        "role": "NONE",
+        "body": "I donated this project for PlotSquared fix. :)",
+        "timestamp": "2018-09-10T12:55:39Z"
+      },
+      {
+        "author": "NFRCG",
+        "role": "NONE",
+        "body": "Hello, found an error saving a chunk on the latest build: https://gist.github.com/NolanMC/0d5b7ed42a25c122f0bca2512c2fca32\r\n\r\n/version output: 10.09 09:17:24 [Server] INFO This server is running Paper version git-Paper-\"143c2e0e\" (MC: 1.13.1) (Implementing API version 1.13.1-R0.1-SNAPSHOT)\r\n10.09 09:17:24 [Server] INFO Previous version: git-Paper-\"2550a2a1\" (MC: 1.13.1)\r\n10.09 09:17:24 [Server] INFO Error obtaining version information\r\n\r\nI obtained this error by simply logging into my previous location after the restart which put the latest jar in. I did not take any additional actions.\r\nEDIT: Running /save-all doesn't replicate the error. ",
+        "timestamp": "2018-09-10T13:19:02Z"
+      },
+      {
+        "author": "tlaundal",
+        "role": "NONE",
+        "body": "Tested out latest beta (downloaded 90 minutes before this comment) with 20 players.\r\nGot hangs after 30 seconds, coming right after each other. Stopped the server with /stop.\r\n\r\nSee logs here: https://dpaste.de/fNMq\r\nI removed some player information.",
+        "timestamp": "2018-09-10T19:06:51Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "major performance boost in main 1.13 branch around liquids, as well as boosted priorities for main blocking chunk gens now in latest builds.\r\n\r\nNone of the other recent bugs reported fixed yet though. @totokaka  I need the full crash report. stopping it early made it lose important information :/\r\n\r\nWe need the full thread dump that prints at end. \r\n\r\nDownload latest build linked above\r\n\r\n![](https://i.imgur.com/HL1iQeW.png)",
+        "timestamp": "2018-09-11T04:33:36Z"
+      },
+      {
+        "author": "tlaundal",
+        "role": "NONE",
+        "body": "Will make sure to let it run until it crashes and generates a report next time, though I think I'll wait a bit longer before I use it with all my players again.",
+        "timestamp": "2018-09-11T05:19:40Z"
+      },
+      {
+        "author": "ghost",
+        "role": "NONE",
+        "body": "Couldn't generate chunk error, didn't crash the server, but generated a 342MB log before I shut it down: https://pastebin.com/EVLE0m3K",
+        "timestamp": "2018-09-11T20:28:50Z"
+      },
+      {
+        "author": "andris155",
+        "role": "NONE",
+        "body": "```\r\n[16:33:43] [Server thread/WARN]: Entity threw exception at world:177.5,55.0,12780.5\r\n[16:33:43] [Server thread/WARN]: java.lang.NullPointerException\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.PathfinderNormal.b(PathfinderNormal.java:350)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.PathfinderNormal.a(PathfinderNormal.java:307)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.PathfinderNormal.a(PathfinderNormal.java:273)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.PathfinderNormal.a(PathfinderNormal.java:242)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.Navigation.a(SourceFile:191)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.Navigation.a(SourceFile:131)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.NavigationAbstract.o(NavigationAbstract.java:219)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.NavigationAbstract.d(NavigationAbstract.java:176)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.NavigationSpider.d(SourceFile:63)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityInsentient.doTick(EntityInsentient.java:678)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityLiving.k(EntityLiving.java:2326)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityInsentient.k(EntityInsentient.java:511)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityMonster.k(EntityMonster.java:22)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityLiving.tick(EntityLiving.java:2174)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityInsentient.tick(EntityInsentient.java:249)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntityMonster.tick(EntityMonster.java:26)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.EntitySpider.tick(EntitySpider.java:45)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.World.entityJoinedWorld(World.java:1562)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.World.g(World.java:1529)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.World.tickEntities(World.java:1336)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.WorldServer.tickEntities(WorldServer.java:615)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.MinecraftServer.b(MinecraftServer.java:1104)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.DedicatedServer.b(DedicatedServer.java:428)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.MinecraftServer.a(MinecraftServer.java:956)\r\n[16:33:43] [Server thread/WARN]: \tat net.minecraft.server.v1_13_R2.MinecraftServer.run(MinecraftServer.java:854)\r\n[16:33:43] [Server thread/WARN]: \tat java.lang.Thread.run(Thread.java:748)\r\n```",
+        "timestamp": "2018-09-11T20:32:29Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "new build up that will fix custom world generators such as PlotSquared, as well as pulls in master for the Pathfinder NPE fix.",
+        "timestamp": "2018-09-12T02:41:08Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "new build up that should fix that structure save issue reported, though that was looking to be extremely rare.",
+        "timestamp": "2018-09-12T03:58:37Z"
+      },
+      {
+        "author": "NFRCG",
+        "role": "NONE",
+        "body": "Latest build, the issue with structure saving still persists for me\r\nEntire startup log: https://gist.github.com/NolanMC/836c1596982fb7ec97988a356fb30406\r\n\r\nThe error was occurring immediately after the server fully loaded, and happened without me even logging into the server. It is appearing to only be on startup, and not at any other time. \r\n\r\n/version output: 12.09 12:04:33 [Server] INFO This server is running Paper version git-Paper-\"740f8d4a\" (MC: 1.13.1) (Implementing API version 1.13.1-R0.1-SNAPSHOT)\r\n12.09 12:04:33 [Server] INFO Previous version: git-Paper-\"1b0c2734\" (MC: 1.13.1)\r\n12.09 12:04:33 [Server] INFO Checking version, please wait...\r\n12.09 12:04:34 [Server] INFO Unknown version\r\n\r\nIf any other information is needed please let me know. ",
+        "timestamp": "2018-09-12T16:05:54Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@NolanMC does it consistently happen?\r\n\r\nCan you zip up your files in the world folder (just the first level, not the sub folders), and the files in\r\n\r\ndata/\r\n\r\nand\r\n\r\nregion/r.0.0.mca\r\nregion/r.-1.0.mca\r\nregion/r.1.0.mca\r\nregion/r.0.-1.mca\r\nregion/r.0.1.mca\r\n\r\nassuming your spawn is near 0.0?\r\n\r\nIf you can send me zip in PM on discord or IRC",
+        "timestamp": "2018-09-12T16:16:28Z"
+      },
+      {
+        "author": "NFRCG",
+        "role": "NONE",
+        "body": "@aikar Happens on every restart. I have pmed you the zip on discord. ",
+        "timestamp": "2018-09-12T16:31:40Z"
+      },
+      {
+        "author": "Bobcycle",
+        "role": "NONE",
+        "body": "Citizens seems to be having a path finding problem, says Aikar. Can't read code myself, but I'm pretty sure it's something you guys can fix! https://paste.md-5.net/tehofawabe.avrasm, whenever I try to create an NPC it gives me a NPE aswell, maybe something to note.\r\n\r\n",
+        "timestamp": "2018-09-12T18:14:17Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "new beta build up with more structure and stronghold specific concurrency fixes.\r\n\r\nalso MAJOR user experience boost.... We are now boosting priority of any chunk nearby the player and also chunks directly in front of the player.\r\n\r\nThis will give a major boost to user experience to be even faster chunk loads.\r\n\r\nThis is especially important for worldgen.... if players are exploring, we will now generate priority in front of them, hopefully avoiding them hitting the edge of the world.\r\n\r\nThis build is on top of paper 248 released tonight which contains fix for the pathfinder issue for citizens, as well as other performance improvements.\r\n\r\nupdate recommended :)\r\n\r\nhttps://aikar.co/async.jar",
+        "timestamp": "2018-09-13T05:45:08Z"
+      },
+      {
+        "author": "maxerium",
+        "role": "NONE",
+        "body": "https://cdn.discordapp.com/attachments/488857005558202419/489815210836885504/image0.jpg\r\n\r\nPlayers are getting glitched chunks (not being rendered, nor can they move) when teleporting around.\r\nThey're forced to rejoin upon this bug coming up.",
+        "timestamp": "2018-09-13T15:24:25Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "new build up with fixes for chunk map issue and more fine tuning of load priority",
+        "timestamp": "2018-09-13T17:00:00Z"
+      },
+      {
+        "author": "egg82",
+        "role": "CONTRIBUTOR",
+        "body": "Looks like a mem leak somewhere around here when generating lots of chunks. Reproducible steps below.\r\n\r\nMethod:\r\nDownload latest async Paper downloaded from above\r\nArgs: https://pastebin.com/gMBAvX0P\r\nPlugins: WorldBorder, EssentialsX, EssentialsXChat, Vault, LuckPerms\r\nview distance 18 in both spigot.yml and server-properties\r\n\r\nRun these commands from console:\r\n/wb clear\r\n/wb set world 5000 5000 0 0\r\n/wb world fill\r\n\r\nWatch console and profilers as your memory starts slowly filling up until you only have a few MB of memory left. You don't even need to login!\r\n\r\nI managed to capture some profiler magic. Here's a few screenshots.\r\nhttp://prntscr.com/ku6bdl\r\nhttp://prntscr.com/ku6bjh\r\nhttp://prntscr.com/ku6bt0",
+        "timestamp": "2018-09-14T00:50:25Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "new build was posted tonight that pulls latest master in, which includes a fix for that treasure map crash reported. Treasure maps will no longer spam load hundreds of chunks.",
+        "timestamp": "2018-09-14T05:31:04Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build updated with latest master which has some important fixes.\r\n\r\nstill no new progress on custom gen issue yet though",
+        "timestamp": "2018-09-15T18:55:53Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "good news, got word there is not actually a custom world gen issue, was a confusion in report.\r\n\r\ncustom world gen should be ok. I've tested plot squared and void generator.\r\n\r\nappears there is a rare concurrency bug that can make generations fail though, but only 1 report so far.",
+        "timestamp": "2018-09-16T00:26:54Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build updated with latest memory leak fixes from master, mentioned above by egg. it was not caused by async work, its a vanilla bug, so it's fixed completely now.\r\n\r\nI also added some debug to diagnose source of the issue i mentioned above about the rare crash.\r\n\r\nif you see any stack traces saying \"write on main\", please let me know!",
+        "timestamp": "2018-09-16T05:41:48Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "more fixes to the expiring map stuff, should hopefully be no more crashes or log lines from it i hope...\r\nbuild updated\r\n",
+        "timestamp": "2018-09-16T07:26:30Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "woo big update.\r\nI was able to just turn off Mojangs \"Let's crash the server if 2 threads try to write at same time code\", and instead..... just make them thread safe.... like a logical person would have done :|\r\n\r\nThis solves the \"Writing from multiple thread\" crash\r\n\r\nThis then enabled me to enable parallel chunk generation. I didn't even need to do the regionized concept.\r\nSo now, you will find chunks generate even faster....\r\n\r\nAt this point, no more critical bugs are known at this point.\r\n\r\nPlease test to help find if there are any new bugs :)",
+        "timestamp": "2018-09-16T22:24:33Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Well, had to revert the parallel world gen. it was causing crashes that I'm pretty confident we can't fix until mojang rewrites world gen to be thread safe.\r\n\r\nWe still get to keep the change that fixes the crash though.\r\n\r\nBuild updated",
+        "timestamp": "2018-09-16T22:48:05Z"
+      },
+      {
+        "author": "lukeeexd",
+        "role": "NONE",
+        "body": "Hi Aikar,\r\n\r\nBack in 1.12.2 one of my staff had an issue when he teleported he’d get a huge lag spike, happened loading new chunks too, he’d often get dcd and won’t be able to join again. We tried literally everything under the sun to fix it. So since switching to 1.13.1 the issue is gone. Except once I moved to async beta the issue is back.\r\n\r\nNow you may be thinking that it's just coincidence. So this morning I ran an async build and the same issue happened, updated to newest and same issue happened. Switch back to Paper without async and it was fine, tried async again and the issue was there, moved back to no async and issue gone.\r\n\r\nhttps://cdn.discordapp.com/attachments/426506011575320577/491569679962341376/2018-09-18_04.22.08.png\r\nhttps://cdn.discordapp.com/attachments/426506011575320577/491569677265403904/2018-09-18_04.21.56.png\r\n\r\nThese are pics of what happens on async",
+        "timestamp": "2018-09-18T11:30:05Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@lukeeexd sounds like a weird client bug. Is he on integrated graphics? Millions of people don't have the issue.\r\n\r\nThe only thing that I can see is that that we may send packets about the players position before the chunk they are in, but that from what I can see is possible in vanilla though ",
+        "timestamp": "2018-09-18T13:53:07Z"
+      },
+      {
+        "author": "lukeeexd",
+        "role": "NONE",
+        "body": "@aikar Nope, hes using his Ryzen GPU. We have literally tried everything back in 1.12.2 to try fix it. He even got a new GPU and same issue. If it only happens on async build then it must be something to do with that? I'm on latest Paper build atm and it's perfect for him now",
+        "timestamp": "2018-09-18T13:55:26Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build updated on latest paper.\r\n\r\nI would love to hear from people - who's running it in production?\r\nhow many players?\r\nwhat plugins do you use that may mess with chunk/world data?\r\n\r\nhaven't heard of any new issue (outside of the last comment, which is client bug related, we can explore fixing it after its merged if we can figure it out) lately, so we're nearing ability to merge to master!",
+        "timestamp": "2018-09-20T00:47:03Z"
+      },
+      {
+        "author": "pop4959",
+        "role": "MEMBER",
+        "body": "I'm not using it in production but I just want to say I appreciate the issue you opened on WorldBorder for adding async chunk generation via the fill command, cause I just pre-generated a 20K x 20K world and it took me 51 hours. With async, I imagine that could be improved significantly.",
+        "timestamp": "2018-09-20T01:09:18Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@pop4959 my recommendation would be to just not pregen :)",
+        "timestamp": "2018-09-20T01:10:12Z"
+      },
+      {
+        "author": "pop4959",
+        "role": "MEMBER",
+        "body": "I've been using it for years because it improves server performance significantly, since no further chunk generation is required for the lifetime of the map. Of course for people who don't pre-generate, async chunk generation is a tremendous help. But for people who do, I'd be curious to see how long it would take to generate a map out using it (when the API is fully ready). :)",
+        "timestamp": "2018-09-20T01:13:54Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Some errors were reported to me last night related to ExpiringMap.\r\n\r\nI've updated the build to fix those issues, though I did not have it happen in my own testing, but such is the fun of multithreading, consistency is never there!\r\n\r\nExpiring Maps should now be thread safe.\r\n\r\nhttps://aikar.co/async.jar",
+        "timestamp": "2018-09-20T17:41:40Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build updated with paper 275 to include the chunk conversion fix, so it should now be safe to convert worlds to 1.13 with async beta too.\r\n\r\nI actually tested the chunk conversion fix on the async build first :P",
+        "timestamp": "2018-09-21T00:44:54Z"
+      },
+      {
+        "author": "mibby",
+        "role": "NONE",
+        "body": "Thanks for all the hard work and effort aikar! Looking forward to this being merged. :)",
+        "timestamp": "2018-09-21T02:02:40Z"
+      },
+      {
+        "author": "DefinePvP",
+        "role": "NONE",
+        "body": "I am using this in production, but due to errors I have taken it out of production.\r\nAverage player count: 10-20 usually\r\nTPS: Steady 19.7 due to large number of survival farms.\r\nPlugins (16): AdvancedBan*, CoreProtect, DiscordSRV*, dynmap*, EnjinMinecraftPlugin*, Essentials, Greylist*, InveRestore*, LuckPerms*, PlugMan*, SimpleTicketManager*, Statscraft*, Vault*, ViaVersion*, WorldBorder*, WorldEdit\r\n\r\nI don't believe this is ready to be merged, I am getting this error when generating a large number of new chunks in the end by flying around with an elytra.\r\n\r\nError: https://pastebin.com/b7N5ruL5",
+        "timestamp": "2018-09-21T03:12:01Z"
+      },
+      {
+        "author": "Yive",
+        "role": "CONTRIBUTOR",
+        "body": "Server stats from my testing:\r\n- Player Count: 20 - 40 in closed whitelisted testing\r\n- Average Entity Count: 3,500+\r\n- Average TPS: 19 (Would be 20 if it weren't for large mob grinders)\r\n- Average Loaded Chunks: 9,000+\r\n- Major Plugins in use: Towny, mcMMO, SilkSpawners\r\n\r\nIssues that I have experienced so far:\r\n- ~Thread safety issue causing a deadlock~ Fixed\r\n- ~Tree generation getting cut off at chunk edges~ I think it was fixed\r\n- When multiple players with flying and increased flight speed are generating chunks, the chunk generation speed gets extremely slow\r\n\r\nPositives about async chunks:\r\n- Will no longer make pre-generating a huge priority like it used to be (though still is recommended to do)\r\n- Chunk loading speed has been increased a ton compared to 1.12.2\r\n- View distance no longer needs to be set to 4\r\n- **Basically everything about this is better than the current chunk situation in 1.12.2 and 1.13.1**\r\n\r\nI've only had one crash after a full week of using async chunks of which has already been fixed. I'd say this is likely production ready. Looking forward to when WorldBorder supports this so that you can pre-gen a world without worrying about TPS while players are online.",
+        "timestamp": "2018-09-21T03:12:44Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@DefinePvP you were using an outdated build, but also missing the real source of that error.\r\n\r\nBut there have been a few fixes since then, so please retest latest.\r\n\r\n@Yive it's still a single queue, so yeah that will happen. But it's at least not on main thread as long as people don't enter the unfinished chunks.",
+        "timestamp": "2018-09-21T03:24:15Z"
+      },
+      {
+        "author": "DefinePvP",
+        "role": "NONE",
+        "body": "@aikar I believe this is the current build, here is the error which includes everything https://pastebin.com/nvPaFVie\r\n\r\n",
+        "timestamp": "2018-09-21T03:33:54Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@DefinePvP 6d0bd72e is \r\n```>>> git show 6d0bd72e\r\ncommit 6d0bd72e64c2330167681642c8af29e5cab4563c\r\nMerge: 266a404c b6760850\r\nAuthor: Aikar <aikar@aikar.co>\r\nDate:   Sun Sep 16 00:26:56 2018 -0400\r\n\r\n    Merge branch 'master' into async-chunks\r\n    \r\n    * master:\r\n      fix bug in last bug fix, recursion!\r\n```\r\n\r\nthat is not the latest.",
+        "timestamp": "2018-09-21T03:34:57Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "https://aikar.co/async.jar?ergergreger  download with this < your browser may of cached the download.",
+        "timestamp": "2018-09-21T03:35:44Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "I've updated my server config to send \"No Cache\" instructions, hopefully that'll fix cache issues.",
+        "timestamp": "2018-09-21T03:37:04Z"
+      },
+      {
+        "author": "ghost",
+        "role": "NONE",
+        "body": "/version says: Error obtaining version information.",
+        "timestamp": "2018-09-21T12:04:34Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@PepijnGamerz because this isn't the official branch, version command won't let you know when there has been updates.\r\n\r\nWe would of had to of done some extra leg work for that, but since we are nearing merge point, not worth it now.",
+        "timestamp": "2018-09-21T18:28:32Z"
+      },
+      {
+        "author": "hafarooki",
+        "role": "CONTRIBUTOR",
+        "body": "What if to fix the major slowdown, pending chunk generations out of render distance are dropped if there are too many pending?",
+        "timestamp": "2018-09-21T18:43:27Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "not needed, we already handle bumping priority of anything near/in front the player. just let it queue.",
+        "timestamp": "2018-09-21T19:02:55Z"
+      },
+      {
+        "author": "hafarooki",
+        "role": "CONTRIBUTOR",
+        "body": "So the issue is just too many chunk generations in general, not too many already queued",
+        "timestamp": "2018-09-21T19:30:52Z"
+      },
+      {
+        "author": "jordanwilliams1",
+        "role": "NONE",
+        "body": "Server keeps crashing when trying to use this:\r\nhttps://pastebin.com/raw/wvHieLja",
+        "timestamp": "2018-09-22T00:01:25Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Ok that's a valid bug but should be easy to fix, on it.",
+        "timestamp": "2018-09-22T00:18:05Z"
+      },
+      {
+        "author": "jordanwilliams1",
+        "role": "NONE",
+        "body": "@aikar Nice :) Went to test this tonight because I was Getting hoffiric lag on 1.13. Lag spikes up to 4 seconds long. Soon as i loaded this it seemed a bit more smooth but then crashed. ",
+        "timestamp": "2018-09-22T00:29:37Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Build updated with fix for @jordanwilliams1's issue as well as a concurrency fix for expiring maps",
+        "timestamp": "2018-09-22T02:27:06Z"
+      },
+      {
+        "author": "jordanwilliams1",
+        "role": "NONE",
+        "body": "@aikar Has a crash twice today, last updated the jar 10 hours ago. Here's my crash: \r\nhttps://pastebin.com/raw/xmvL0XLd ",
+        "timestamp": "2018-09-22T21:38:41Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Updated with fixes for jordans issue.",
+        "timestamp": "2018-09-22T22:47:04Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "@bergerkiller got reports of errors with one of your plugins: https://pastebin.com/shyhZMV8\r\n\r\nCan you please add support for this to your plugin.",
+        "timestamp": "2018-09-23T01:23:41Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Oh I wonder if its because I made the ctor package-private, let me bump that up.",
+        "timestamp": "2018-09-23T01:24:54Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "user reported its no longer complaining when i made the class public now.\r\n",
+        "timestamp": "2018-09-23T02:03:45Z"
+      },
+      {
+        "author": "bergerkiller",
+        "role": "CONTRIBUTOR",
+        "body": "If there happen to be issues after these changes with my plugin(s) people can open an issue ticket over at https://github.com/bergerhealer/BKCommonLib\r\n\r\nI'm close to releasing a new 1.13.1-v2 with mostly just bugfixes and compatibility patches, so any extra changes needed for supporting these changes in paper are no problem. Just need to know about it timely :)\r\n\r\nClass / member visibility tends to be an issue with generated code, shame the error was so cryptic though. Indeed, your changes should fix that.",
+        "timestamp": "2018-09-23T22:32:50Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "build updated with latest master as well as a new concurrency fix. update!",
+        "timestamp": "2018-09-24T01:38:11Z"
+      },
+      {
+        "author": "WesleyVanNeck",
+        "role": "NONE",
+        "body": "awsome it works great i dident found a big bug or small one",
+        "timestamp": "2018-09-25T06:36:03Z"
+      },
+      {
+        "author": "Lachney",
+        "role": "NONE",
+        "body": "awesome work on all of this, keep it up @aikar ",
+        "timestamp": "2018-09-25T12:09:54Z"
+      },
+      {
+        "author": "bergerkiller",
+        "role": "CONTRIBUTOR",
+        "body": "@aikar One suggestion for the future: considering Paper changes the chunk provider server, and BKCommonLib does so too (using a hook) passing to the underlying implementation, I have a request to add something in paper so that this hooking is no longer required.\r\n\r\nBKCommonLib hooks into the server's CPS to override and handle [getMobsFor](https://github.com/bergerhealer/BKCommonLib/blob/master/src/main/java/com/bergerkiller/bukkit/common/internal/hooks/ChunkProviderServerHook.java#L54). If paper can provide a similarly suited event for plugins to handle this, I can disable this hooking entirely, avoiding potential compatibility issues in the future with these enhancements.\r\n\r\nThe getMobsFor event handling enables a plugin to tweak, disable or alter what mob groups spawn on the worlds. This is an early stage of spawning entities. By doing this here, a significant performance improvement is achieved, because no entities have to be created - and then destroyed - as part of the normal spawn events Bukkit offers.\r\n\r\nWould you be interested in providing such extra functionality to plugins? I will write a separate issue ticket for this feature request if it has your initial approval, to stay on topic of this issue ticket.\r\n\r\n(BKCommonLib extends the CPS presently installed, so it should not cause any of these changes in paper to be cancelled out)",
+        "timestamp": "2018-09-25T13:04:22Z"
+      },
+      {
+        "author": "mibby",
+        "role": "NONE",
+        "body": "@aikar Does https://aikar.co/async.jar auto-build and host the latest changes made to the async branch? The file didn't seem to change with the new master commit merged.",
+        "timestamp": "2018-09-26T05:32:01Z"
+      },
+      {
+        "author": "hafarooki",
+        "role": "CONTRIBUTOR",
+        "body": "It does not auto update, you need to redownload it",
+        "timestamp": "2018-09-26T10:29:44Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "It is now updated @mibby. I had internet issues last night and could not access my server. But rebuilt and uploaded now with the light queue changes",
+        "timestamp": "2018-09-26T12:51:46Z"
+      },
+      {
+        "author": "aikar",
+        "role": "MEMBER",
+        "body": "Thank you to everyone who has helped test this! We have now landed this in master!\r\n\r\nPaper builds 302+ now include Async Chunks. Please report issues as a new issue and on discord",
+        "timestamp": "2018-09-26T22:22:57Z"
+      },
+      {
+        "author": "BBoyJD10",
+        "role": "NONE",
+        "body": "Sometime citizens npcs do not show",
+        "timestamp": "2018-09-27T15:37:52Z"
+      },
+      {
+        "author": "sgdc3",
+        "role": "CONTRIBUTOR",
+        "body": "@BBoyJD10 i noticed that too but seems unrelated to the async chunk change, as it was happening before the merge.",
+        "timestamp": "2018-09-28T13:01:36Z"
+      },
+      {
+        "author": "viet",
+        "role": "NONE",
+        "body": "Just out of curiousity, does this async chunk loading work now? I saw the config on paper.yml but not sure what's the right config or if it works yet.",
+        "timestamp": "2020-04-05T11:09:44Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "feddcec",
+        "message": "Async Chunk Loading and Generation\n\nThis brings back parity to 1.12 and older versions in that any\nchunk requested as part of the PlayerChunkMap can be loaded\nasynchronously, since the chunk isn't needed \"immediately\".\n\nThe previous system used by CraftBukkit has been completely abandoned, as\nmojang has put more concurrency checks into the process.\n\nThe new process is no longer lock free, but tries to maintain locks as\nshort as possible.\n\nBut with 1.13, we now have Chunk Conversions too. A main issue about\nkeeping just loading parity to 1.12 is that standard loads now\nare treated as generation level events, to run the converter on\nanother thread.\n\nHowever mojangs code was pretty bad here and doesn't actually provide\nany concurrency...\n\nMojangs code is still not thread safe, and can only operate on\none world per thread safely, but this is still a major improvement\nto get world generation off of the main thread for exploration.\n\nThis change brings Chunk Requests triggered by the Chunk Map to be\nlazily loaded asynchronously.\n\nStandard chunk loads can load in parallel across a shared executor.\n\nHowever, chunk conversions and generations must only run one per world\nat a time, so we have a single thread executor for those operations\nper world, that all of those requests get scheduled to.\n\ngetChunkAt method is now thread safe, but has not been tested in\nuse by other threads for generations, but should be safe to do.\n\nHowever, we are not encouraging plugins to go getting chunks async,\nas while looking the chunk up may be safe, absolutely nothing about\nreading or writing to the chunk will be safe, so plugins still\nshould not be touching chunks asynchronously!",
+        "author": "Aikar",
+        "timestamp": "2018-09-01T19:55:38Z"
+      },
+      {
+        "sha": "e09e0d4",
+        "message": "Misc tweaks",
+        "author": "Aikar",
+        "timestamp": "2018-09-01T21:25:48Z"
+      },
+      {
+        "sha": "a5f2b18",
+        "message": "Replace synchronization on the region loader\n\nThis blocks generation threads a lot due to saving operations and other stuff\n\nWe just need to ensure 2 things don't hit the progress cache at same time",
+        "author": "Aikar",
+        "timestamp": "2018-09-02T00:51:18Z"
+      },
+      {
+        "sha": "9097d14",
+        "message": "Post chunk to the world on main thread only\n\nThis may be the the completion of this feature... time to test hardcore!",
+        "author": "Aikar",
+        "timestamp": "2018-09-02T03:13:53Z"
+      },
+      {
+        "sha": "18dd4b8",
+        "message": "Implement a super dirty but reliable hack to stop async entity adds\n\nI feel so dirty, but this is the only reliable way to do it without\nrewriting all the code or waiting for mojang",
+        "author": "Aikar",
+        "timestamp": "2018-09-02T04:29:41Z"
+      },
+      {
+        "sha": "18f3759",
+        "message": "re-add the async chunk load api back, add async catcher to next tick",
+        "author": "Aikar",
+        "timestamp": "2018-09-02T14:30:30Z"
+      },
+      {
+        "sha": "98a3f31",
+        "message": "Many major fixes, post level loading to main\n\nmajor changes to ensuring all chunk posting stuff occurs on main.\n\nthis fixes a few issues",
+        "author": "Aikar",
+        "timestamp": "2018-09-03T00:14:26Z"
+      },
+      {
+        "sha": "6340318",
+        "message": "Handle DataFixer concurrency by synchronizing on them",
+        "author": "Aikar",
+        "timestamp": "2018-09-03T00:53:27Z"
+      },
+      {
+        "sha": "68d0e3d",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Fix concurrency issues in DataFixers\n  [CI-SKIP] Download mojang libraries sources so we can modify them\n  Add ray tracing methods to LivingEntity (#1410)\n  Check that phantom spawned uuid is set for save/load\n  [CI-SKIP] Improve last patch to not use wildcard\n  [CI-SKIP] Fix the NMS Imports detecting our own files\n  [CI-SKIP] [Auto] Rebuild Patches\n  Remove Pass World Tile Entities patch\n  fix typo in patch file\n  [CI-SKIP] [Auto] Rebuild Patches\n  Add Force-Loaded Chunk API (#1387)\n  Cached, local-class-supporting task names (#1409)\n  [Auto] Updated Upstream (Bukkit/CraftBukkit/Spigot)\n  Make CraftWorld#loadChunk(int, int, false) load unconverted chunks (#1407)\n  [Auto] Updated Upstream (CraftBukkit)",
+        "author": "Aikar",
+        "timestamp": "2018-09-04T02:39:24Z"
+      },
+      {
+        "sha": "6b46460",
+        "message": "Remove synchronization from GameProfileSerializer\n\nDataFixers are now about to be thread safe on next merge",
+        "author": "Aikar",
+        "timestamp": "2018-09-04T03:50:44Z"
+      },
+      {
+        "sha": "9859207",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Fix another case of concurrency issue in data fixers",
+        "author": "Aikar",
+        "timestamp": "2018-09-04T04:02:59Z"
+      },
+      {
+        "sha": "7d063fc",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Fix yet another issue with concurrency with datafixers",
+        "author": "Aikar",
+        "timestamp": "2018-09-04T05:50:51Z"
+      },
+      {
+        "sha": "928ba03",
+        "message": "Load spawn chunks async",
+        "author": "Aikar",
+        "timestamp": "2018-09-04T05:50:57Z"
+      },
+      {
+        "sha": "a821f01",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  MC-2025 - Save entity AABB to prevent fp wobble\n  [Auto] Updated Upstream (Bukkit)\n  [Auto] Updated Upstream (CraftBukkit)",
+        "author": "Aikar",
+        "timestamp": "2018-09-05T01:17:21Z"
+      },
+      {
+        "sha": "980d836",
+        "message": "Clean up impl to extend CPS and improve spawn chunk handling",
+        "author": "Aikar",
+        "timestamp": "2018-09-05T04:15:41Z"
+      },
+      {
+        "sha": "65dc4ef",
+        "message": "Replace cached executor with custom priority queue executor\n\nCachedThreadPool uses a SynchronousQueue which could block main\nsome to deliver it to a thread.\n\nThe cached pool also was unbounded, but being bounded would be bad\nsince the queue is synchronous, we could block main.\n\nThis commit implements a custom executor (havent fully implemented\nExecutorService yet though), that allows us to deliver work to\na queue that can be processed later.\n\nThe submit task returns an object that you can obtain a future\nto know when the task is done.\n\nThis custom executor also offers a concept of priority.\n\nWe can schedule an async load as normal priority, and then if\nthat chunk is all of a sudden needed as a blocking request on the\nmain thread, we can add it to the high priority queue.\n\nhigh priority queue will always be processed first, so this lets\nus reduce any main thread blocking operation quite quickly\nby pushing it to the front of the line.",
+        "author": "Aikar",
+        "timestamp": "2018-09-05T06:14:08Z"
+      },
+      {
+        "sha": "400b1b4",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Updated Upstream (CraftBukkit)",
+        "author": "Aikar",
+        "timestamp": "2018-09-07T02:19:28Z"
+      },
+      {
+        "sha": "942c57d",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Remove no longer needed tests due to last change\n  Remove deadlock risk in firing async events\n  Fix invalid data types for particles and fix colors in the ParticleBuilder (#1422)\n  Update again so the dumb bot stops breaking things\n  [Auto] Updated Upstream (Bukkit/CraftBukkit)\n  Improve death events (#1362)\n  [CI-SKIP] [Auto] Rebuild Patches\n  Fix #1420 (#1421)\n  [Auto] Updated Upstream (CraftBukkit)\n  [Auto] Updated Upstream (Bukkit/CraftBukkit)",
+        "author": "Aikar",
+        "timestamp": "2018-09-09T05:39:48Z"
+      },
+      {
+        "sha": "40adf79",
+        "message": "Fully Implement ExecutorService interface",
+        "author": "Aikar",
+        "timestamp": "2018-09-09T06:09:01Z"
+      },
+      {
+        "sha": "2550a2a",
+        "message": "Skip potential firing of bukkit events in world generation\n\nOnly block physics is known, but won't be safe to listen to them async",
+        "author": "Aikar",
+        "timestamp": "2018-09-09T06:22:24Z"
+      },
+      {
+        "sha": "8f7d9d2",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Forgot to rebuild patches after I fixed things in upstream update\n  Updated Upstream (Bukkit/CraftBukkit/Spigot)\n  Fix view distance API (#1419)\n  Allow chests to be placed with NBT (#1425)",
+        "author": "Aikar",
+        "timestamp": "2018-09-09T19:33:25Z"
+      },
+      {
+        "sha": "96a5d7d",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  [CI-SKIP] adjust test server memory flags",
+        "author": "Aikar",
+        "timestamp": "2018-09-09T20:59:59Z"
+      },
+      {
+        "sha": "8b1c44c",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Rename some methods per discussion in channel\n  [Auto] Updated Upstream (CraftBukkit)\n  Stop using transaction id in tab completions\n  You can use EntityPathfindEvent to cancel new pathfinds from overriding your current\n  getextPointIndex was not needing to be boxed/nullable\n  Mob Pathfinding API",
+        "author": "Aikar",
+        "timestamp": "2018-09-10T02:05:10Z"
+      },
+      {
+        "sha": "fb31657",
+        "message": "Save generated chunks async to avoid auto saving them immediately after",
+        "author": "Aikar",
+        "timestamp": "2018-09-10T03:34:18Z"
+      },
+      {
+        "sha": "bd541aa",
+        "message": "use async api for setKeepSpawnInMemory",
+        "author": "Aikar",
+        "timestamp": "2018-09-10T03:38:27Z"
+      },
+      {
+        "sha": "143c2e0",
+        "message": "don't lock pending during load process, add status enum",
+        "author": "Aikar",
+        "timestamp": "2018-09-10T04:08:47Z"
+      },
+      {
+        "sha": "6445c14",
+        "message": "Move ChunkGen to a PriorityQueuedExecutor to bump priority when blocking",
+        "author": "Aikar",
+        "timestamp": "2018-09-11T01:48:11Z"
+      },
+      {
+        "sha": "1b0c273",
+        "message": "Merge branch 'pre/1.13' into async-chunks\n\n* pre/1.13:\n  Prevent pathfinding and zombie AI from loading chunks\n  Prevent fluids from loading chunks - major performance boost\n  Updated Upstream (CraftBukkit/Spigot)",
+        "author": "Aikar",
+        "timestamp": "2018-09-11T04:08:18Z"
+      },
+      {
+        "sha": "bbfcc11",
+        "message": "Merge branch 'master' into async-chunks\n\n* master:\n  [CI-SKIP] Use papermc.io domain and add info for plugin devs\n  ensure world is set for pathfinders\n  [CI-SKIP] Add note on 1.12.2 status to CONTRIBUTING.md\n  Ensure entity is always dying before Death Event\n  [Auto] Updated Upstream (Bukkit/CraftBukkit)\n  [Auto] Updated Upstream (CraftBukkit)",
+        "author": "Aikar",
+        "timestamp": "2018-09-11T23:51:24Z"
+      },
+      {
+        "sha": "27cab53",
+        "message": "Optimize PQE to not block as much using unsafe\n\nwoo, first time I got to use unsafe!",
+        "author": "Aikar",
+        "timestamp": "2018-09-12T01:42:03Z"
+      }
+    ]
+  },
+  {
+    "story_id": "PaperMC/Paper#12589",
+    "metadata": {
+      "title": "Improve outdated version check",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-01-02T11:57:13Z",
+      "reviewers": [
+        "powercasgamer",
+        "Toffikk",
+        "electronicboy",
+        "DenWav",
+        "Doc94",
+        "The-Epic",
+        "Y2Kwastaken"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "This pull request improves the outdated build check by querying the api if an update is *actually available* instead of blindly logging that you haven't updated in a while. \r\nAnd adapts the `PaperVersionFetcher.java` class to the new `fill v3` api with an `User-Agent` field in the format of\r\n- `Paper/1.21.8-DEV-4e41aad (https://papermc.io)` \r\n\r\nWhen the server finishes loading and prints out `Done`, we query the api asynchronously and return the build status based on the four types below: \r\n- outdated build & version\r\n<img width=\"1061\" height=\"40\" alt=\"ultra outdated\" src=\"https://github.com/user-attachments/assets/e5f7feb3-928d-4b77-9b6d-610294e0796c\" />\r\n\r\n- outdated build\r\n<img width=\"1082\" height=\"39\" alt=\"image\" src=\"https://github.com/user-attachments/assets/906f3f5c-2b6f-41d5-bad5-e688b49037b8\" />\r\n\r\n- new version available but latest build (for the outdated version)\r\n<img width=\"949\" height=\"119\" alt=\"outdated but less\" src=\"https://github.com/user-attachments/assets/afec8203-dda2-4799-acfd-af92a32f1985\" />\r\n\r\n- up-to-date/the newer version is experimental -> we dont log at all\r\n\r\nThis check can be disabled by specifying the appropriate system property `-Dpaper.disableStartupVersionCheck`"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Owen1212055",
+        "role": "MEMBER",
+        "body": "The issue is that we still want that to technically still be there if people are using the \"latest\" version of lets say 1.20.6, as even tho they are on the latest they obviously still should be encouraged to update.",
+        "timestamp": "2025-05-25T01:00:51Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "@Owen1212055 what about adding a note even if it returns latest to check the build page if there is a new minecraft version and download it? implementing logic to check all that would be kinda complicated",
+        "timestamp": "2025-05-25T01:28:48Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "\"It's still recommended you check the build page in case a new minecraft version has been released\" something in these lines\r\n",
+        "timestamp": "2025-05-25T01:29:21Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "![image](https://github.com/user-attachments/assets/6ed4f07d-e769-4e32-808d-f8fc86d293e7)\r\n\r\n~~changed the message to look like this~~ changed it in a later commit again to say \"you're running the latest build for your minecraft version!\" instead of \"you're running the latest version!\" to make it clearer",
+        "timestamp": "2025-05-25T01:55:56Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "![image2](https://github.com/user-attachments/assets/d815a512-6ead-46c9-8d7a-058c0380102c)\r\n![image1](https://github.com/user-attachments/assets/83372333-7225-438c-a06a-5dec810d9049)\r\n![image](https://github.com/user-attachments/assets/5851dd19-8350-4974-9dfe-e044681cf0c5)\r\n\r\nExample outputs for latest as of now",
+        "timestamp": "2025-05-25T11:52:58Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "outdated ->\r\n\r\n![image](https://github.com/user-attachments/assets/c4892966-7fde-4402-b866-1baf4b5bdd09)\r\n![image](https://github.com/user-attachments/assets/2c26da15-d58c-4aa1-a32d-3068e9d68def)\r\n\r\noutdated and new minecraft ver ->\r\n\r\n![image](https://github.com/user-attachments/assets/9d241c81-bbfd-4d5b-94a6-02a3141df66b)\r\n![image](https://github.com/user-attachments/assets/ce9d4844-a670-441b-b3a2-e6d3e171b1b8)\r\n\r\n",
+        "timestamp": "2025-05-25T12:34:05Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "rebased ontop of 1.21.6 🎇",
+        "timestamp": "2025-06-17T20:44:07Z"
+      },
+      {
+        "author": "The-Epic",
+        "role": "CONTRIBUTOR",
+        "body": "There appears to be quite a few formatting issues ive noticed; some code isnt indented from its if statement while some is, some if statements have braces while others dont, some code is duplicated inside an if when it could just extract one part of it",
+        "timestamp": "2025-06-19T16:22:02Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "> There appears to be quite a few formatting issues ive noticed; some code isnt indented from its if statement while some is, some if statements have braces while others dont, some code is duplicated inside an if when it could just extract one part of it\r\n\r\nReformatted and added back the system property 👍",
+        "timestamp": "2025-06-19T17:01:46Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "@Y2Kwastaken would you mind reviewing once again now?",
+        "timestamp": "2025-06-19T21:22:06Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "Should i also change the references to fill now? and make all of them use an user agent? also what would be the correct channels now for checking if a build is experimental or not",
+        "timestamp": "2025-06-26T20:00:21Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Yes, you should change all API calls to Fill. You can find a new API reference in the Swagger UI, as noted in the announcement: https://fill.papermc.io/swagger-ui/index.html",
+        "timestamp": "2025-06-26T20:07:04Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "Migrated 🎇",
+        "timestamp": "2025-06-26T20:49:48Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "switched build checking to the `/latest` endpoint, should be good to review now; i dont foresee any changes other than related to reviews\r\n\r\nedit: turns out i could make the logic a bit more readable now with fill so i did that",
+        "timestamp": "2025-06-26T21:27:47Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "rebased to 1.21.7",
+        "timestamp": "2025-06-30T15:53:13Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "rebased to 1.21.8; \r\nalso are there any updates on this? would love to see this getting merged soon ^_^",
+        "timestamp": "2025-07-17T19:38:53Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "rebased and changed the logic to use optionals instead of nullable strings",
+        "timestamp": "2025-09-13T13:52:03Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "**Rebased for 1.21.9 🐟🎇**",
+        "timestamp": "2025-10-03T13:43:30Z"
+      },
+      {
+        "author": "SnowzNZ",
+        "role": "NONE",
+        "body": "@Toffikk needs rebase for 1.21.10\r\n\r\nBut LGTM",
+        "timestamp": "2025-10-13T22:17:05Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "rebased for 1.21.11 ^^",
+        "timestamp": "2025-12-07T22:30:11Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "is this going to be looked at anytime soon? since the fill v2 api will stop receiving new builds in a week so the version fetcher will need an update anyway and this resolves that too",
+        "timestamp": "2025-12-26T21:56:48Z"
+      },
+      {
+        "author": "Toffikk",
+        "role": "CONTRIBUTOR",
+        "body": "Reviews have been addressed @kennytv ",
+        "timestamp": "2026-01-01T23:07:40Z"
+      },
+      {
+        "author": "MiniDigger",
+        "role": "MEMBER",
+        "body": "again, sorry for taking so long, I went ahead an added a config option too, since that is easier to configure for some environments.\r\nThat got me thinking, right now you only check the stable channel, which is a good default, but maybe we can use the new config section to change the channel, maybe I want to be notified about beta builds already, maybe its a test server and I want to be notified for alpha builds, etc.\r\nI briefly looked at this and it seems a bit more work than I am prepared to do right now (and we need to get this PR over the line), but maybe you or somebody else wants to work on this.",
+        "timestamp": "2026-01-02T11:47:29Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a25d995",
+        "message": "Improve outdated version checking",
+        "author": "Toffikk",
+        "timestamp": "2025-06-17T20:31:36Z"
+      },
+      {
+        "sha": "a396b89",
+        "message": "Address review",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T14:22:07Z"
+      },
+      {
+        "sha": "f8ae7c9",
+        "message": "Formatting and allow disabling the update checking",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T16:59:18Z"
+      },
+      {
+        "sha": "01211de",
+        "message": "remove SIMPLE_LOGGER",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T19:05:48Z"
+      },
+      {
+        "sha": "56bb420",
+        "message": "Address yet another set of reviews",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T21:21:33Z"
+      },
+      {
+        "sha": "468774b",
+        "message": " >=5 not case 5",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T21:53:06Z"
+      },
+      {
+        "sha": "5917739",
+        "message": "remove the 5 builds logic",
+        "author": "Toffikk",
+        "timestamp": "2025-06-19T22:00:09Z"
+      },
+      {
+        "sha": "ec239d9",
+        "message": "Merge branch 'main' of https://github.com/PaperMC/Paper into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-06-21T19:27:59Z"
+      },
+      {
+        "sha": "0460ce4",
+        "message": "Merge remote-tracking branch 'papermc/main' into better-outdated-version-checking\n\nAlso address reviews",
+        "author": "Toffikk",
+        "timestamp": "2025-06-26T19:52:40Z"
+      },
+      {
+        "sha": "3a652a8",
+        "message": "Migrate the class to use Fill",
+        "author": "Toffikk",
+        "timestamp": "2025-06-26T20:30:35Z"
+      },
+      {
+        "sha": "7e52841",
+        "message": "Add finals",
+        "author": "Toffikk",
+        "timestamp": "2025-06-26T20:48:47Z"
+      },
+      {
+        "sha": "542921c",
+        "message": "Use latest build endpoint",
+        "author": "Toffikk",
+        "timestamp": "2025-06-26T21:24:09Z"
+      },
+      {
+        "sha": "809b673",
+        "message": "Simplify logic for build walking\n\nthe new api response doesnt flip it around",
+        "author": "Toffikk",
+        "timestamp": "2025-06-26T21:57:42Z"
+      },
+      {
+        "sha": "0f85bc9",
+        "message": "Merge branch 'main' of https://github.com/PaperMC/Paper into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-06-30T14:58:06Z"
+      },
+      {
+        "sha": "c5e1e4c",
+        "message": "Merge branch 'main' of https://github.com/PaperMC/Paper into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-06-30T15:58:10Z"
+      },
+      {
+        "sha": "23ba7e5",
+        "message": "Merge branch 'main' of https://github.com/PaperMC/Paper into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-07-30T00:34:10Z"
+      },
+      {
+        "sha": "86996f3",
+        "message": "Switch to using VERSION_SIMPLE and brand name",
+        "author": "tofik.07",
+        "timestamp": "2025-08-07T00:58:40Z"
+      },
+      {
+        "sha": "114ecd7",
+        "message": "Capitalize `Minecraft`",
+        "author": "tofik.07",
+        "timestamp": "2025-08-07T15:57:33Z"
+      },
+      {
+        "sha": "68e4b3d",
+        "message": "Merge remote-tracking branch 'papermc/main' into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-09-13T13:18:49Z"
+      },
+      {
+        "sha": "64a4ea4",
+        "message": "cleanup logic in version fetcher",
+        "author": "Toffikk",
+        "timestamp": "2025-09-13T13:45:30Z"
+      },
+      {
+        "sha": "5fe6911",
+        "message": "fix indent",
+        "author": "Toffikk",
+        "timestamp": "2025-09-13T13:53:23Z"
+      },
+      {
+        "sha": "a29409d",
+        "message": "more cleanup",
+        "author": "Toffikk",
+        "timestamp": "2025-09-13T15:09:45Z"
+      },
+      {
+        "sha": "43710cb",
+        "message": "use stream instead of loop",
+        "author": "Toffikk",
+        "timestamp": "2025-09-14T14:05:56Z"
+      },
+      {
+        "sha": "f940fca",
+        "message": "build(s)",
+        "author": "tofik.07",
+        "timestamp": "2025-09-15T17:55:13Z"
+      },
+      {
+        "sha": "16a7d62",
+        "message": "Merge remote-tracking branch 'papermc/main' into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-10-03T13:37:30Z"
+      },
+      {
+        "sha": "06d3a37",
+        "message": "Rebase for 1.21.10\n\nSquashed commit of the following:\n\ncommit c33a9ce18cf4f988f80fb23851003f4e5e8a421a\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Mon Oct 13 14:10:41 2025 -0700\n\n    Fix incorrect variable use in Entity#startRiding\n\n    This diff applied and compiled after updating Parchment, but was incorrectly pointing to a field instead of the parameter\n\n    fixes #13182\n\ncommit ffcb7b22092c2838498f8a0113e14996a15af2b0\nAuthor: Lulu13022002 <41980282+Lulu13022002@users.noreply.github.com>\nDate:   Mon Oct 13 21:55:54 2025 +0200\n\n    Update Parchment (#13177)\n\n    Co-authored-by: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\n    Co-authored-by: Pedro <3602279+Doc94@users.noreply.github.com>\n\ncommit 610f1d2177f9e6320503e3dad6c42a93a6e48d56\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Sat Oct 11 18:30:55 2025 -0700\n\n    Update fill-gradle to v1.0.9\n\ncommit 9d95cd55a883414b2f46e8d6b1fcd70de3bc6a9b\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Sat Oct 11 17:52:08 2025 -0700\n\n    Use BUILD_STARTED_AT instead of Instant.now() for build timestamp (#13175)\n\ncommit ce983d73f0111065337c8fdd4d1b713bbc8d41cf\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Sat Oct 11 16:49:08 2025 -0700\n\n    Misc fixes to tick reporting (#13174)\n\ncommit ba2fb8c9a3629b28fd01511f8670db339173603b\nAuthor: lucko <git@lucko.me>\nDate:   Sat Oct 11 14:56:31 2025 +0100\n\n    Update spark-paper dependency version (#13171)\n\ncommit a0ea7297c52bd5aee889c5c1b101c7d593c049b0\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Fri Oct 10 19:19:55 2025 -0700\n\n    Fix minimum tick time reporting and off thread reading\n\ncommit 056268edf2e106482e7c2748be08a85ec465c298\nAuthor: JustAHuman-xD <65748158+JustAHuman-xD@users.noreply.github.com>\nDate:   Fri Oct 10 19:19:03 2025 -0500\n\n    [ci skip] Correct javadoc for Weapon Component (#13096)\n\ncommit fba780d6a2948d5a42030a80cf79cb49a8472456\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Tue Oct 7 11:22:54 2025 -0700\n\n    Rebuild patches\n\n    Actually do what the last commit said it was doing...\n\ncommit fa57d4b7daea32a825dac7f8c0451e82265bb00b\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Tue Oct 7 11:19:00 2025 -0700\n\n    Remove Vanilla packet processing at start of tick\n\n    Our call to runAllTasksAtTickStart() runs that logic and\n    times it correctly, whereas Vanilla does not record task execution\n    time for it.\n\ncommit 3982efa09840e3dc4795cd4eea37262b7e17d5ac\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Tue Oct 7 11:15:12 2025 -0700\n\n    Sync Moonrise\n\n    See https://github.com/Tuinity/Moonrise/commit/b2968ce710b3365d8b22d537d343477d807bcf45#diff-4ac4a0af7a908348ccdb1ae58ba7819ec41e5ba3f599e058f7060aa06331cacd\n    We already perform a watchdog shutdown on Paper so these changes\n    are just to keep the codebases in-sync.\n\ncommit 8339bb31189ce98b987af35722bc84677b4058cc\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Tue Oct 7 11:04:57 2025 -0700\n\n    Update DataConverter constants for 1.21.10\n\n    https://github.com/PaperMC/DataConverter/commit/77cc8c2f7473a08419734b1ec0b00d13f6f121cb\n\ncommit bae47d3e6b11c789a603935162b749db559091e4\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Tue Oct 7 11:00:42 2025 -0700\n\n    Update to 1.21.10 (#13127)\n\n    Co-authored-by: Lulu13022002 <41980282+Lulu13022002@users.noreply.github.com>\n\ncommit 0ff899dae303f986b86ae9c520e477d9a02f5b92\nAuthor: Bjarne Koll <git@lynxplay.dev>\nDate:   Tue Oct 7 12:32:34 2025 +0100\n\n    Prevent world mutation on copper golem spawn cancel (#13152)\n\ncommit e9fa3a73930d6a8dc10325fd3d75e31bfb1facdd\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Mon Oct 6 20:59:42 2025 -0700\n\n    Use correct queue when blocking on futures\n\n    See https://github.com/Tuinity/Moonrise/commit/a3ac9c7d2e8d264ffa2a1500dcc23ef357ac8c62\n\ncommit 914fb084ef60514e74febc0bfd0eadf478d5cd7c\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Mon Oct 6 13:08:03 2025 -0700\n\n    Fix Entity#updateFluidHeightAndDoFluidPushing inconsistency with Vanilla\n\n    See https://github.com/Tuinity/Moonrise/commit/57982e273e560ca4799eefe8247dfee19902852f\n\ncommit 8483163895efbe6d71812c1e2e456330c1aa7859\nAuthor: Bjarne Koll <git@lynxplay.dev>\nDate:   Mon Oct 6 20:49:10 2025 +0200\n\n    Yield millis from Bukkit#getAverageTickTime\n\ncommit b3d215831aa102dd432e25a2eb487877d62337a3\nAuthor: Shane Freeder <theboyetronic@gmail.com>\nDate:   Mon Oct 6 18:04:03 2025 +0100\n\n    Disable javadoc.io links\n\n    revert me when jd.io comes back, maybe\n\ncommit b4b1f11f40b7b1e0e99c2b67a2647481294f5dea\nAuthor: Pedro <3602279+Doc94@users.noreply.github.com>\nDate:   Mon Oct 6 13:55:32 2025 -0300\n\n    [ci skip] Add docs for virtual createMerchant in MerchantInventoryViewBuilder#merchant (#13125)\n\ncommit ffd5158a9310ab5c4940e48859c1eee065b06c04\nAuthor: Maddy Miller <git@madelinemiller.dev>\nDate:   Tue Oct 7 02:52:40 2025 +1000\n\n    Update 1.21.9 reobf mappings data (#13135)\n\ncommit 4dcd8377a2cd24c15ad646814b665abd595455c1\nAuthor: Matt Baxter <matt@phozop.net>\nDate:   Sun Oct 5 18:20:51 2025 -0400\n\n    Add CommandSourceStack to UnknownCommandEvent (#13083)\n\ncommit 523efa416f0e534564d1339cf08356be09e01014\nAuthor: Bjarne Koll <git@lynxplay.dev>\nDate:   Mon Oct 6 00:18:09 2025 +0200\n\n    Flatten currentTick incr into file patches\n\ncommit b63dc92e2cb2afdf0f7319b8f8c93999da86a47a\nAuthor: Shane Freeder <theboyetronic@gmail.com>\nDate:   Sun Oct 5 18:51:42 2025 +0100\n\n    Restore currentTick counter increment as temp feature patch\n\ncommit dc66e8cf6bdea5983b2d4628e6f202d24b3736e4\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Sat Oct 4 19:21:23 2025 -0700\n\n    Return Server#getTPS over minute intervals instead of seconds\n\ncommit a4a7461cefdeaa6d230c411e54ae0c26a5a942e3\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Sat Oct 4 11:41:00 2025 -0700\n\n    Rebase fixups\n\n    Oops\n\ncommit dcd7847dc0f5c08e7f3f9cd2e77c2e89eae170f0\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Sat Oct 4 11:34:59 2025 -0700\n\n    Improve server tick loop\n\n    See https://github.com/Tuinity/Moonrise/commit/0b842a906ce0cc22bbb3f5c5f228a7dc22a623c4\n\ncommit 21b49306abd838773e6db7e55ae566ac33212056\nAuthor: Spottedleaf <Spottedleaf@users.noreply.github.com>\nDate:   Fri Oct 3 11:08:41 2025 -0700\n\n    Fix diff in FlowingFluid#canPassThroughWall\n\n    The function should not be returning false if the block states\n    are uncachable.\n\ncommit e0ba395d37cdc4da0bd0c9061189570aefbb944f\nAuthor: Jason Penilla <11360596+jpenilla@users.noreply.github.com>\nDate:   Fri Oct 3 10:56:39 2025 -0700\n\n    Add missing plugin ticket comparator fixes #13130",
+        "author": "Toffikk",
+        "timestamp": "2025-10-13T22:22:03Z"
+      },
+      {
+        "sha": "af33283",
+        "message": "Revert \"Rebase for 1.21.10\"\n\nThis reverts commit 06d3a378ad8daab02e7ed904636553a1ab19de47.",
+        "author": "Toffikk",
+        "timestamp": "2025-10-13T22:23:32Z"
+      },
+      {
+        "sha": "66f135d",
+        "message": "Merge remote-tracking branch 'papermc/main' into better-outdated-version-checking",
+        "author": "Toffikk",
+        "timestamp": "2025-10-13T22:24:03Z"
+      },
+      {
+        "sha": "3483f38",
+        "message": "feat: print the distance to the latest stable release",
+        "author": "Toffikk",
+        "timestamp": "2025-10-13T23:37:17Z"
+      },
+      {
+        "sha": "33b4107",
+        "message": "make this a warn",
+        "author": "Toffikk",
+        "timestamp": "2025-10-13T23:41:59Z"
+      }
+    ]
+  },
+  {
+    "story_id": "PaperMC/Paper#11810",
+    "metadata": {
+      "title": "Extend HumanEntity#dropItem API",
+      "labels": [
+        "type: feature"
+      ],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-12-28T22:47:22Z",
+      "reviewers": [
+        "powercasgamer",
+        "NonSwag",
+        "Machine-Maker",
+        "SoSeDiK",
+        "Strokkur424",
+        "kennytv",
+        "lynxplay"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "Closes #11656\r\nPost-softspoon version of https://github.com/PaperMC/Paper/pull/11689\r\n\r\n# Motive\r\nDevelopers currently have to either use NMS or copy-paste the already existing NMS implementation. This PR aims to fix that by exposing ways to call that NMS implementation more easily by extending onto the (Human)Player#dropItem method to provide more extensive ways of making the player drop items from their inventory.\r\n\r\n## What does it add?\r\nThe following method have been added:\r\n* `Item dropItem(int slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItem(int slot, int amount)`\r\n* `Item dropItem(@NotNull EquipmentSlot slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItem(@NotNull EquipmentSlot slot, int amount)`\r\n* `Item dropItemRandomly(int slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(int slot, int amount)`\r\n* `Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount)`\r\n* `Item dropItems(int slot, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItems(int slot)`\r\n* `Item dropItems(@NotNull EquipmentSlot slot, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItems(@NotNull EquipmentSlot slot)`\r\n* `Item dropItemsRandomly(int slot, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemsRandomly(int slot)`\r\n* `Item dropItemsRandomly(@NotNull EquipmentSlot slot, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemsRandomly(@NotNull EquipmentSlot slot)`\r\n* `Item dropItem(@Nullable ItemStack itemStack, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItem(@Nullable ItemStack itemStack)`\r\n* `Item dropItemRandomly(@Nullable ItemStack itemStack, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(@Nullable ItemStack itemStack)`\r\n\r\nThis may look like a lot at first glance (and it kind of is), but in reality, most of these are just default methods on the `HumanEntity` interface. The only, actually implemented methods are:\r\n* `Item dropItem(int slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItem(@NotNull EquipmentSlot slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(int slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItem(@Nullable ItemStack itemStack, @Nullable Consumer<Item> entityOperation)`\r\n* `Item dropItemRandomly(@Nullable ItemStack itemStack, @Nullable Consumer<Item> entityOperation)`\r\n\r\nAnd even among these neither have more than 5 lines in their implementation in `CraftHumanEntity`.\r\n\r\nAll logic goes through the added methods `private CraftHumanEntity#dropItemRaw(...)` and `private CraftHumandEntity#dropAnyItemRaw(...)`, where the logic is fairly simple due to the pre-implemented NMS method `Player.dropItem(...)`.\r\n\r\n\r\nFurthermore, `booleam dropItem(boolean)` has been deprecated in favor of `Item dropItems(EquipmentSlot.HAND)` or `Item dropItem(EquipmentSlot.HAND, 1)`.\r\n\r\n## Implementation details\r\nInternally, the implementation calls `net.minecraft.world.entity.player.Player#dropItem(...)`, making it a fairly maintainable API.\r\n\r\nI have added an additional overload to the the `Player#dropItem(...)` method, which takes in a nullable `Consumer<org.bukkit.entity.Item>` to allow for entity operations before the Entity has been added to the world.\r\n\r\n## JavaDocs status\r\nJavaDocs have been added.\r\n\r\n# Usage example\r\n```java\r\n// Simple command to test some of the added API\r\nthis.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {\r\n    event.registrar().register(Commands.literal(\"drop\")\r\n        .then(Commands.literal(\"one\")\r\n            .executes(ctx -> {\r\n                ((Player) ctx.getSource().getExecutor()).dropItemRandomly(EquipmentSlot.HAND, 1);\r\n                return 1;\r\n            }))\r\n\r\n        .then(Commands.literal(\"all\")\r\n            .executes(ctx -> {\r\n                ((Player) ctx.getSource().getExecutor()).dropItems(EquipmentSlot.HAND);\r\n                return 1;\r\n            }))\r\n\r\n        .then(Commands.literal(\"any\")\r\n            .then(Commands.argument(\"item\", ArgumentTypes.itemStack())\r\n                .executes(ctx -> {\r\n                    ((Player) ctx.getSource().getExecutor()).dropItem(ctx.getArgument(\"item\", ItemStack.class), item -> {\r\n                        item.setGlowing(true);\r\n                    });\r\n                    return 1;\r\n                })))\r\n\r\n        .build());\r\n});\r\n```"
+    },
+    "discussion_timeline": [
+      {
+        "author": "kennytv",
+        "role": "MEMBER",
+        "body": "All of the default methods that are single-line redirects probably make it harder to parse than they help, I'd reduce some or even all of them, not sure. If you do want to keep default helpers, they should be moved as proper `default` methods to the interface, so it's immediately clear what they do",
+        "timestamp": "2024-12-24T12:06:22Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Oh that's smart, I hadn't though about that. Thanks for that suggestion\r\n",
+        "timestamp": "2024-12-24T12:08:21Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "Are this many overloads really needed?\r\nPersonally, I'd go only with just one `Item dropItem(ItemStack itemStack)` plus `boolean throwRandomly` and `Consumer<? super Item> function` to apply data before adding to the world, and would make that `itemStack` independent of anything, so that you could drop any item in any context you want. You can always easily manually remove/decrease item's amount in any equipment/inventory slot if needed.",
+        "timestamp": "2024-12-24T12:53:56Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "I think removing the thrower parameter would already decrease the method amount by a fair bit\nIf you want to set the thrower just do it but by default it should use the player as the thrower",
+        "timestamp": "2024-12-24T13:15:24Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> Personally, I'd go only with just one `Item dropItem(ItemStack itemStack)` plus `boolean throwRandomly` and `Consumer<? super Item> function`\r\n\r\nI feel like that is too complicated and would kinda defeat its purpose. \r\n* The reason for the `int slot` overload is the fact that when having just an `ItemStack itemStack` overload, it always just chooses the first one that applies. With a slot you can choose the precise one to drop.\r\n* The reason for the EquipmentSlot one is due to the the standard `int slot` having no way to select those in armor or offhand slots.\r\n\r\n\r\n> [I] would make that `itemStack` independent of anything\r\n\r\nThat feels weird, as dropping an item sounds like you actually don't have it in your inventory anymore. Giving the developer the task of removing it themselves feels like a fair bit of unneeded code in this context.",
+        "timestamp": "2024-12-24T13:17:37Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> I think removing the thrower parameter would already decrease the method amount by a fair bit If you want to set the thrower just do it but by default it should use the player as the thrower\r\n\r\nI mean, it would not remove a single method, as there is also `boolean throwRandomly`, which definitely should be exposed as API, due to the complexity of that operation. Though we could get rid of the `thrower` parameter instead always have `<itemselector>, boolean throwRandomly`, which usually would just make the last param be set to false.\r\n\r\nThat sounds like a good middle-ground solution to me. If the developer wants to set the thrower they can do so.\r\nI am not sure if it should flag the inventory owner of the Item as its thrower by default, but that can be put up to discussion.\r\n\r\nThat means it would turn to only these overloads:\r\n* `Item dropItem(ItemStack itemStack, boolean throwRandomly)`\r\n* `Item dropItem(int slot, boolean throwRandomly)`\r\n* `Item dropItem(EquipmentSlot slot, boolean throwRandomly)`",
+        "timestamp": "2024-12-24T13:21:11Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> I feel like that is too complicated and would kinda defeat its purpose.\r\n\r\nIt's similar to already existing methods (e.g. [World#dropItem](https://jd.papermc.io/paper/1.21.4/org/bukkit/World.html#dropItem(org.bukkit.Location,org.bukkit.inventory.ItemStack,java.util.function.Consumer))), entity spawning methods have the save overloads.\r\n\r\n> The reason for the `int slot` overload is the fact that when having just an `ItemStack itemStack` overload, it always just chooses the first one that applies. With a slot you can choose the precise one to drop.\r\n\r\nNo, I mean to literally not link the dropped itemstack to anything, i.e. the drop would simply drop the cloned item no matter its source, not remove it from inventory or anything else. Then you just get the item in that slot and decrease its amount.\r\n",
+        "timestamp": "2024-12-24T13:39:48Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "It's not entirely the same though. `World#dropItem(Location, ItemStack, Consumer<? extends Item>)` is defines as follows:\r\n```java\r\n@Override\r\npublic org.bukkit.entity.Item dropItem(Location loc, ItemStack item, Consumer<? super org.bukkit.entity.Item> function) {\r\n    Preconditions.checkArgument(loc != null, \"Location cannot be null\");\r\n    Preconditions.checkArgument(item != null, \"ItemStack cannot be null\");\r\n\r\n    ItemEntity entity = new ItemEntity(this.world, loc.getX(), loc.getY(), loc.getZ(), CraftItemStack.asNMSCopy(item));\r\n    org.bukkit.entity.Item itemEntity = (org.bukkit.entity.Item) entity.getBukkitEntity();\r\n    entity.pickupDelay = 10;\r\n    if (function != null) {\r\n        function.accept(itemEntity);\r\n    }\r\n    this.world.addFreshEntity(entity, SpawnReason.CUSTOM);\r\n    return itemEntity;\r\n}\r\n```\r\n\r\nNotice the `new ItemEntity(...)`. This is what actually allows for the pre-spawn function to make sense, as it runs before it gets added to the world.\r\n\r\nIn my implementation, I directly call `net.minecraft.world.entity.player.Player#drop(...)`, which does not allow for such an operation. It would run the Consumer after the Item has already been added to the world, defeating its purpose.",
+        "timestamp": "2024-12-24T14:00:03Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "You can add overload to `net.minecraft.world.entity.player.Player#drop`, it (\\*well, ServerPlayer) creates ItemEntity right at the beginning of the method\r\n\r\nEdit: by the way, since it calls Player#drop, might be useful to mention in javadoc that it'll cause PlayerDropItemEvent?",
+        "timestamp": "2024-12-24T14:04:59Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "It'd honestly rather not change NMS code without a valid reason. Could add the JavaDocs information though",
+        "timestamp": "2024-12-24T15:15:02Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "Should be fine, it's done all the time and is a small change. I'd argue the ability to drop any item, not linked to inventory would be more useful and cover more cases. You can already get an item by int/equipment slot and decrease its amount alongside if you need that.",
+        "timestamp": "2024-12-24T15:24:03Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "I suggest that it is not yet merged. After some discussion, I'd like to change it one last time",
+        "timestamp": "2024-12-24T22:10:19Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Alright, I've done the following changes now:\r\n* Removed `throwRandomly` parameter in favor of new methods: `dropItemRandomly(...)`\r\n* Deprecated `boolean dropItem(boolean)` in favor of `Item dropItem(EquipmentSlot.HAND, int)`\r\n* Removed `dropItem(ItemStack, ...)` overloads. They just felt out-of-place and not really particularly. The operations done in that method can be easily simulated by a dev using that API.\r\n* The methods now look like this:\r\n    * `Item dropItem(int slot, int amount)`\r\n    * `Item dropItem(@NotNull EquipmentSlot slot, int amount)`\r\n    * `Item dropItemRandomly(int slot, int amount)`\r\n    * `Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount)`\r\n* The amount can be any arbitrary number. If it is 0 or below, the method just returns null, if it is too big, it will only drop as much as there is amount in that ItemStack from the selected slot.\r\n* (Hopefully) improved the JavaDocs",
+        "timestamp": "2024-12-24T23:33:31Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "I genuinely do not see the benefit of doing this, as opposed to:\r\n\r\n<details>\r\n<summary>Code sample</summary>\r\n\r\n```java\r\n// Get any item you want\r\nItemStack item = player.getInventory().getItem(EquipmentSlot.HAND);\r\nItemStack item = ItemStack.of(Material.GOWSTONE);\r\nItemStack item = // some other source\r\n\r\n// Drop it, provide any amount with `item.asQuantity(amount)`\r\n// Additionally with optional overload to apply data before drop event & item spawn occurred\r\nplayer.dropItem(item, item -> {\r\n    item.setGlowing(true);\r\n});\r\n\r\n// Subtract its amount if needed (this will decrease item's amount in inventory)\r\nitem.subtract(item.getAmount());\r\n```\r\n\r\n</details>\r\n\r\nThe difference would literally be a one-liner (subtract is done behind the scenes instead of manually at the cost of additional clutter), but with more control and wouldn't need deprecating `dropItem`.\r\n",
+        "timestamp": "2024-12-25T07:31:59Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "I disagree with that approach. This is meant to serve as an API to simulate dropping items from the inventory in basically the same way as a normal player would. \r\n\r\nI understand what you mean, and I see value in it, yes. But it doesn't fit what I have in mind for it. Dropping an arbituary amount of any arbituary item may be nice, but it is an entirely different scenario.\r\n\r\nThe deprecation of `boolean dropItem(boolean)` was done due to the fact that is has been superseded by a better api.\r\n\r\nYour suggestion essentially is saying to abandon all of the useful implications of a one liner to drop 20 items in a player's inventory and never have to worry about reducing items again.\r\nYour variant instead would nullify all of that, forcing the user to care about stuff that usually wouldn't be the case.\r\n\r\nThe consumer to modify the resulting Item entity is nice, but not really required due to the fact that it returns thay very same entity, meaning you are free to make it glow even now.\r\n\r\nThis PR is meant to expose vanilla behaviour. And I see this as my final decision.\r\n\r\nIf you want to see that API inside Paper, you are free to PR it yourself, but I am not willing to remove useful functionality.",
+        "timestamp": "2024-12-25T09:35:40Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> I disagree with that approach. This is meant to serve as an API to simulate dropping items from the inventory in basically the same way as a normal player would.\r\n\r\nI don't necessarily mind such API, I just don't see the benefit of having multiple methods like this for something that could be done with just one method and cover all proposed cases at once.\r\n\r\n> I understand what you mean, and I see value in it, yes. But it doesn't fit what I have in mind for it. Dropping an arbituary amount of any arbituary item may be nice, but it is an entirely different scenario.\r\n\r\nWould be repeating of myself, but I don't see both cases as different scenarios to a degree of requiring separate methods. The only difference between dropping an arbitrary item and an inventory item is decreasing the inventory item's amount, which is very trivial to do.\r\n\r\nMy suggestion is meant to serve the same purpose (drop an item as if the player did that), except the item not being linked to the inventory. It solves the linked issue and allows for more control and possibilities.\r\n\r\n> The deprecation of `boolean dropItem(boolean)` was done due to the fact that is has been superseded by a better api.\r\n\r\nSubjective. I don't see anything that wrong with `boolean dropItem(boolean)` to a degree of \"yeeting\" (/requiring to replace) it. It may not be as descriptive & useful in providing `Item` vs `boolean`, but it serves its purpose. With the new approach, the old code will have to be rewritten as such:\r\n\r\n<details>\r\n<summary>Code comparison</summary>\r\n\r\n```java\r\n// Drop a single active item; is fine and I'd even say somewhat better in being more descriptive/explicit\r\n/// Before\r\nplayer.dropItem(false);\r\n/// After\r\nplayer.dropItem(EquipmentSlot.HAND, 1);\r\n\r\n// Drop the whole hand; that's were I'm not a fan\r\n/// Before\r\nplayer.dropItem(true);\r\n/// After\r\n/// You need to either provide a large enough number to cover the whole stack\r\nplayer.dropItem(EquipmentSlot.HAND, Integer.MAX_AMOUNT);\r\n// Or obtain the item beforehand\r\nplayer.dropItem(EquipmentSlot.HAND, player.getInventory().getItem(EquipmentSlot.HAND).getAmount());\r\n```\r\n\r\n</details>\r\n\r\n> Your suggestion essentially is saying to abandon all of the useful implications of a one liner to drop 20 items in a player's inventory and never have to worry about reducing items again. Your variant instead would nullify all of that, forcing the user to care about stuff that usually wouldn't be the case.\r\n\r\nYes, because I don't see the usefulness. I'd argue the opposite, that this approach adds unnecessary complexity, while the alternative would be easier (subjective?) and cover more cases. \"have to worry about reducing items\" is a short trivial one-liner.\r\n\r\n> The consumer to modify the resulting Item entity is nice, but not really required due to the fact that it returns thay very same entity, meaning you are free to make it glow even now.\r\n\r\nIt would allow modifying an item before passing it to other plugins and actually spawning in the world. As an example, you can mark your item with some persistent tag and handle it in drop/spawn event without requiring some extra cache.\r\n\r\nOther places like world drop events already have such overload, so it wouldn't be alien to be on pair with them.\r\n\r\n> This PR is meant to expose vanilla behaviour. And I see this as my final decision.\r\n> \r\n> If you want to see that API inside Paper, you are free to PR it yourself, but I am not willing to remove useful functionality.\r\n\r\nThe decision is up to the team, I don't mind doing a separate PR to cover my use-case (I already have it done in my fork). It's just that my addition would automatically cover this use-case as well, producing multiple methods for the same purpose.",
+        "timestamp": "2024-12-25T11:12:13Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> Code comparison\r\n\r\nJust saying, but that's actually incorrect. You'd have to call `player.dropItem(false)` to drop one of the item currently in-hand.\r\nThat method is also limited to just the main hand. You can't drop the off-hand, which you can do with my API.\r\n\r\nThese changes have been approved by the paper team and thus seem to be fine.",
+        "timestamp": "2024-12-25T11:29:21Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> Just saying, but that's actually incorrect. You'd have to call `player.dropItem(false)` to drop one of the item currently in-hand. \r\n\r\nUpdated to include `false`.\r\n\r\n> That method is also limited to just the main hand. You can't drop the off-hand, which you can do with my API.\r\n\r\nCurrent method is supposed to drop the currently holding item, not imitate dropping any item from the inventory. The comparison was also about that, since it's the only use-case in which the deprecated method was being used.\r\n\r\n> These changes have been approved by the paper team and thus seem to be fine.\r\n\r\nStill can discussed and re-reviewed.\r\n\r\n___\r\n\r\nI actually found an edge case in my proposed alternative. The drop event would have to be handled separately (one extra overload to NMS method) to not try re-adding the item back to the inventory since the item's source might be whatever and we're dropping a cloned item.\r\n\r\nThis edge case is also present in your methods. If you drop e.g. head item and cancel the drop event, the item will be:\r\n\\- placed in main hand if it's empty\r\n\\- increase main item's amount if only one item was dropped and main hand is similar\r\n\\- tried to be added back to the inventory (this does not include equipment slots, i.e. the head item will be lost if this fails)\r\n\\- erased forever\r\nBut this might be expected? Not sure",
+        "timestamp": "2024-12-25T11:48:33Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "I think going with the dropItem(ItemStack) method would require doing an extra copy of the itemstack. You make a copy with asQuantity(), but then we would have to copy the stack again to drop it. I don't think anywhere in the API (or very rarely) we just \"unwrap\" the itemstack passed in as a parameter to an API method. If the methods accept a slot, then we only need the single copy to get the stack with the specific amount to drop, and just directly mutate the stack in the inventory.\r\n\r\nI think there is a usecase for dropping an arbitrary stack, but what about it just being an additional method that takes an arbitrary stack? (doesn't have to be in this PR)\r\n\r\nI also like the Consumer<Item>, but that can apply to all the methods.",
+        "timestamp": "2024-12-25T20:32:25Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "It's also not as if I don't like the Consumer, but removing the existing methods feels limiting. \r\nPerhaps, we add a new group of methods, `dropAnyItem` and `dropAnyItemRandomly`, which does no operations on the player's inventory. This group would not have that quantity param, as you can just set the amount on the ItemStack.\r\n\r\nAlso, I can add those Consumer params as nullable ones",
+        "timestamp": "2024-12-25T21:39:30Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> I think going with the dropItem(ItemStack) method would require doing an extra copy of the itemstack. You make a copy with asQuantity(), but then we would have to copy the stack again to drop it. I don't think anywhere in the API (or very rarely) we just \"unwrap\" the itemstack passed in as a parameter to an API method. If the methods accept a slot, then we only need the single copy to get the stack with the specific amount to drop, and just directly mutate the stack in the inventory.\r\n\r\nHmm, fair. In dropping an arbitrary stack there will be 2 or potentially 3 copies: `asQuantity` (could do `int amount` param to prevent it), our internal to detach from source itemstack, and one when creating the item entity.\r\n\r\nManually providing the amount and working with the source directly allows avoiding the first two copies. Looks like there's demand for this, so I'm fine with these and making a separate PR for arbitrary items 👍️\r\n\r\n___\r\n\r\nEdit: by the way, regarding the carried item, could there be a special case like slot `-1` to drop it? Or a separate method to not rely on a magic number (-1 is used as cursor item in a few places, but is still magic)?\r\n___\r\n\r\nRegarding the drop event, seems to be a known bug (https://github.com/PaperMC/Paper/issues/7726) and covers normal player interactions too (`Q` on helmet with full inventory and cancelled player drop event will erase the helmet forever), so it's fine to ignore within this PR.\r\n\r\nI wonder if the https://github.com/PaperMC/Paper/pull/7727 could be extended to try preserving the original slot in any scenario, or at least cover equipment slots too?",
+        "timestamp": "2024-12-26T07:32:02Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Alright, here is my proposal for methods (all return Item):\r\n`dropItem(int slot, int amount, @Nullable Consumer<Item>)`\r\n`dropItem(EquipmentSlot slot, int amount, @Nullable Consumer<Item>)`\r\n`dropItemRandomly(int slot, int amount, @Nullable Consumer<Item>)`\r\n`dropItemRandomly(EquipmentSlot slot, int amount, @Nullable Consumer<Item>)`\r\n\r\n`dropItemAll(int slot, @Nullable Consumer<Item>)`\r\n`dropItemAll(EquipmentSlot slot, @Nullable Consumer<Item>)`\r\n`dropItemAllRandomly(int slot, @Nullable Consumer<Item>)`\r\n`dropItemAllRandomly(EquipmentSlot slot, @Nullable Consumer<Item>)`\r\n\r\n`dropAnyItem(ItemStack itemStack, @Nullable Consumer<Item>)`\r\n`dropAnyItemRandomly(ItemStack itemStack, @Nullable Consumer<Item>)`\r\n\r\nThis equals to a fair bit of methods, but each has a purpose. Any comments @SoSeDiK?",
+        "timestamp": "2024-12-26T11:33:34Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "I think the Consumer param should be an optional overload (defaulting to `null`). It'll be an extra method for each, but the maintenance cost is pretty much zero, and they all make sense.\r\n\r\nI like the `dropItemAll`, seems sensible deprecating the old method now.\r\n\r\nOtherwise, looks good, happy with this 👍️",
+        "timestamp": "2024-12-26T11:51:17Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Very well, I will go to work doing the changes!",
+        "timestamp": "2024-12-26T11:56:36Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "> `dropAnyItem(ItemStack itemStack, @Nullable Consumer<Item>)`\r\n> `dropAnyItemRandomly(ItemStack itemStack, @Nullable Consumer<Item>)`\r\n\r\nI would call those methods `dropItem` and `dropItemRandomly`\r\n\r\n> `dropItemAll(int slot, @Nullable Consumer<Item>)`\r\n> `dropItemAll(EquipmentSlot slot, @Nullable Consumer<Item>)`\r\n> `dropItemAllRandomly(int slot, @Nullable Consumer<Item>)`\r\n> `dropItemAllRandomly(EquipmentSlot slot, @Nullable Consumer<Item>)`\r\n\r\nI would call those methods `dropItems` instead of `dropItemAll`",
+        "timestamp": "2024-12-26T12:49:58Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Just for testing, I setup the following command: \r\n```java\r\nevent.registrar().register(Commands.literal(\"drop\")\r\n        .then(Commands.literal(\"one\")\r\n            .executes(ctx -> {\r\n                ((Player) ctx.getSource().getExecutor()).dropItemRandomly(EquipmentSlot.HAND, 1);\r\n                return 1;\r\n            }))\r\n\r\n        .then(Commands.literal(\"all\")\r\n            .executes(ctx -> {\r\n                ((Player) ctx.getSource().getExecutor()).dropItemAll(EquipmentSlot.HAND);\r\n                return 1;\r\n            }))\r\n\r\n        .then(Commands.literal(\"any\")\r\n            .then(Commands.argument(\"item\", ArgumentTypes.itemStack())\r\n                .executes(ctx -> {\r\n                    ((Player) ctx.getSource().getExecutor()).dropAnyItem(ctx.getArgument(\"item\", ItemStack.class), item -> {\r\n                        item.setGlowing(true);\r\n                    });\r\n                    return 1;\r\n                })))\r\n\r\n    .build());\r\n```\r\n\r\nYou can see the result here:\r\n\r\nhttps://github.com/user-attachments/assets/7e4eefaf-1dcd-459f-9c05-dc641cda5bbd\r\n\r\n\r\n\r\n",
+        "timestamp": "2024-12-26T12:56:14Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "Also, I don't really like that all methods require an item consumer (or null)\r\nI'd propose adding overload methods that pass null for you\r\nBut on the other hand, those are way too many methods already even without overloads",
+        "timestamp": "2024-12-26T12:58:22Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> I would call those methods `dropItem` and `dropItemRandomly`\r\n\r\nI feel like new API users could get confused on what those methods do, even when reading the JavaDoc (which I am yet to add).\r\nI want to make it fairly clear which methods drop actual ItemStack **from** the player's inventory and which methods could cause a dupe glitch 😂.\r\n\r\n> I would call those methods `dropItems` instead of `dropItemAll`\r\n\r\nYeah, sounds like a good idea.\r\n",
+        "timestamp": "2024-12-26T12:58:34Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> Also, I don't really like that all methods require an item consumer (or null) I'd propose adding overload methods that pass null for you But on the other hand, those are way too many methods already even without overloads\r\n\r\nI already have overload methods for that",
+        "timestamp": "2024-12-26T12:58:55Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Most of these are just default methods on the interface\r\n```java\r\n@Nullable\r\npublic Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount, @Nullable Consumer<Item> entityOperation);\r\n\r\n@Nullable\r\npublic default Item dropItemRandomly(@NotNull EquipmentSlot slot, int amount) {\r\n    return this.dropItemRandomly(slot, amount, null);\r\n}\r\n\r\n\r\n@Nullable\r\npublic default Item dropItemAll(int slot, @Nullable Consumer<Item> entityOperation) {\r\n    return this.dropItem(slot, Integer.MAX_VALUE, entityOperation);\r\n}\r\n\r\n@Nullable\r\npublic default Item dropItemAll(int slot) {\r\n    return this.dropItemAll(slot, null);\r\n}\r\n\r\n@Nullable\r\npublic default Item dropItemAll(@NotNull EquipmentSlot slot, @Nullable Consumer<Item> entityOperation) {\r\n    return this.dropItem(slot, Integer.MAX_VALUE, entityOperation);\r\n}\r\n\r\n@Nullable\r\npublic default Item dropItemAll(@NotNull EquipmentSlot slot) {\r\n    return this.dropItemAll(slot, null);\r\n}\r\n```",
+        "timestamp": "2024-12-26T12:59:40Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "> > I would call those methods `dropItem` and `dropItemRandomly`\r\n> \r\n> I feel like new API users could get confused on what those methods do, even when reading the JavaDoc (which I am yet to add). I want to make it fairly clear which methods drop actual ItemStack **from** the player's inventory and which methods could cause a dupe glitch 😂.\r\n\r\n`dropAnyItem` and `dropAnyItemRandomly` sounds even more confusing in my opinion\r\nalso the `Any` does not add any information to what the method does",
+        "timestamp": "2024-12-26T13:02:54Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Do you have any idea on what I could rename `dropAnyItem` to so that it is clear it is not tied to the Player's inventory in any way?",
+        "timestamp": "2024-12-26T13:04:10Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "> Do you have any idea on what I could rename `dropAnyItem` to so that it is clear it is not tied to the Player's inventory in any way?\r\n\r\nPotentially somthing like `dropItemAt`\r\n",
+        "timestamp": "2024-12-26T13:06:58Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> Potentially somthing like `dropItemAt`\r\n\r\nNot sure I like it. `dropItemAt(ItemStack)` sounds weird, since I'd assume `at` to have some sort of Location parameter",
+        "timestamp": "2024-12-26T13:08:07Z"
+      },
+      {
+        "author": "NonSwag",
+        "role": "CONTRIBUTOR",
+        "body": "but i think just mentioning in the docs that the item is not tied to the players inventory at all and will spawn a new item is better\r\nin any case dropItem would be a better fit",
+        "timestamp": "2024-12-26T13:08:21Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "Yeah probably. I am not having any ideas either",
+        "timestamp": "2024-12-26T13:08:49Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> I would call those methods `dropItem` and `dropItemRandomly`\r\n\r\n> but i think just mentioning in the docs that the item is not tied to the players inventory at all and will spawn a new item is better\r\nin any case dropItem would be a better fit\r\n\r\nClashing with other methods isn't ideal either, since the behavior is different enough. Even with javadocs it'd be quite easy to miss.\r\n\r\nI don't like `Any` too, but couldn't think of anything better yet.",
+        "timestamp": "2024-12-26T13:14:12Z"
+      },
+      {
+        "author": "willkroboth",
+        "role": "CONTRIBUTOR",
+        "body": "> I don't like `Any` too, but couldn't think of anything better yet.\r\n\r\nWould `createDroppedItem` and `createDroppedItemRandomly` work? I think `create` indicates that the item is new and doesn't already exist in the player's inventory.",
+        "timestamp": "2024-12-26T15:11:02Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "As another suggestion, `dropItemStack` might work?",
+        "timestamp": "2024-12-26T15:35:47Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "Maybe `dropItemFrom(int/slot)` and dropItemStack()?",
+        "timestamp": "2024-12-26T18:00:15Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> Maybe `dropItemFrom(int/slot)` and dropItemStack()?\r\n\r\nYeah I like that one.",
+        "timestamp": "2024-12-26T22:24:17Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "Ok, now its just soo many methods. What was the original issue with a `randomly` boolean parameter instead? I kinda think just adding that to the methods and reducing the number of methods by half is better.",
+        "timestamp": "2024-12-26T23:14:22Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "> What was the original issue with a `randomly` boolean parameter instead?\r\n\r\nToo many overloads for a single method, I guess.\r\nBut yeah, here is my plan to reduce methods (once again):\r\n* Remove the non-entityOperation overloads (api users can just pass null)\r\n* Instead of the `...Randomly` methods, let's just add a `boolean dropRandomly` parameter back in and explain in the JD what it does (again)\r\n\r\nThat should cut it down to like a quarter of the methods. And that's gonna be it.",
+        "timestamp": "2024-12-27T01:03:53Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "I think non-entityOperation ones could stay (@Machine-Maker?), given that's the only overload left; while this would be 3 methods * 2 for item consumption overloads, it would be on pair with other such APIs, and requiring users to pass `null` each time is annoying ",
+        "timestamp": "2024-12-27T06:24:54Z"
+      },
+      {
+        "author": "SoSeDiK",
+        "role": "CONTRIBUTOR",
+        "body": "> So we decided that there should be 10 methods added here\r\n\r\nThe methods make sense. Did you decide to go with the same naming for every method instead of separating inventory & arbitrary as proposed earlier?\r\n",
+        "timestamp": "2024-12-28T09:09:08Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "Yeah, I think the parameters and the javadocs will make it clear what happens. I think also, the ItemStack methods will make defensive copies, so dropping a stack from the inv won’t actually drop it, just copy it.",
+        "timestamp": "2024-12-28T09:11:36Z"
+      },
+      {
+        "author": "Strokkur424",
+        "role": "MEMBER",
+        "body": "@Machine-Maker alright, I have changed the methods to reflect the ones you have listed above. \r\n\r\nAlso, just to confirm, the `dropItem(ItemStack)` one **does** indeed make a copy. So running that logic on an ItemStack currently in the inventory (I tested it on the currently held one) drops it without reducing it",
+        "timestamp": "2024-12-28T18:48:50Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "75ef624",
+        "message": "Extend HumanEntity#dropItem API",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:00:55Z"
+      },
+      {
+        "sha": "a27d278",
+        "message": "Reduce and replace implemented methods with defaults",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:15:32Z"
+      },
+      {
+        "sha": "e99b1ed",
+        "message": "Remove fully qualified imports and comments. Small cleanup",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:18:14Z"
+      },
+      {
+        "sha": "25d0227",
+        "message": "Cleanup imports",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:18:53Z"
+      },
+      {
+        "sha": "4a32db8",
+        "message": "Further cleanup imports",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:20:12Z"
+      },
+      {
+        "sha": "ac20fc6",
+        "message": "Rename parameter",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T12:21:40Z"
+      },
+      {
+        "sha": "e2b0215",
+        "message": "Remove thrower and 'empty' overloads",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T14:04:02Z"
+      },
+      {
+        "sha": "3d8c397",
+        "message": "Refactor methods",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T23:28:01Z"
+      },
+      {
+        "sha": "80a2175",
+        "message": "Add since parameter to deprecation",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-24T23:39:05Z"
+      },
+      {
+        "sha": "3c2af3d",
+        "message": "Directly run logic on nms ItemStack",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-25T00:04:18Z"
+      },
+      {
+        "sha": "b695206",
+        "message": "Change incorrect throws jd",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-25T00:07:00Z"
+      },
+      {
+        "sha": "9a83d33",
+        "message": "Remove unrequired Math.min",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-25T00:07:44Z"
+      },
+      {
+        "sha": "83d33db",
+        "message": "Fix incorrect parameter",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-25T00:09:38Z"
+      },
+      {
+        "sha": "500e286",
+        "message": "Add a ton more overloads",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-26T12:18:28Z"
+      },
+      {
+        "sha": "573c9d6",
+        "message": "Implement Item consumer",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-26T12:46:30Z"
+      },
+      {
+        "sha": "790e776",
+        "message": "Rename `dropItemAll` methods to `dropItems`",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-26T13:01:35Z"
+      },
+      {
+        "sha": "ad4481c",
+        "message": "Rename `dropAnyItem` methods to `dropItem`",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-26T13:09:38Z"
+      },
+      {
+        "sha": "f5397be",
+        "message": "Add Javadocs",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-26T13:32:02Z"
+      },
+      {
+        "sha": "c910a25",
+        "message": "Apply relevant changes",
+        "author": "Strokkur24",
+        "timestamp": "2024-12-28T18:44:43Z"
+      },
+      {
+        "sha": "d2932f8",
+        "message": "Javadocs and less methods",
+        "author": "Bjarne Koll",
+        "timestamp": "2024-12-28T22:12:50Z"
+      },
+      {
+        "sha": "f676e88",
+        "message": "Cleanup some internal",
+        "author": "Bjarne Koll",
+        "timestamp": "2024-12-28T22:27:57Z"
+      },
+      {
+        "sha": "1d6a1e7",
+        "message": "Correct overload chaining",
+        "author": "Bjarne Koll",
+        "timestamp": "2024-12-28T22:30:46Z"
+      },
+      {
+        "sha": "581d229",
+        "message": "Readd dropped overload hunk",
+        "author": "Bjarne Koll",
+        "timestamp": "2024-12-28T22:38:49Z"
+      }
+    ]
+  },
+  {
+    "story_id": "PaperMC/Paper#10036",
+    "metadata": {
+      "title": "Scoreboard objective number format api ",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-02-17T20:22:01Z",
+      "reviewers": [
+        "Machine-Maker",
+        "kashike",
+        "Lulu13022002",
+        "lynxplay",
+        "davidmayr",
+        "yannicklamprecht"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "This PR introduces an easily accessible number format API (using adventure styles and components) for scoreboard objectives for a feature introduced in 1.20.3. \r\n\r\nSetting a number format can be as easy as this:\r\n```java\r\n//Remove numbers\r\nobjective.numberFormat(NumberFormat.blank());\r\n\r\n// Style numbers in green and bold\r\nobjective.numberFormat(NumberFormat.styled(NamedTextColor.GREEN, TextDecoration.BOLD));\r\n\r\n//Replace numbers\r\nobjective.numberFormat(NumberFormat.fixed(Component.text(\"Lol\")));\r\n```\r\n\r\nAs for the implementation: The conversion between the Adventure style and Mojangs implementation is a bit messy.  The only other way I can think of to implement this is manually converting every style property. As paper doesn't even do that with chat components either, I have decided to just serialize and deserialize again. "
+    },
+    "discussion_timeline": [
+      {
+        "author": "456dev",
+        "role": "CONTRIBUTOR",
+        "body": "In vanilla, you can set it per each score holder, right? How is that done here?\r\n\r\nUnless I'm misunderstanding what the \"objective\" is",
+        "timestamp": "2023-12-16T12:55:07Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> In vanilla, you can set it per each score holder, right? How is that done here?\r\n> \r\n> Unless I'm misunderstanding what the \"objective\" is\r\n\r\nI totally missed that that's possible in vanilla. You can set it for the entire objective (e.g. your entire sidebar) or apparently per entry as well (which I missed)\r\n\r\nI will add that asap",
+        "timestamp": "2023-12-16T14:20:10Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "That's implemented now. With the latest commit, you can change the formatting of individual scores or the whole objective",
+        "timestamp": "2023-12-16T14:36:40Z"
+      },
+      {
+        "author": "jpenilla",
+        "role": "MEMBER",
+        "body": "Should use our codecs for conversions, not the GsonComponentSerializer, see the minecraft round trip style test in AdventureCodecsTest for an example. Also put the conversion methods at PaperAdventure.asVanilla/asMinecraft to be consistent.",
+        "timestamp": "2023-12-16T16:49:50Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> Should use our codecs for conversions, not the GsonComponentSerializer, see the minecraft round trip style test in AdventureCodecsTest for an example. Also put the conversion methods at PaperAdventure.asVanilla/asMinecraft to be consistent.\r\n\r\nSo just we are on the same path: I should add a asVanilla method for the **style conversion** to PaperAdventure? Or do you mean the entire number formatting? (Probably not, but just making sure)\r\n\r\nAaaand should I update the adventure patch? Because as far as I can tell, everything inside that class comes from that patch and if I would put it in this one it could break multiple patches if this one would be removed (e.g. temporarily while upgrading), right?",
+        "timestamp": "2023-12-16T17:56:03Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> All there records should be package-private and not exposed to the API. Instead, have interfaces with a method for each record parameter. The field for the blank format can be on the NumberFormat interface.\r\n\r\nSorry, but I don't think I really get what you are asking me to do. 😅\r\n\r\nAs far as I can tell, you want me to either:\r\nPackage private the entire number format implementations and add static methods to the base interface for creation. But that would be an issue for accessing the number format value, wouldn't it? \r\n\r\nYou could theoretically also have meant to only package private the constructors, but I don't think that's the case because private constructors don't exist in records, if I recall correctly? - sorry if I'm wrong, I'm using Kotlin most of the time 😅\r\n\r\n**Or you want me to:**\r\nCreate interfaces for every type and make the implementations private (but still in the API because I don't know of any provider service to construct it?) But I don't really get the point of that? Wouldn't that just be useless class clutter?\r\n\r\n",
+        "timestamp": "2023-12-16T18:03:30Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "> Aaaand should I update the adventure patch? Because as far as I can tell, everything inside that class comes from that patch and if I would put it in this one it could break multiple patches if this one would be removed (e.g. temporarily while upgrading), right?\r\n\r\nYeah, you can make asVanilla/asAdventure methods inside PaperAdventure that use the codec's and they should be in the adventure patch.\r\n\r\n> Or you want me to:\r\nCreate interfaces for every type and make the implementations private (but still in the API because I don't know of any provider service to construct it?) But I don't really get the point of that? Wouldn't that just be useless class clutter?\r\n\r\nYes, exactly this. interfaces for NumberFormat, StyledFormat, FixedFormat (no need for blank format, should just use an equality check to know that). And then package-private records that implement those interfaces with static methods on **NumberFormat** to create instances of each one.\r\n\r\nThere are a couple reasons for this. 1) javadocs. can have better, separated javadocs for the fluent getters and factory methods and types if you separate out the record from the API interface. 2) future changes. Changing records and making them maintain compat is super ugly if something changes in the future. If the constructor is public, you have to always keep the old one and make new ones and you have to have old components... its just not fun. Look at StructuresLocateEvent$Result and observe the reason why its not good to do that. Better to have static methods to deprecate and we can just change whatever we want in the record.",
+        "timestamp": "2023-12-16T18:21:20Z"
+      },
+      {
+        "author": "yannicklamprecht",
+        "role": "CONTRIBUTOR",
+        "body": "After some thoughts I probably would be against the nullability in the setter and just add a Reset record that is also sealed.\r\nWhat do you think of @Machine-Maker, @jpenilla, @MenschenToaster ?",
+        "timestamp": "2023-12-16T18:36:37Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "If we didn't want to have nullability in the setter, I would prefer a clear method instead. I don't think adding a type for resetting is a good idea.",
+        "timestamp": "2023-12-16T18:37:42Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> no need for blank format, should just use an equality check to know that\r\n\r\nInternally it makes sense, but for accessibility when querying the current format it can get confusing and just more difficult to check, right?\r\n\r\nIf somebody wants to know if it's a blank format, they would have to do:\r\n`if(!(format instanceof StyledFormat) && !(format instanceof FixedFormat)) {}`\r\nto know if it's a blank format or not. And if there would be a new format in the future, their code would be broken",
+        "timestamp": "2023-12-16T18:47:48Z"
+      },
+      {
+        "author": "Machine-Maker",
+        "role": "MEMBER",
+        "body": "By \"equality check\" I meant you can do\r\n```java\r\nif (NumberFormat.blank().equals(format)) {}\r\n```",
+        "timestamp": "2023-12-16T18:52:14Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> By \"equality check\" I meant you can do\r\n> \r\n> ```java\r\n> if (NumberFormat.blank().equals(format)) {}\r\n> ```\r\n\r\nThat makes way more sense. Sure, then I'll do that",
+        "timestamp": "2023-12-16T18:52:45Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> Requires testing\r\n\r\nDid some basic testing. I only tested the number format on the score and not on objectives. But the original code in my first commit was tested on the objective in another plugin as well. (Because that code is used in a paper fork of mine as of right now) I would assume that works.\r\n\r\nGetting (and therefor converting the format back) works as well (which can be sen by the output in the console)\r\nSome further testing might be required but as far as I can see everything works as intended\r\n\r\n![grafik](https://github.com/PaperMC/Paper/assets/54715954/40cc825e-db2b-49b3-8f9a-8f78daa2c675)\r\n\r\n",
+        "timestamp": "2024-01-01T23:49:44Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "Any updates? ",
+        "timestamp": "2024-01-14T16:50:16Z"
+      },
+      {
+        "author": "lynxplay",
+        "role": "CONTRIBUTOR",
+        "body": "Upstream has proposed https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/pull-requests/1344/overview on upstream, it is probably best to hold out for that.",
+        "timestamp": "2024-01-21T21:13:30Z"
+      },
+      {
+        "author": "Cryptite",
+        "role": "CONTRIBUTOR",
+        "body": "Might be nice to update the OP which provides examples of the API.\r\n\r\nFor example, fixed number format is now `objective.numberFormat(NumberFormat.fixed(Component.text(\"Lol\"));`",
+        "timestamp": "2024-02-19T15:07:26Z"
+      },
+      {
+        "author": "lynxplay",
+        "role": "CONTRIBUTOR",
+        "body": "Done :+1: ",
+        "timestamp": "2024-02-19T15:16:53Z"
+      },
+      {
+        "author": "davidmayr",
+        "role": "CONTRIBUTOR",
+        "body": "> Done 👍\r\n\r\nWe both edited the description at the same time 🙃\r\nDidn't even know maintainers could edit the PR's description 😅",
+        "timestamp": "2024-02-19T15:20:21Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "64bc728",
+        "message": "feat: number format api\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T11:48:42Z"
+      },
+      {
+        "sha": "b8aec72",
+        "message": "feat: make each individual score customizable\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T14:32:46Z"
+      },
+      {
+        "sha": "8eea81f",
+        "message": "docs: fix incorrect descriptions\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T14:48:34Z"
+      },
+      {
+        "sha": "9ae72a4",
+        "message": "feat: use access transformers\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T17:27:49Z"
+      },
+      {
+        "sha": "5b8975f",
+        "message": "feat: use adventure codecs\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T17:42:00Z"
+      },
+      {
+        "sha": "98b1835",
+        "message": "test: test for matching styles\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T17:52:37Z"
+      },
+      {
+        "sha": "5ca86cb",
+        "message": "feat: convert number formats to interfaces\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T19:06:21Z"
+      },
+      {
+        "sha": "4430c00",
+        "message": "feat: add style conversion to adventure patch\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T19:17:37Z"
+      },
+      {
+        "sha": "ec2e65b",
+        "message": "feat: use paper adventure method in PaperScoreboardFormat\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-16T19:23:10Z"
+      },
+      {
+        "sha": "dd215c6",
+        "message": "chore: rename methods to avoid a method in records\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-17T01:27:04Z"
+      },
+      {
+        "sha": "64205c6",
+        "message": "fix: check if objective is still registered\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-17T01:32:37Z"
+      },
+      {
+        "sha": "ccdec85",
+        "message": "feat: improve style conversion\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-17T01:37:45Z"
+      },
+      {
+        "sha": "c9f3f8d",
+        "message": "feat: modify how the getter behaves in score\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-18T23:04:34Z"
+      },
+      {
+        "sha": "e4b2a6f",
+        "message": "feat: use fluent naming\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-18T23:05:41Z"
+      },
+      {
+        "sha": "54cd210",
+        "message": "docs: add spaces before the paper comments\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-18T23:07:11Z"
+      },
+      {
+        "sha": "1879147",
+        "message": "chore: styling changes\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-18T23:09:51Z"
+      },
+      {
+        "sha": "60a6596",
+        "message": "chore: make constant final\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-22T14:44:25Z"
+      },
+      {
+        "sha": "cf44ca8",
+        "message": "feat: add methods for styled format instead of constants\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-22T14:52:16Z"
+      },
+      {
+        "sha": "47b8dc6",
+        "message": "fix: remove incorrect getTrackedPlayers check\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-28T16:17:27Z"
+      },
+      {
+        "sha": "8a540b3",
+        "message": "docs: add . at the end of sentences\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-28T16:19:47Z"
+      },
+      {
+        "sha": "f9c6540",
+        "message": "docs: explain null behaviour\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2023-12-28T16:30:16Z"
+      },
+      {
+        "sha": "f0594d5",
+        "message": "docs: mention score creation\n\nSigned-off-by: David Mayr <davidliebtkekse@gmail.com>",
+        "author": "David Mayr",
+        "timestamp": "2024-01-01T23:28:05Z"
+      },
+      {
+        "sha": "a07c2c6",
+        "message": "rebase and fix javadoc comments",
+        "author": "Jake Potrebic",
+        "timestamp": "2024-02-17T19:58:34Z"
+      },
+      {
+        "sha": "23e1a03",
+        "message": "remove server implementation defaults",
+        "author": "Jake Potrebic",
+        "timestamp": "2024-02-17T20:13:52Z"
+      },
+      {
+        "sha": "bf736cd",
+        "message": "fix format for PaperScoreboardFormat",
+        "author": "Jake Potrebic",
+        "timestamp": "2024-02-17T20:15:34Z"
+      }
+    ]
+  }
+]

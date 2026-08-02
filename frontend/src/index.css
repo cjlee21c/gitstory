@@ -986,6 +986,10 @@ a.landing-logo { cursor: pointer; }
   background: var(--yellow-soft); border: 1px solid #f1d98a; color: var(--yellow-ink);
   border-radius: 14px; padding: 14px 18px; font-size: 14px; margin-bottom: 20px;
 }
+/* Filter-relaxation notice. Same warm card, but the search succeeded here —
+   the marker keeps it from reading as a failure. */
+.discover-notice::before { content: "ℹ"; margin-right: 8px; font-weight: 700; }
+
 .discover-empty { text-align: center; }
 .discover-empty h1 { margin: 0 0 10px; font-size: 28px; }
 .discover-empty p { color: var(--warm-muted); margin: 0 0 22px; }
@@ -1091,11 +1095,19 @@ a.landing-logo { cursor: pointer; }
   font-size: 12px; font-weight: 600; border-radius: 999px; padding: 4px 11px;
   border: 1px solid transparent; text-transform: capitalize;
 }
+/* One tone per quality attribute, spread around the wheel so eight tags on one
+   card stay distinguishable. Class names come from the id via QUALITY_TONE in
+   filters.ts (energy_efficiency -> .tag-energy-efficiency); an unrecognised
+   label falls back to .tag-neutral. */
 .tag-neutral { color: var(--warm-muted); background: var(--warm-bg); border-color: var(--warm-border); }
-.tag-maintainability { color: #5b21b6; background: #f0ecff; }
-.tag-usability { color: #1e40af; background: #e6effe; }
+.tag-availability { color: #166534; background: #dcfce7; }
 .tag-security { color: #9f1239; background: #fdecef; }
+.tag-modifiability { color: #5b21b6; background: #f0ecff; }
 .tag-performance { color: #92400e; background: #fef3c7; }
+.tag-testability { color: #0f766e; background: #d6f2ee; }
+.tag-usability { color: #1e40af; background: #e6effe; }
+.tag-deployability { color: #a21caf; background: #fbeafc; }
+.tag-energy-efficiency { color: #3f6212; background: #eef7d9; }
 
 .story-card-foot { display: flex; justify-content: flex-end; }
 .story-cta {
@@ -1117,6 +1129,10 @@ a.landing-logo { cursor: pointer; }
 /* Warm notice variants */
 .warn-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .catalog-empty { text-align: center; color: var(--warm-muted); margin-top: 20px; }
+
+/* "Showing 4 of 9 stories" + the toggle that reveals the rest. */
+.catalog-meta { text-align: center; color: var(--warm-muted); font-size: 14px; margin-bottom: 12px; }
+.catalog-more { display: flex; justify-content: center; margin-top: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
   .story-card, .story-cta, .story-cta .arrow, .back-link { transition: none; }

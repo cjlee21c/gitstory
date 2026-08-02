@@ -1,0 +1,2543 @@
+[
+  {
+    "story_id": "openedx/openedx-platform#1499",
+    "metadata": {
+      "title": "Shuffle feature for multiple choice questions",
+      "labels": [
+        "open-source-contribution"
+      ],
+      "qualities": [
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2014-04-15T05:02:14Z",
+      "reviewers": [],
+      "changed_files": 15
+    },
+    "issue_payload": {
+      "body": "@cpennington Could you check this one out?\n@rocha Note the analytics issue below\n@jinpa How about you do testing, it is _your_ story I believe!\n\nJust FYI: @jaericson @shnayder\n\nAdds studio and lms support for an option to shuffle\nthe displayed order of multiple choice questions.\nWorks by shuffling the xml tree nodes in the problem\nduring the get_html process. The shuffling uses the problem's seed.\nThe added syntax for the xml and markdown is documented in the Changelog.\n\nOne concern was: will this mess up analytics?\nMy experiments suggest that analytics will work fine:\n\nThe question is -- when the question choices are displayed shuffled, is enough logged so that analytics still works?\n\nI have a 4-option problem with shuffling enabled. In this case, the options are presented in the order b a d c (i.e. 1 0 3 2). I selected option c, the last one displayed (which happens to be correct), and then looking in courseware_studentmodulehistory I have the following row\n\n2013-10-22 22:23:40.658495|1.0|1.0|{\"correct_map\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {\"hint\": \"\", \"hintmode\": null, \"correctness\": \"correct\", \"npoints\": null, \"msg\": \"\", \"queuestate\": null}}, \"input_state\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {}}, \"attempts\": 2, \"seed\": 282, \"done\": true, \"student_answers\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": \"choice_2\"}}||4|52\n\nIn student_answers I see choice_2 which is \"c\" in the 0-based numbering, so that's right. It looks to me that it has successfully recorded which choice I made, not getting confused by the fact that the options where displayed in a different order. The rest of the stuff in the rows looks reasonable, but mostly it's greek to me.\n\nBecause we're using standard python shuffle, knowing the seed, you can recreate the shuffle order. Maybe you never need to do this since the problem will just do it for you. Still. Noting that the logged seed above is 282:\n\n> > > r = random.Random(282)\n> > > a = [0, 1, 2, 3]\n> > > r.shuffle(a)\n> > > a\n> > > [1, 0, 3, 2]\n\nCute!\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "Other than the one missing test case, looks good to me. @nedbat: am I missing anything?\n",
+        "timestamp": "2013-10-25T11:11:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "nedbat",
+        "role": "CONTRIBUTOR",
+        "body": "I don't see a test that confirms that different seeds produce different results.\n",
+        "timestamp": "2013-10-25T16:48:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the quick responses Cale and Ned. I've made the following fixes:\n\n-I upgraded the rare \"island\" goes-to-tail case just to be the official behavior and tested it, although obviously it's kind of an oddball case. Leaving it undefined (K&R style sortof) the way I had was probably not ideal. I expanded the changelog doc to document this all.\n\n-I cleaned up the .coffee js if/else, and also I noticed that file write the ifs with no space before the (, so I did that too.\n\n-Added test for a different seed\n\nI just kept the one commit and used --force to put it back up. I'll ping @rocha to make sure he's ok with the analytics end. I think Jane is traveling today, so I expect she won't do the testing until next week.\n\n## \n",
+        "timestamp": "2013-10-25T18:57:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante It will be ideal if we can include any indication that the question was shuffled or not.\n\nIMHO we still have to figure a better way to deal with randomization in problems, since relying that all python implementations will produce the same random results with the same seed seems too fragile to me. The issues is larger than this Pull Request however.\n",
+        "timestamp": "2013-10-28T15:07:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "@rocha -- hmm, I can confirm that rng changes (code below), at least sometimes, across releases -- d'oh!\nHow about this: I record the shuffle order e.g. \"[0, 2, 1, 3]\", so then the log is easy to interpret, and more importantly, if we change the rng scheme in the future for whatever reason, everything still works.\n\nCould you point me to what line makes that log entry per student submit?\n\n -- code to see if random num gen changes across releases ... it does!\nimport random\nr = random.Random(0)\na = [0, 1, 2, 3]\nr.shuffle(a)\na\n\n3.2: [2, 0, 1, 3]\n2.7: [1, 0, 2, 3]\n",
+        "timestamp": "2013-10-29T17:59:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "I think that particular wrinkle is something we don't take into account in much/most of our analytics logs at the moment. In particular, I think we depend on using the seed to regenerate problems elsewhere in capa randomization too.\n",
+        "timestamp": "2013-10-29T18:04:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Hmm, digging around in the python docs, the following section appears in 3.2.x but not in the 2.x series. It looks to me that this gives the reproducibility feature we want ... too bad it's a future version we're not using! It does mean that we can take the pain one time at 2.x to 3.x conversion time, then at least it will be solved and we can forget about it.\n\nhttp://docs.python.org/3.2/library/random.html#notes-on-reproducibility\n\n8.6.1. Notes on Reproducibility\nSometimes it is useful to be able to reproduce the sequences given by a pseudo random number generator. By re-using a seed value, the same sequence should be reproducible from run to run as long as multiple threads are not running.\nMost of the random module’s algorithms and seeding functions are subject to change across Python versions, but two aspects are guaranteed not to change:\n\n```\nIf a new seeding method is added, then a backward compatible seeder will be offered.\nThe generator’s random() method will continue to produce the same sequence when the compatible seeder is given the same seed.\n```\n",
+        "timestamp": "2013-10-29T18:26:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "So I've come to the view that the correct course here is to leave the logging as it is, for these reasons:\n\n-The most important bit -- their answer and its correctness -- is logged\n\n-I believe the current paradigm of the logging is that if you want to know something about the question, you load the question object and ask it directly. That all still works. Looking at the example log at the top of this thread ... we don't even log the number of options. The analytics code most load the question to orient itself about all that, which seems fine, as we don't want duplicate that data in the logs. If someone wants to do analytics about shuffle order affecting correctness, they will have to load the question and interrogate it, just like now.\n\n-There will be a problem doing analytics in a python 3.x world using data gathered in a 2.x world, but that's seems pretty minor as 3.x problems go.\n",
+        "timestamp": "2013-10-29T18:45:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante thanks for the research. I think your arguments are valid.\n\nOne more question, why is the shuffling done at `LongcapaProblem` level, and not at `MultipleChoiceResponse`? Seems to that the code as it is not that reusable to other problem types since their trees do not necessarily have answer options.\n\nMoving it to `MultipleChoiseResponse` could also help when adding something like a `is_shuffled` flag to the module state, which is what is captured by the event tracking logs.\n",
+        "timestamp": "2013-10-29T19:15:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Hmm, I'm not sure what you mean about |MultipleChoiceResponse|. Heh, \nreally my architectural background for this feature is based on dropping \ninto pdb and observing what code is rendering whatever I just built in \nstudio.\n\nHere's what the xml looks like now:\n\n```\n         <problem>\n         <multiplechoiceresponse>\n           <choicegroup type=\"MultipleChoice\" shuffle=\"true\">\n             <choice correct=\"false\">Apple</choice>\n             <choice correct=\"false\">Banana</choice>\n             <choice correct=\"false\">Chocolate</choice>\n             <choice correct =\"true\">Donut</choice>\n           </choicegroup>\n         </multiplechoiceresponse>\n         </problem>\n```\n\nDo you mean to put the shuffle= up in multiplechoiceresponse, or do you \nmean the implementation code might fit in a better way in \ncapa_problem.py or somewhere else?\n\nOn 10/29/13 12:15 PM, Carlos Andrés Rocha wrote:\n\n> @nparlante https://github.com/nparlante thanks for the research. I \n> think your arguments are valid.\n> \n> One more question, why is the shuffling done at |LongcapaProblem| \n> level, and not at |MultipleChoiceResponse|? Seems to that the code as \n> it is not that reusable to other problem types since their trees do \n> not necessarily have answer options.\n> \n> Moving it to |MultipleChoiseResponse| could also help when adding \n> something like a |is_shuffled| flag to the module state, which is what \n> is captured by the event tracking logs.\n> \n> —\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27334185.\n",
+        "timestamp": "2013-10-29T19:54:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante I meant the implementation. Sorry I was not clear.\n\n`MultipleChoiceResponse` is a class inside `capa/responsetypes.py`. However, now that I see your XML example, it looks to me that the implementation is better suited inside the `ChoiceGroup` class in `capa/inputtypes.py`. The class also does some parsing for you if you use 'Attributes'.\n\nWe won't still have the emitted events indicate that the question was shuffled, but as you said earlier, that is a problem that affect other problem types as well.\n",
+        "timestamp": "2013-10-29T20:28:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "Good catch, @rocha. I agree, this randomization should be part of `ChoiceGroup`, rather than being run inside `capa_problem.py`.\n",
+        "timestamp": "2013-10-29T20:35:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Sure, that file looks reasonable. Heh, it includes the following TODO \nwhich is kind of suggestive\n     # TODO: handle direction and randomize\n\nI could override **init** and shuffle the tree in there somewhere, or I \ncould override render_html, seemingly the closest analog to the previous \nget_html implementation, and shuffle the tree before the rendering. My \ninclination is to do it in **init** so the shuffling happens exactly \nonce, and you can render as many times as you like.\n\n@rocha .. what do you think about where the shuffling should be done?\n\nOn 10/29/13 1:36 PM, Calen Pennington wrote:\n\n> Good catch, @rocha https://github.com/rocha. I agree, this \n> randomization should be part of |ChoiceGroup|, rather than being run \n> inside |capa_problem.py|.\n> \n> —\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27340913.\n",
+        "timestamp": "2013-10-29T21:05:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "In general, we're only likely to be rendering once per request anyway, so I would lean towards putting it into `get_html`. A push in the other direction might be that we don't want to leak the pre-randomized order of the choices through the ids, in which case the randomization should be of the choices up front, before we assign ids to them at all.\n",
+        "timestamp": "2013-10-29T21:13:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante what @cpennington said :)\n\nAlso, there is no need to add an additional `shuffle` attribute. Instead we should handle `randomize` correctly.\n",
+        "timestamp": "2013-10-30T15:57:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, get_html it is!\n\n@rocha for the randomization setting, , my understanding is that the randomize setting controls when the seed is set and reset, and essentially the seed feature is independent of the problem type.\n\nThe shuffling is one sort of \"randomization\" which is particular to multiple choice problems, using the seed. Heh, I happen to know we're going to have other types or \"randomization\" since Jeff Ericson @jaericson, sitting across from me is working on another type randomization which I think will turn out to be orthogonal to shuffle. \n\nSo anyway I think that's why it's right to have an independent \"shuffle\" attribute.\n",
+        "timestamp": "2013-10-30T19:57:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "shnayder",
+        "role": "NONE",
+        "body": "+1 on having separate shuffle attribute--it is a separate use case.  (randomize will control whether it's re-shuffled every time or not)\n",
+        "timestamp": "2013-10-30T22:57:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante @shnayder makes sense!\n",
+        "timestamp": "2013-10-30T23:22:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Great -- I was sort of 80% confident about the randomize thing, so it's good to hear that that makes sense. I think we've got a good consensus on what I need to do, so I'll ping you all when I get it moved over on this same PR.\n\nIt _seems_ like it's not too much work, but ahem ... well you never know!\n",
+        "timestamp": "2013-10-30T23:36:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "So I put the following code in to verify that render_html does not get called multiple times...\n        if hasattr(self, 'render_called'):\n            print 'This never happens!'\n            raise AssertionError(\"render_html is not supposed be called multiple times\")\n        self.render_called = True\n\nAnd as you can guess, it turns out that assumption is false (I just ran test_lms which was the laziest thing I could think of). It's not like Cale was giving me some sort of gold plated guarantee on that prediction, but in the light of day, assuming that something never gets called twice was not the most reliable path. It's easy for stuff to get called and there's a lot of code paths, so it's just going to creep in, unless there's some sort of assert formally keeping it from happening.\n\nSo anyway, it seems like is that the shuffle code should go in **init** or something in that neighborhood, so that's what I'm working on now.\n",
+        "timestamp": "2013-11-01T17:42:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Ok, it's basically the same code, but now housed in responsetypes.py\n\nOne difference is that here it was easy to do the shuffle early, so that the choice_0 ... numbering uses the shuffled version. As Calen points out above, this prevents us from leaking any info about what order the author chose, which seems desirable -- like the author can just write the choices in whatever order they like, and we have them covered.\n\nThis means that analytics will need to create the problem/seed to decode what choice_0 means, since it doesn't even mean that it's the first choice in the authored-ordering any more.\n",
+        "timestamp": "2013-11-01T18:55:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante one of the most commonly used analysis is answer distribution. How will the shuffling affect such analysis? For example, normally instructors want to know how many people answered option a, how many option b, etc.\n",
+        "timestamp": "2013-11-04T18:03:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "The current style in the capa space that I've seen is that the problem \nis the store of info about the problem (this predates shuffle). The log \njust records what the student did. A good example of this style is that \nthe log does not even record the number of choices. You have to go to \nthe problem if you want to know how many choices there were. So anyway, \nthe shuffle works the same way. You've got to load the problem to decode \nwhat choice_0 is. I assume that's the the current analytics code does .. \nit's the only way to get the text of the choices or whatever.\n\nCheers,\n\nNick\n\nOn 11/4/13 10:03 AM, Carlos Andrés Rocha wrote:\n\n> @nparlante https://github.com/nparlante one of the most commonly \n> used analysis is answer distribution. How will the shuffling affect \n> such analysis? For example, normally instructors want to know how many \n> people answered option a, how many option b, etc.\n> \n> —\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27707535.\n",
+        "timestamp": "2013-11-04T19:24:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante i agree that for most capa problems, it is necesary to check the original problem to know what it means.\nHowever, in the case of multiple choice questions that has not been the case in the pass. It is very common for instructors/researchers to threat this problems as you will use a \"survey\". Basically it is very easy (and it is very commonly done right now) to count how many users answered a, or b, or c, without checking the original problem.\n\nIf I understand correctly, with this patch it would be absolutely necessary to use the original problem and the seed to be able to recreate the distribution of answers, correct?\n",
+        "timestamp": "2013-11-04T21:38:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "On 11/4/13 1:39 PM, Carlos Andrés Rocha wrote:\n\n> ....\n> If I understand correctly, with this patch it would be absolutely \n> necessary to use the original problem and the seed to be able to \n> recreate the distribution of answers, correct?\n> \n> —\n\nThat's correct: the raw choice_0 in the log stream will mean different \nthings depending on the seed, so you can't just count them in their raw \nform. It would be easy enough to put a little permutation hint, e.g. [1, \n0, 3, 2], in the log stream, although that would muddy the clarity of \nthe design -- currently the log is just what the student did, and \nknowledge of the problem is in the problem. The total amount of info \nabout the problem is rather large (i.e. you wouldn't want to log it all \nagain and again), so ultimately, the analytics side must be comfortable \ngetting info from the real problem.\n\nMy guess is that we should leave the log format as it is. The analytics \nside could have a get_native_choice() function that takes the logged \nchoice and the problem and gives you the \"native\" choice_0 choice_1. \nJust build the function once and analytics can use it forever, so this \ndoesn't seem like a big cost. It could be a function on the problem \nobject itself, so you just construct the problem object and let it \ntranslate for you. Or it could return the above [1, 0 , 3, 2] hint, so \nthe caller can see how the problem was laid out. That sort of code is \ntrivial to implement inside the problem.\n\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27725152.\n",
+        "timestamp": "2013-11-04T22:56:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "jinpa",
+        "role": "CONTRIBUTOR",
+        "body": "My sense is that some people working with the data may be working with the\nlogfiles, and getting what they can from those, without using the models.\n Can you go over what the downside would be to also logging the \"native\"\nchoice, so that someone could do an aggregation of how many students chose\nwhich option without needing to use a get_native_choice() function?  Is the\nissue that the extra field might break someone's log parser?\n\nOn Mon, Nov 4, 2013 at 2:56 PM, Nick Parlante notifications@github.comwrote:\n\n> On 11/4/13 1:39 PM, Carlos Andrés Rocha wrote:\n> \n> > ....\n> > \n> > If I understand correctly, with this patch it would be absolutely\n> > necessary to use the original problem and the seed to be able to\n> > recreate the distribution of answers, correct?\n> > \n> > —\n> \n> That's correct: the raw choice_0 in the log stream will mean different\n> things depending on the seed, so you can't just count them in their raw\n> form. It would be easy enough to put a little permutation hint, e.g. [1,\n> 0, 3, 2], in the log stream, although that would muddy the clarity of\n> the design -- currently the log is just what the student did, and\n> knowledge of the problem is in the problem. The total amount of info\n> about the problem is rather large (i.e. you wouldn't want to log it all\n> again and again), so ultimately, the analytics side must be comfortable\n> getting info from the real problem.\n> \n> My guess is that we should leave the log format as it is. The analytics\n> side could have a get_native_choice() function that takes the logged\n> choice and the problem and gives you the \"native\" choice_0 choice_1.\n> Just build the function once and analytics can use it forever, so this\n> doesn't seem like a big cost. It could be a function on the problem\n> object itself, so you just construct the problem object and let it\n> translate for you. Or it could return the above [1, 0 , 3, 2] hint, so\n> the caller can see how the problem was laid out. That sort of code is\n> trivial to implement inside the problem.\n> \n> > Reply to this email directly or view it on GitHub\n> > https://github.com/edx/edx-platform/pull/1499#issuecomment-27725152.\n> \n> —\n> Reply to this email directly or view it on GitHubhttps://github.com/edx/edx-platform/pull/1499#issuecomment-27731528\n> .\n",
+        "timestamp": "2013-11-04T23:02:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "I would say that log-only analysis is not formally supported right now, \nbut it happens to work. The crop of problem-randomizing features coming \ndown the pike will certainly break this sort of analysis. I think the \nproblem objects are just going to get steadily bigger and more \ncomplicated, which will enable better teaching, AND necessarily will \nmake analytics more complicated.\n\nIf we want to support log-only analytics, then I'll say there are two paths:\n\n(1) The easy way is that we record minimally what happened, but do not \nrecord the full state of the problem. E.g. we can record [1, 0, 2, 3] \nBUT we don't record that the 3 had the rarely used @ option set, or that \nit was an \"all of the above\" choice, or began with uppercase letters, or \nany other of the countless little details that make up a problem. \nEssentially, the person doing the analysis is responsible for accessing \nall of the problems out of band and knowing what state they are in. It \nsounds like this is actually the current practice.\n\nA variation of (1) I just thought of is we could log always using the \nnative numbering .. that's pretty darn simple and resembles the current \nlogs exactly. The cost is it really makes debugging a headache, since \nthe user submits choice_3 but it gets logged as choice_0. Recording the \n[1, 0, 2, 3] avoid that problem.\n\n(2) Record all of the state/setting of the problem in the log, which \ncould be rather a lot, but does mean the analytics side does not need to \naccess the problem object. I think this is the wrong approach. The \nproblem object already stores everything there is to know about a \nproblem and will be maintained to do so in the future as more features \nare added. So if you want to know all of the state of a problem... get \nyourself a problem object.\n\nI think the costs of the (1) approaches above are pretty low, so I'm \nfine doing that if we decided we want to support the log-only case.\n\nOn 11/4/13 3:02 PM, jinpa wrote:\n\n> My sense is that some people working with the data may be working with \n> the\n> logfiles, and getting what they can from those, without using the models.\n> Can you go over what the downside would be to also logging the \"native\"\n> choice, so that someone could do an aggregation of how many students \n> chose\n> which option without needing to use a get_native_choice() function? Is \n> the\n> issue that the extra field might break someone's log parser?\n> \n> On Mon, Nov 4, 2013 at 2:56 PM, Nick Parlante \n> notifications@github.comwrote:\n> \n> > On 11/4/13 1:39 PM, Carlos Andrés Rocha wrote:\n> > \n> > > ....\n> > > \n> > > If I understand correctly, with this patch it would be absolutely\n> > > necessary to use the original problem and the seed to be able to\n> > > recreate the distribution of answers, correct?\n> > > \n> > > —\n> > \n> > That's correct: the raw choice_0 in the log stream will mean different\n> > things depending on the seed, so you can't just count them in their raw\n> > form. It would be easy enough to put a little permutation hint, e.g. \n> > [1,\n> > 0, 3, 2], in the log stream, although that would muddy the clarity of\n> > the design -- currently the log is just what the student did, and\n> > knowledge of the problem is in the problem. The total amount of info\n> > about the problem is rather large (i.e. you wouldn't want to log it all\n> > again and again), so ultimately, the analytics side must be comfortable\n> > getting info from the real problem.\n> > \n> > My guess is that we should leave the log format as it is. The analytics\n> > side could have a get_native_choice() function that takes the logged\n> > choice and the problem and gives you the \"native\" choice_0 choice_1.\n> > Just build the function once and analytics can use it forever, so this\n> > doesn't seem like a big cost. It could be a function on the problem\n> > object itself, so you just construct the problem object and let it\n> > translate for you. Or it could return the above [1, 0 , 3, 2] hint, so\n> > the caller can see how the problem was laid out. That sort of code is\n> > trivial to implement inside the problem.\n> > \n> > > Reply to this email directly or view it on GitHub\n> > > https://github.com/edx/edx-platform/pull/1499#issuecomment-27725152.\n> > \n> > —\n> > Reply to this email directly or view it on \n> > GitHubhttps://github.com/edx/edx-platform/pull/1499#issuecomment-27731528\n> > .\n> \n> —\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27731999.\n",
+        "timestamp": "2013-11-04T23:39:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "jinpa",
+        "role": "CONTRIBUTOR",
+        "body": "How about a variant of your (1) variation where we log using the native\nnumbering, so any processes that currently expect the logs to look the way\nthey do now, and produce aggregations, will produce aggregations using the\nnative ordering, so the user will get what they expect and probably want.\n BUT: we also jam in some extra fields that say \"this was shuffled\"\n({\"'shuffled':1\"}, and \"here's where this native choice was presented to\nthis user\"{'order':2}?  That way we can use those logs for debugging, and\nif we ever want to look at that data, it's there?\n\nOn Mon, Nov 4, 2013 at 3:39 PM, Nick Parlante notifications@github.comwrote:\n\n> I would say that log-only analysis is not formally supported right now,\n> but it happens to work. The crop of problem-randomizing features coming\n> down the pike will certainly break this sort of analysis. I think the\n> problem objects are just going to get steadily bigger and more\n> complicated, which will enable better teaching, AND necessarily will\n> make analytics more complicated.\n> \n> If we want to support log-only analytics, then I'll say there are two\n> paths:\n> \n> (1) The easy way is that we record minimally what happened, but do not\n> record the full state of the problem. E.g. we can record [1, 0, 2, 3]\n> BUT we don't record that the 3 had the rarely used @ option set, or that\n> it was an \"all of the above\" choice, or began with uppercase letters, or\n> any other of the countless little details that make up a problem.\n> Essentially, the person doing the analysis is responsible for accessing\n> all of the problems out of band and knowing what state they are in. It\n> sounds like this is actually the current practice.\n> \n> A variation of (1) I just thought of is we could log always using the\n> native numbering .. that's pretty darn simple and resembles the current\n> logs exactly. The cost is it really makes debugging a headache, since\n> the user submits choice_3 but it gets logged as choice_0. Recording the\n> [1, 0, 2, 3] avoid that problem.\n> \n> (2) Record all of the state/setting of the problem in the log, which\n> could be rather a lot, but does mean the analytics side does not need to\n> access the problem object. I think this is the wrong approach. The\n> problem object already stores everything there is to know about a\n> problem and will be maintained to do so in the future as more features\n> are added. So if you want to know all of the state of a problem... get\n> yourself a problem object.\n> \n> I think the costs of the (1) approaches above are pretty low, so I'm\n> fine doing that if we decided we want to support the log-only case.\n> \n> On 11/4/13 3:02 PM, jinpa wrote:\n> \n> > My sense is that some people working with the data may be working with\n> > the\n> > logfiles, and getting what they can from those, without using the models.\n> > Can you go over what the downside would be to also logging the \"native\"\n> > choice, so that someone could do an aggregation of how many students\n> > chose\n> > which option without needing to use a get_native_choice() function? Is\n> > the\n> > issue that the extra field might break someone's log parser?\n> > \n> > On Mon, Nov 4, 2013 at 2:56 PM, Nick Parlante\n> > notifications@github.comwrote:\n> > \n> > > On 11/4/13 1:39 PM, Carlos Andrés Rocha wrote:\n> > > \n> > > > ....\n> > > > \n> > > > If I understand correctly, with this patch it would be absolutely\n> > > > necessary to use the original problem and the seed to be able to\n> > > > recreate the distribution of answers, correct?\n> > > > \n> > > > —\n> > > \n> > > That's correct: the raw choice_0 in the log stream will mean different\n> > > things depending on the seed, so you can't just count them in their raw\n> > > form. It would be easy enough to put a little permutation hint, e.g.\n> > > [1,\n> > > 0, 3, 2], in the log stream, although that would muddy the clarity of\n> > > the design -- currently the log is just what the student did, and\n> > > knowledge of the problem is in the problem. The total amount of info\n> > > about the problem is rather large (i.e. you wouldn't want to log it all\n> > > again and again), so ultimately, the analytics side must be comfortable\n> > > getting info from the real problem.\n> > > \n> > > My guess is that we should leave the log format as it is. The analytics\n> > > side could have a get_native_choice() function that takes the logged\n> > > choice and the problem and gives you the \"native\" choice_0 choice_1.\n> > > Just build the function once and analytics can use it forever, so this\n> > > doesn't seem like a big cost. It could be a function on the problem\n> > > object itself, so you just construct the problem object and let it\n> > > translate for you. Or it could return the above [1, 0 , 3, 2] hint, so\n> > > the caller can see how the problem was laid out. That sort of code is\n> > > trivial to implement inside the problem.\n> > > \n> > > > Reply to this email directly or view it on GitHub\n> > > > <https://github.com/edx/edx-platform/pull/1499#issuecomment-27725152\n> > > > .\n> > > \n> > > —\n> > > Reply to this email directly or view it on\n> > > GitHub<\n> > > https://github.com/edx/edx-platform/pull/1499#issuecomment-27731528>\n> > > \n> > > .\n> > \n> > —\n> > Reply to this email directly or view it on GitHub\n> > https://github.com/edx/edx-platform/pull/1499#issuecomment-27731999.\n> \n> —\n> Reply to this email directly or view it on GitHubhttps://github.com/edx/edx-platform/pull/1499#issuecomment-27734435\n> .\n",
+        "timestamp": "2013-11-04T23:47:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "@nparlante just a ping here to know if there is anything you need from us.\n\nI had a conversation with @stroilova and she mentioned that this situation could be easily be avoided if `<choices>` had a `name` attribute as in:\n\n```\n<problem>\n  <multiplechoiceresponse>\n    <choicegroup type=\"MultipleChoice\" shuffle=\"true\">\n      <choice name='apple' correct=\"false\">Apple</choice>\n      <choice name='banana' correct=\"false\">Banana</choice>\n      <choice name='choco' correct=\"false\">Chocolate</choice>\n      <choice name='donut'  correct =\"true\">Donut</choice>\n    </choicegroup>\n  </multiplechoiceresponse>\n</problem>\n```\n\nI haven't had the cycles to think/verify (it turns out that there is a changes that may be already supported) but I thought it was something interesting to bring up.\n",
+        "timestamp": "2013-11-06T19:56:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Hmm, that would certainly make things more direct on the analytics side, \nbut my bias would be to not increase the workload of question authoring. \nIn effect choice_0 choice_1 are already zero-authoring-workload \"names\" \nfor each choice (not super useful names, but with the minimum needed info).\n\nOn 11/6/13 11:56 AM, Carlos Andrés Rocha wrote:\n\n> @nparlante https://github.com/nparlante just a ping here to know if \n> there is anything you need from us.\n> \n> I had a conversation with @stroilova https://github.com/stroilova \n> and she mentioned that this situation could be easily be avoided if \n> |<choices>| had a |name| attribute as in:\n> \n> |<problem>\n>    <multiplechoiceresponse>\n>      <choicegroup type=\"MultipleChoice\" shuffle=\"true\">\n>        <choice name='apple' correct=\"false\">Apple</choice>\n>        <choice name='banana' correct=\"false\">Banana</choice>\n>        <choice name='choco' correct=\"false\">Chocolate</choice>\n>        <choice name='donut'  correct =\"true\">Donut</choice>\n>      </choicegroup>\n>    </multiplechoiceresponse>\n> </problem>\n> |\n> \n> I haven't had the cycles to think/verify (it turns out that there is a \n> changes that may be already supported) but I thought it was something \n> interesting to bring up.\n> \n> —\n> Reply to this email directly or view it on GitHub \n> https://github.com/edx/edx-platform/pull/1499#issuecomment-27907726.\n",
+        "timestamp": "2013-11-06T21:19:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "@rocha Well it looks like the most popular choice is to put enough extra stuff into the logs so that simple analytics works without requiring info from the problem itself. Could the info go at the same level as \"hint\" (below), something like:\n\n \"shuffle\":\"true\", \"shuffle-order\":[1, 0, 3, 2]\n\nor maybe it's simpler to write the array as [\"choice_1\", \"choice_0\", ...]\n\nIf you want to see the actual text of the choices, you have to load the problem, which is just how it works now.\n\nMy other question is: what's the line that makes that log entry? I have no idea how that all works, but no double I can figure it out once I know where it is.\n\nReference: here's what the log looks like now, dumped form SQL:\n\n2013-10-22 22:23:40.658495|1.0|1.0|{\"correct_map\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {\"hint\": \"\", \"hintmode\": null, \"correctness\": \"correct\", \"npoints\": null, \"msg\": \"\", \"queuestate\": null}}, \"input_state\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {}}, \"attempts\": 2, \"seed\": 282, \"done\": true, \"student_answers\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": \"choice_2\"}}||4|52\n",
+        "timestamp": "2013-11-08T19:13:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "stroilova",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you, @rocha, for highlighting the grading/analytics/research needs here.\n\n@nparlante, am I correct in understanding that choice_0, choice_1 etc. is the order that the problems were presented to the student (NOT the order written in the courseware?)\n\nIf the choices are \"apple\" and \"banana\", would choice_0 sometimes mean \"apple\" and sometimes \"banana\"?\n\nSorry to ask such a basic question!\n",
+        "timestamp": "2013-11-08T21:57:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @stroilova  -- no problem, it _is_ kind of confusing.\n\nThe proposal is to log with choice_0 with the most direct meaning: choice_0 is always A (the first choice as authored), choice_1 is B and so on. In fact, this is what choice_NN means in the logs now.\n\nThe complexity is that the choices may be displayed in some other order to the student (\"shuffled\").\nSomething in the log like this: shuffle-order:[1, 0, 2, 3]\ncould let whatever is looking at the logs know about the displayed order in case they care. But mostly I think the analysis can just use choice_0 in the simple way, not worrying that the display order was different.\n",
+        "timestamp": "2013-11-09T00:11:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "stroilova",
+        "role": "CONTRIBUTOR",
+        "body": "Very good. That is better than I had thought.\n\n@nparlante As you mention above, it would also be good to record the shuffle order, both in the logs and in the problem submission state for advanced experiments with how shuffle affects performance.\n\nI would love to see something like your second option with full names:\n\"maybe it's simpler to write the array as [\"choice_1\", \"choice_0\", ...] \"\n\nThen, it would be easier to link up, and work correctly if the course author used explicit names as an attribute on the choice tag.\n\n(Am I correct in remembering that there is also an explicit name attribute as follows:\n`<choice name=\"choice_A\">A</choice>`\n`<choice name=\"choice_B\">B</choice>` \n\nand that then your code would produce\nresponse: choice_B\nshuffle-order:[\"choice_B\", \"choice_A\"]\n\nfor a student who saw (B, A) and chose B?\n\n)\nOtherwise, @rocha  does this all look good to you? Are there any residual concerns analytics-side?\n",
+        "timestamp": "2013-11-09T18:36:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "stroilova",
+        "role": "CONTRIBUTOR",
+        "body": "FYI:\n\nPR-324\n",
+        "timestamp": "2013-11-09T18:51:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "@cpennington @rocha @shnayder @jaericson Well I think we have agreement on what to log, so it's time to finish this thing off, but I could really use some direction about what line makes that log. I've been unable to find it purely with grep -r and hacking around.\n\n@stroilova hmm, I don't see anything on PR 324 .. I'm guessing you meant something else.\n\nHere's the closest thing I can find in capa_module line 966:\n\n```\n    event_info['grade'] = published_grade['grade']\n    event_info['max_grade'] = published_grade['max_grade']\n    event_info['correct_map'] = correct_map.get_dict()\n    event_info['success'] = success\n    event_info['attempts'] = self.attempts\n    self.system.track_function('problem_check', event_info)\n```\n\nIf I just put some random field in there, it does not go to the log, so I'm guessing it's not quite the right place and/or there's some upper layer logic that's selecting what to log.\n\nSo my questions are: (a) what's the appropriate dict to add in shuffle=true etc. for logging (current format pasted in below for reference). My guess is that it should be at the same level as seed=. And (b) what the places on the .py side make the log. Just jamming stuff into event_info is not doing it. It looks like there are check_problem and rescore-problem cases to log.\n\n2013-10-22 22:23:40.658495|1.0|1.0|{\"correct_map\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {\"hint\": \"\", \"hintmode\": null, \"correctness\": \"correct\", \"npoints\": null, \"msg\": \"\", \"queuestate\": null}}, \"input_state\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": {}}, \"attempts\": 2, \"seed\": 282, \"done\": true, \"student_answers\": {\"i4x-Stanford-CS99-problem-408c0fcffb8c41ec87675d8c3f7a3b5b_2_1\": \"choice_2\"}}||4|52\n",
+        "timestamp": "2013-11-11T19:53:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "brianhw",
+        "role": "CONTRIBUTOR",
+        "body": "@rocha pointed me to this PR, as background for some discussions we're having in analytics.  But I found your reference to the \"log\" to be confusing.  It looks a lot like the state that is persisted to StudentModule.  That's not where track_function writes, so if you make changes to event_info and find that they're not appearing in StudentModule, that would make sense.  What I see in logs/tracking.log in my dev environment are log messages more like this, where the \"event\" dict should contain the contents of event_info:\n\n{\n\"username\": \"test\", \n\"host\": \"localhost\", \n\"event_source\": \"server\", \n\"event_type\": \"problem_check\", \n\"time\": \"2013-09-24T21:29:52.477531+00:00\", \n\"ip\": \"127.0.0.1\", \n\"event\": {\n  \"success\": \"correct\", \n  \"correct_map\": {\"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_4_1\": {\"hint\": \"\", \"hintmode\": null,     \"correctness\": \"correct\", \"msg\": \"\", \"npoints\": null, \"queuestate\": null}, \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_3_1\": {\"hint\": \"\", \"hintmode\": null, \"correctness\": \"correct\", \"msg\": \"\", \"npoints\": null, \"queuestate\": null}, \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_2_1\": {\"hint\": \"\", \"hintmode\": null, \"correctness\": \"correct\", \"msg\": \"\", \"npoints\": null, \"queuestate\": null}}, \n  \"attempts\": 1, \n  \"answers\": {\"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_4_1\": \"5\", \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_3_1\": \"4517\", \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_2_1\": \"3.14\"}, \n  \"state\": {\"student_answers\": {}, \"seed\": 1, \"done\": false, \"correct_map\": {}, \"input_state\": {\"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_4_1\": {}, \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_3_1\": {}, \"i4x-BHW-BET101-problem-c6899caf7a4f42efb8b0e112a4089b4f_2_1\": {}}}, \n  \"problem_id\": \"i4x://BHW/BET101/problem/c6899caf7a4f42efb8b0e112a4089b4f\"}, \n\"agent\": \"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.65 Safari/537.36\", \n\"page\": \"x_module\"\n}\n",
+        "timestamp": "2013-11-18T18:51:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "@brianhw Hey Brian -- sorry, I think my post was not clear. I was saying that track_function looked sort of like what was writing the log, but I was not sure that it was, and really we needed someone who understands analytics to point out what the correct way is to get an extra couple fields into courseware_studentmodulehistory. I'm guessing you are that someone. We have a consensus on what to record, but I did not know where in the code that stuff gets written.\n\nJust as a recap, the consensus is to record choices with a  \"choice_0\" scheme, where the \"0\" refers to the order as seen by the question author. In that way, it will look just like now. Then we'll record some other field for the curious in analytics what the \"presentation\" order of the choices were, which can vary randomly with the shuffle feature active. So if someone wants to study how the presentation order affects things, they have the data to do that.\n",
+        "timestamp": "2013-11-18T19:11:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "nparlante",
+        "role": "CONTRIBUTOR",
+        "body": "Jane reminds me that courseware_studentmodulehistory is not the right thing anymore. The basic question remains: what is the correct way to record this info for the later analytics and whatnot.\n",
+        "timestamp": "2013-11-18T21:19:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "brianhw",
+        "role": "CONTRIBUTOR",
+        "body": "Add the desired fields to event_info before it is written by the self.system.track_function() call.  To confirm, look in logs/tracking.log if you're running in a dev environment.\n",
+        "timestamp": "2013-11-18T21:40:54Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ab7d3b5",
+        "message": "Multiple-choice features\n\nFeatures by Jeff Ericson and Nick Parlante squashed\ndown to one commit.\n\n-shuffle of choices within a choicegroup (Nick)\n-answer-pool subsetting within a choicegroup (Jeff)\n-masking of choice names within a choicegroup, (Nick)\n used by shuffle and answer-pool\n-targeted-feedback within a multiplechoiceresponse (Jeff)\n-delay-between-submissions capa feature (Jeff)",
+        "author": "Nick Parlante",
+        "timestamp": "2013-10-03T17:41:24Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#6397",
+    "metadata": {
+      "title": "Studio: Create groups for cohorted content",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2015-01-14T20:02:56Z",
+      "reviewers": [],
+      "changed_files": 20
+    },
+    "issue_payload": {
+      "body": "TNL-736\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie @catong @frrrances: Sandbox is up at http://studio.dan-f.m.sandbox.edx.org/course/\n\nA few things:\n- @frrrances: the cohorted content groups look a little large to me.\n- @cahrens thinks we should hide the content experiment section if it's not enabled. What do you think, @explorerleslie?\n- @catong we'll need doc for the 'Cohorted Content' and 'Experiment Groups' sections, as well as for the right-hand-side of the page.\n\nI'll work on tests in the meantime.\n",
+        "timestamp": "2015-01-05T18:59:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@dan-f yes, we should hid the content experiment section if the split_test module isn't turned on. \n",
+        "timestamp": "2015-01-05T19:18:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "This is totally unrelated to @dan-f 's new work, but we don't seem to be clipping whitespace at the end of group names, so you can end up with groups that seem like duplicates. I wonder if we should be trimming whitespace before/after a string? @cahrens do we have any standards like that in Studio? \n\n![image](https://cloud.githubusercontent.com/assets/5643426/5618375/6109837e-94e6-11e4-8089-2cf07a77989e.png)\n",
+        "timestamp": "2015-01-05T19:23:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@dan-f looking good! Couple of comments: \n- It seems like we are using two different text colors for group names between content experiments and cohorted content groups. Content experiments are black text but cohorted content groups are dark gray.\n- In the add/edit view for cohorted content groups, instead of \"Cohort name\" it should be \"Cohorted content group name\" (This might be part of a larger UI text string effort by @catong). \n",
+        "timestamp": "2015-01-05T19:28:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f What works best for you wrt getting edits in for the group configurations html page? I can create a separate PR or let you know my edits?\n",
+        "timestamp": "2015-01-05T22:42:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@catong feel free to share your edits and I will commit them.\n",
+        "timestamp": "2015-01-05T22:46:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks, @dan-f Tomorrow OK?\n",
+        "timestamp": "2015-01-05T22:46:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "Sure thing, @catong\n",
+        "timestamp": "2015-01-06T14:23:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f I adjusted the sizing and alignment a little. Thanks for noting that.\n@explorerleslie I changed the titles to be the same black. Thanks!\n",
+        "timestamp": "2015-01-06T16:37:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@talbs Can you review my FED work?\n",
+        "timestamp": "2015-01-06T16:37:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "talbs",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances, aside from my small nits/questions, this looks really good. Tthanks so much for cleaning up the primary/secondary actions of this view. It makes me want to do the same for all other Studio views :)\n\nNice work to you and @dan-f!\n\n:+1: \n",
+        "timestamp": "2015-01-06T19:14:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@dan-f, I had a come-to-Jesus moment with @catong about the naming of cohorts and content groups while reviewing the doc. We're making the following change across the platform: \n\n(old) Cohort group(s) = (new) Cohort(s)\n(old) Cohorted content group(s) = (new) Content group(s)\n\n@cahrens mentioned that we should make this change in this PR to the areas you're touching, so that you can not only sync up the naming of the UI text strings but also your class names. \n\nCan you please make this change? Let me know if you have questions. \n",
+        "timestamp": "2015-01-07T20:28:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f, are you OK with including the text I just supplied for group_configurations.html in your changes? If not, let me know and I can do it. Thanks!\n",
+        "timestamp": "2015-01-07T20:59:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@catong @explorerleslie I've got an updated sandbox http://studio.dan-f.m.sandbox.edx.org/course/\n\nIt should have addressed all doc concerns. If not, let me know!\n",
+        "timestamp": "2015-01-08T21:12:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@frrrances can we get a little help with spacing between the 2 \"help\" sections? I may have caused this by putting a div around each one (which I needed for a bok choy test). If I can't have the div's, let me know and we can try to think of something else.\n\n![image](https://cloud.githubusercontent.com/assets/484484/5671865/6e48fe82-9759-11e4-84af-2cbd355afcc6.png)\n",
+        "timestamp": "2015-01-08T22:21:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong please review\n",
+        "timestamp": "2015-01-09T15:06:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f Don't forget to add `user_partitions` back to the list of advanced settings that are hidden.\n",
+        "timestamp": "2015-01-09T18:55:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "I think that you should show the content groups in alphabetical order so that there is a consistent order. Right now it is probably in the order persisted in the XML, but users can't easily change that.\n\n![image](https://cloud.githubusercontent.com/assets/5985072/5685366/8f13b108-9807-11e4-8e2b-7905b34b6078.png)\n",
+        "timestamp": "2015-01-09T18:58:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances The spacing seems a little off. I would expect the spacing between items to be less than the spacing between the first item and the header. Currently it is the opposite.\n\n![image](https://cloud.githubusercontent.com/assets/5985072/5685377/b37d1afc-9807-11e4-9372-99c6cb962313.png)\n",
+        "timestamp": "2015-01-09T18:59:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong @cahrens I have responded to your feedback. Note that there are now bok-choy failures due to the alphabetical sorting of groups - do we want this sorting _just_ on content groups, or on groups belonging to group configurations as well?\n",
+        "timestamp": "2015-01-11T19:35:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f I'd say both sections should be alphabetical.\n",
+        "timestamp": "2015-01-11T22:05:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong - when you say \"both sections should be alphabetical,\" are you suggesting that we order both content groups and experiment configurations alphabetically? Or that we order content groups and groups _belonging to_ experiment configurations alphabetically?\n\nOne issue is whether or not we sort the collection the moment a model is added (can control this by passing {sort: true/false} as an option to collection.add(). I opted not to do this, since the UX of adding a group to the bottom of the list and seeing it inserted in the middle can be confusing, but there are quirks in either case.\n\n@explorerleslie any thoughts on the ordering of content groups/experiment configurations/groups within configurations?\n",
+        "timestamp": "2015-01-11T22:22:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens @andy-armstrong please re-review.\n\n@andy-armstrong: Note that after discussing with @explorerleslie, we decided to revert the alphabetical ordering, since it introduced UX quirks around saving and refreshing content groups / experiment configurations, and therefore didn't seem any better than the current ordering logic.\n",
+        "timestamp": "2015-01-12T15:48:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "Done reviewing-- looking really good! Let me know when my comments are addressed and you and @frrrances have the class names set.\n",
+        "timestamp": "2015-01-12T17:09:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f @explorerleslie Having randomly ordered UIs is one of my pet peeves. Without delete or reorder, it means that if the user ends up with a group that they don't want they will be stuck with it sitting in the middle of their list. Having alphabetical ordering allows the user to find an item easily when they have a few, and it also makes it possible to use a naming convention to move items to the end.\n\nBTW, maybe the problem is that you were sorting the model which is unnecessary (and incorrect as it it sending an updated order back to the server). I was thinking that you'd just sort the collection (non-destructively) when you iterate it to produce the child views. Was the UX problem that the new item wasn't necessarily added at the end?\n\nAnyway, I understand that given the tight deadline it isn't something we should do now. However, we should always consider ordering in the future as having a seemingly random order is never the right solution. Showing items in the order they were created is fine if only one author is working on the project, but as we do re-runs and other authors come and go, then that order ends up appearing to be random.\n",
+        "timestamp": "2015-01-12T17:21:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "I've finished my review. :+1: once the font awesome issue is addressed, and you can decide whether or not to address my minor nits. Great work!\n",
+        "timestamp": "2015-01-12T21:26:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": ":+1: for the changes since my review.\n",
+        "timestamp": "2015-01-13T22:25:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@talbs Can you re-review now that I've created the collection pattern?\n",
+        "timestamp": "2015-01-14T14:39:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "I just skimmed through the entire PR again. Except for the one issue I noted, :+1: Great work, Dan!\n",
+        "timestamp": "2015-01-14T16:30:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "talbs",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances, I took a second spin through. Nice work abstracting things out. I made one note that we should follow up about (https://github.com/edx/edx-platform/pull/6397/files#r22957589) in a future UI clean up task.\n\nAside from that, I had a few small questions and nits - feel free to ignore the nits if time is super sensitive. Happy to give thumbs once any dust you're kicking up around my feedback is settled.\n",
+        "timestamp": "2015-01-14T18:28:36Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": []
+  },
+  {
+    "story_id": "openedx/openedx-platform#14362",
+    "metadata": {
+      "title": "Move modal show course outline and breadcrumbs",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-02-08T11:00:37Z",
+      "reviewers": [
+        "mushtaqak",
+        "catong",
+        "muzaffaryousaf"
+      ],
+      "changed_files": 21
+    },
+    "issue_payload": {
+      "body": "#### [TNL-6060](https://openedx.atlassian.net/browse/TNL-6060)  [TNL-6301](https://openedx.atlassian.net/browse/TNL-6301) [TNL-6307](https://openedx.atlassian.net/browse/TNL-6307)\r\n\r\n### [Sandbox for this PR](https://studio-move-dialog.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@vertical+block@vertical_0270f6de40fc)\r\n\r\n\r\n### [Sandbox for full feature](https://studio-movexblockcomponent.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@vertical+block@vertical_0270f6de40fc)\r\n\r\n### Testing\r\n- [x] Jasmine\r\n- [x] i18n\r\n- [x] RTL\r\n\r\n### Post-review\r\n- [ ] Squash commits\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run bokchoy",
+        "timestamp": "2017-01-31T13:14:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong Can you please review the changes. ",
+        "timestamp": "2017-01-31T13:15:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@muhammad-ammar Since you pushed changes in same files where i left feedback and github just out dated the feedback, just because of changes that you pushed, so don't forget to address outdated feedback.",
+        "timestamp": "2017-01-31T13:51:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "chris-mike",
+        "role": "NONE",
+        "body": "The CSS changes look good. Thanks @muzaffaryousaf \r\n",
+        "timestamp": "2017-01-31T14:20:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@chris-mike For css changes this is right PR but for full feature please consider this [PR](https://github.com/edx/edx-platform/pull/14352)",
+        "timestamp": "2017-01-31T14:22:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I'm starting my review by looking at the sandbox. \r\n\r\nMy main impression is that I really don't like the navigation. I was expecting to see the name of the unit where I was going to move it to, but all I saw was a list of chapters. My first impression was that clicking on a chapter would move the component there. I decided to click on one and then saw that it was more of a drill-down (I guess that's what the => means). I then found it difficult to find the unit I wanted because I had to drill in and out to multiple levels, and then drill down again remembering which path I'd already been down.\r\n\r\nIMO reusing the course outline would be a much better UX because it is easier to expand and collapse in place to find the unit you're looking for. It also is visually consistent with the rest of Studio, and authors are used to working with the tree.\r\n",
+        "timestamp": "2017-01-31T14:35:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@andy-armstrong please look at this [sandbox](https://studio-movexblockcomponent.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@vertical+block@vertical_0270f6de40fc), this have full changes including this [PR](https://github.com/edx/edx-platform/pull/14352). Hopefully navigation will make sense to you.",
+        "timestamp": "2017-01-31T14:38:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@andy-armstrong Also showing the list of chapters was an request from product & UX.",
+        "timestamp": "2017-01-31T14:39:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar Another key problem with the current design is that it doesn't support nested components such as content experiments. It appears to be restricted to only allow the user to navigate to a unit, but that means that a component can't be moved into or out of a content experiment. There are courses that have components that are parented into sections or subsections (I don't remember the example), and there are certainly many cases now of container components that can themselves contain other components. \r\n\r\nI added a test content experiment to the course if you want to see the current behavior:\r\n\r\nhttps://studio-move-dialog.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@split_test+block@a374393d3ae14e5b9835b8a48b3dd0b8\r\n\r\nIMO this modal needs to have no limitations built into it around the kind of blocks that are allowed at each level. This would also allow this same modal to be used for folks to be able to move units between subsections, subsections between sections, etc. We might want to have some validation so that folks are warned if they are putting a block in an unusual place, but I don't think we want to disallow this.\r\n\r\n",
+        "timestamp": "2017-01-31T14:41:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar Is there a future plan to add search to the move modal? That might reduce my concern with trying to find the right location of the unit that I wish to move a component to, although I still think that a tree is the natural way to display this information. I'm thinking of the Confluence move modal, or even how file systems support tree-based navigation to move files around. I think the current UX is too difficult to work with for even a medium size course.",
+        "timestamp": "2017-01-31T14:44:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "> @muhammad-ammar Is there a future plan to add search to the move modal? That might reduce my concern with trying to find the right location of the unit that I wish to move a component to, although I still think that a tree is the natural way to display this information. I'm thinking of the Confluence move modal, or even how file systems support tree-based navigation to move files around. I think the current UX is too difficult to work with for even a medium size course.\r\n\r\n@andy-armstrong Product @sstack22 and we don't have any plans to implement search AFAIK but shelby can answer this better. ",
+        "timestamp": "2017-01-31T14:47:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muzaffaryousaf There is a problem with that other sandbox. I'm getting a 500 error on the course outline:\r\n\r\nhttps://studio-movexblockcomponent.sandbox.edx.org/course/course-v1:edX+DemoX+Demo_Course",
+        "timestamp": "2017-01-31T15:51:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "mushtaqak",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong Sorry for the this, but I have re-build the sandbox to reflect the latest changes of @muhammad-ammar, you should be able to check in 30 minutes :)",
+        "timestamp": "2017-01-31T15:57:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar In the move success message, is the contrast what we usually use? When the text of \"Take me to the new location\" is selected the blue is very dark.\r\n![movesuccessmessage](https://cloud.githubusercontent.com/assets/9041399/22474953/88d80f3c-e7ab-11e6-8ad0-5872233c4b18.png)\r\n",
+        "timestamp": "2017-01-31T16:51:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "mushtaqak",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong Sandbox is updated you should be able to access now :)",
+        "timestamp": "2017-01-31T17:55:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "> @muhammad-ammar Another key problem with the current design is that it doesn't support nested components such as content experiments. It appears to be restricted to only allow the user to navigate to a unit, but that means that a component can't be moved into or out of a content experiment. There are courses that have components that are parented into sections or subsections (I don't remember the example), and there are certainly many cases now of container components that can themselves contain other components.\r\nI added a test content experiment to the course if you want to see the current behavior:\r\nhttps://studio-move-dialog.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@split_test+block@a374393d3ae14e5b9835b8a48b3dd0b8\r\nIMO this modal needs to have no limitations built into it around the kind of blocks that are allowed at each level. This would also allow this same modal to be used for folks to be able to move units between subsections, subsections between sections, etc. \r\n\r\n@sstack22 Any thoughts on this ^^.  https://openedx.atlassian.net/browse/TNL-6061",
+        "timestamp": "2017-01-31T18:18:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar @sstack22 I've added a test content experiment to the new sandbox too:\r\n\r\nhttps://studio-movexblockcomponent.sandbox.edx.org/container/block-v1:edX+DemoX+Demo_Course+type@split_test+block@139ab4fb9d3a436ea6ceca2345d61dee\r\n",
+        "timestamp": "2017-01-31T18:25:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@muhammad-ammar can you add a11y bokchoy & plain end 2 end bokchoy to make sure that move works as expected.",
+        "timestamp": "2017-02-01T13:43:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar @muzaffaryousaf I forgot to say yesterday that I will wait to do my review until   there is a decision about my feedback, since the code will likely have to change if folks agree. @sstack22 @chris-mike, what were your thoughts?",
+        "timestamp": "2017-02-01T15:16:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "sstack22",
+        "role": "NONE",
+        "body": "Thanks for the feedback @andy-armstrong! For this particular PR, I think we'll hold off on any UX changes (re: using the tree-based structure), but we can consider as we plan for follow-on move work (extending it to all levels in the course structure + ability to move between courses). I'll also look into how we should best handle content experiments, but given that 2-3% of courses use content experiments, I'm comfortable addressing post initial release. ",
+        "timestamp": "2017-02-01T16:49:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "mushtaqak",
+        "role": "CONTRIBUTOR",
+        "body": "@catong I have used the default anchor, may it's shown like this because it has black background.",
+        "timestamp": "2017-02-01T19:11:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong @sstack22 I can add a note to the documentation about \"Move\" not being supported with nested components. I can run the specific language by you in the doc PR, but something like: \"In cases where components are nested, such as content experiments, you cannot use **Move** to move child components between units.\"",
+        "timestamp": "2017-02-01T20:42:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@sstack22 @muhammad-ammar I ran through some scenarios with @andy-armstrong. The behavior we're seeing is that the Move button is grey (disabled) when we try to move a child component out of a content experiment. Can you please confirm whether this is a bug (it should be allowed) or whether it is the expected behavior (in which case can we handle the situation with an error message, or disable the Move icon)?",
+        "timestamp": "2017-02-01T22:10:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@shelby @andy-armstrong I think we can hide the move button from content experiment's children component and add full support for content experiments after we roll out basic move. ",
+        "timestamp": "2017-02-02T13:04:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@andy-armstrong Any plan to continue review on this PR ?",
+        "timestamp": "2017-02-02T14:29:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muzaffaryousaf Yes, it is next on my list for this morning. ",
+        "timestamp": "2017-02-02T14:38:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "@andy-armstrong Thank you!!",
+        "timestamp": "2017-02-02T14:39:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@mushtaqak Thanks for your response on the contrast issue. I'm not clear what you mean by the default anchor. But I guess the question is, does the dark blue text on black background meet our contrast requirements? ",
+        "timestamp": "2017-02-02T15:22:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "mushtaqak",
+        "role": "CONTRIBUTOR",
+        "body": "@chris-mike @cptvitamin what should be the color on the hover state of the 'Take me to the new location' link on success confirmation message ?",
+        "timestamp": "2017-02-02T15:44:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "I also just found that if you make your browser window narrower, at some point the \"X\" to dismiss the success message is not visible.\r\n![cannotdismiss](https://cloud.githubusercontent.com/assets/9041399/22562435/7fa15590-e94a-11e6-99ae-db420cbcbacb.png)\r\n",
+        "timestamp": "2017-02-02T18:21:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar @catong It's probably out-of-scope, but the best bet for a11y would be to use the Pattern Library's alert pattern: \r\n\r\nhttp://ux.edx.org/components/alerts/",
+        "timestamp": "2017-02-02T18:26:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "mushtaqak",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong Are these available in JS util views ? like the one that I have used is `SystemFeedback`'s  child view. Is pattern library 's `Success Alert with Title and Message` is used in studio somewhere ?\r\n\r\n@muzaffaryousaf @sstack22 thoughts ?",
+        "timestamp": "2017-02-02T18:36:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I don't think that Studio is using the pattern library yet, so it probably is too big a change to make. I recommend talking to @cahrens who will be leading the upcoming work on Studio.",
+        "timestamp": "2017-02-02T19:33:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@chris-mike Can we replace all the colors in this PR with appropriate colors from [_variables.scss](https://github.com/edx/edx-platform/blob/master/cms/static/sass/partials/_variables.scss)? If no then which file is the most appropriate place to declare new color variables to be used in the PR?\r\n\r\n@andy-armstrong ^^",
+        "timestamp": "2017-02-03T06:29:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong @muzaffaryousaf @mushtaqak I have addressed your feedback.",
+        "timestamp": "2017-02-03T12:40:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@mushtaqak @cptvitamin @sstack22 @andy-armstrong I'm still concerned about the blue link text in the success message that gets even darker on hover. Without greatly increasing the scope can we improve a11y by changing the link text color for these types of messages? \r\n\r\n![successmessagelinktextdark](https://cloud.githubusercontent.com/assets/9041399/22597611/4fae72aa-e9fe-11e6-8e01-4692507208fc.png)\r\n ",
+        "timestamp": "2017-02-03T15:48:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "chris-mike",
+        "role": "NONE",
+        "body": "@mushtaqak \r\nFor links on the success messaging, I suggest going with one of the lighter blues in the pattern library. B/c of the lack of contrast (between white text and light blue link), I would prefer also that you underline both links by default.\r\n\r\nDefault: \r\npalette(primary, x-back) RGB: rgb(242, 248, 251) HEX: f2f8fb\r\n\r\nOn focus/hover\r\npalette(primary, back) RGB: rgb(204, 227, 240) HEX: cce3f0",
+        "timestamp": "2017-02-03T15:54:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@catong Thanks for calling that out, Carol! Yes, please make sure there are no accessibility issues with the feature before it is merged. ",
+        "timestamp": "2017-02-03T15:58:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar thanks for addressing my feedback. There's one comment remaining that I didn't see a response to, plus I'd like to see all of the Sass use variables for colors and font sizes (either existing variables, or introduce new ones if necessary). Let me know when that's all set and I'll do a final review.",
+        "timestamp": "2017-02-03T16:17:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run all",
+        "timestamp": "2017-02-06T14:42:01Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "bb07160",
+        "message": "Move modal show course outline with breadcrumb\n\nTNL-6060",
+        "author": "muhammad-ammar",
+        "timestamp": "2017-01-23T07:54:41Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#6190",
+    "metadata": {
+      "title": "Public Course Import/Export API",
+      "labels": [
+        "open-source-contribution",
+        "awaiting prioritization"
+      ],
+      "qualities": [
+        "deployability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2015-07-02T20:29:41Z",
+      "reviewers": [],
+      "changed_files": 22
+    },
+    "issue_payload": {
+      "body": "This is a public, shared, versioned, RESTful API for importing and exporting full course content. The code was initially ripped from the existing import/export API in the CMS contentstore djangoapp and wrapped in Django Rest Framework view classes. It's simply a new djangoapp in the _openedx_ directory with 4 views:\n- GET /api/v1/courses - List courses (course keys) for which the user has full author access\n- GET /api/v1/courses/{course_key} - Export a full course in the form of a tarball\n- POST /api/v1/courses/{course_key} - Import a full course tarball\n- GET /api/v1/courses/{course_key}/import_status/{filename} - View the status of a course import (see https://github.com/edx/edx-platform/pull/6190/files#diff-4c6e0b7531e770ee217a370f8d990ac8R108)\n\nThis PR includes configuration changes. Most notably, Studio is configured to serve the OAuth2 provider alongside the LMS.\n\nHere's the relevant thread on the code list: https://groups.google.com/forum/#!msg/edx-code/DmnHWmly25A/ZqjD1zb4o7oJ\n\nThere are 28 non-covered lines, all of which are missing coverage in the existing CMS API. They're mostly error conditions, such as handling of multipart file upload errors.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "openedx-webhooks",
+        "role": "NONE",
+        "body": "Thanks for the pull request, @bdero! I've created [OSPR-278](https://openedx.atlassian.net/browse/OSPR-278) to keep track of it in JIRA. JIRA is a place for product owners to prioritize feature reviews by the engineering development teams. \n\nFeel free to add as much of the following information to the ticket:\n- supporting documentation\n- edx-code email threads\n- timeline information ('this must be merged by XX date', and why that is)\n- partner information ('this is a course on edx.org')\n- any other information that can help Product understand the context for the PR\n\nAll technical communication about the code itself will still be done via the Github pull request interface. As a reminder, [our process documentation is here](http://edx-developer-guide.readthedocs.org/en/latest/process/overview.html).\n",
+        "timestamp": "2014-12-09T03:41:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero can I have some more context around this pull request? Is there communication (arch review, edx-code mailing list, edX product team) you can share around the design of this work? Please update the description with as much info as you can, perhaps using our [pull request description guidelines](http://edx.readthedocs.org/projects/edx-developer-guide/en/latest/process/cover-letter.html) as inspiration.\n",
+        "timestamp": "2014-12-09T18:20:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@sarina sure, I just updated the description with some more information along with a link to the original thread on the code list.\n",
+        "timestamp": "2014-12-10T18:20:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "1) Is it safe to assume that when you write `{org/course/run}` in your description, you actually mean `{course_key}`, and thus it's possible to use on a SplitMongo based course?\n2) The end-points (again, just looking at your description) don't indicated anything about it being an export. Is that controlled by a content-type negotiation (you asked for the course as a .tar.gz), or is it just assumed that the only meaningful thing that you can get from a `courses` endpoint is an export? Or is there a prefix missing in the description?\n",
+        "timestamp": "2014-12-10T18:58:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@sarina It seems that the four import tests are failing on jenkins while I have the djangoapp in the openedx directory. I just moved the app to cms to test if the build would fail on jenkins and it didn't. In both cases, these tests pass on the devstack I'm using.\n\nThis, along with the tracebacks, are making me suspect that this is a jenkins-specific environment issue:\n\n```\nTraceback (most recent call last):\n  File \"/home/jenkins/workspace/edx-all-tests-auto-pr/SHARD/1/TEST_SUITE/unit/openedx/core/djangoapps/public_api/courses/views.py\", line 290, in post\n    os.mkdir(course_dir)\nOSError: [Errno 2] No such file or directory: '/home/jenkins/workspace/edx-all-tests-auto-pr/SHARD/1/TEST_SUITE/data/org.3315-course_3315-Run_3315'\n```\n",
+        "timestamp": "2014-12-10T19:31:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero when did you last rebase this PR? we had some issues with master through last night.\n",
+        "timestamp": "2014-12-10T20:48:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "mulby",
+        "role": "CONTRIBUTOR",
+        "body": "FYI - there is another PR in flight that also has course API related stuff in it, we may want to unify (or separate), but I thought I would at least call it out: https://github.com/edx/edx-platform/pull/6154\n",
+        "timestamp": "2014-12-10T20:50:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "There was one more URL that I forgot to mention: The import status. It's listed in the description now.\n\n@cpennington \n1. Yep, course_key was what I meant; updated the description.\n2. The **/api/v1/courses/{_course_key_}** end point is intended to be a RESTful endpoint for entire courses. Right now, it only offers _application/x-tgz_ responses to GET, and meets the request with a 406 if it demands otherwise. Given the treatment of courses like self-contained objects here, it seems unexpected to render other content types in response to a GET here, unless of course there are other response types that can practically and accurately represent an entire full course object.\n\n@sarina My last rebase was about a week ago. I just rebased and pushed now to give it another shot; let's see how these tests play out.\n",
+        "timestamp": "2014-12-10T22:14:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "I removed WIP from the title as I think it's ready for review. There are some lines missing coverage, but these same lines are missing coverage in the existing API.\n\n@sarina The tests are still failing with the same tracebacks it seems.\n\n@mulby The server API is very neat, but seems to serve a different purpose:\n1. It's not intended nor designed for user consumption (i.e. for arbitrary authors to use on edx.org for MOOCs): https://github.com/edx/edx-platform/pull/6154/files#diff-cbaa1ec77c9dae925aa0af967f5197b8R13\n2. And it deals exclusively with user/course state rather than course content\n",
+        "timestamp": "2014-12-11T14:37:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "mulby",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero \n1. I wouldn't go as far as to say it is not intended for user consumption. It is not currently supported, but I don't see any reason it couldn't be used directly by users in the future.\n2. I'm not sure I understand your assertion here. The server API does not deal with user state.\n\nAt a minimum there is some endpoint contention since the other API exposes stuff that is not a tarball of course content at the \"root\" of the course resource. It will be confusing to have two such endpoints that both look like the canonical resource.\n\nI'll leave this with @cpennington, though since he knows this area of the code much better than I do. I just saw some potential overlap.\n",
+        "timestamp": "2014-12-11T18:40:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@mulby I think \"user/course state\" was pretty ambiguous of me; what I meant to say was that, from a quick browse, it appears that the intention of the server API is to solve problems other than course publishing (but not course publishing) - is this correct? I agree that \"not intended\" was probably too strong an assumption, and it looks like adding in the authentication and permissions necessary to make it usable by arbitrary users wouldn't take too much effort given its structure.\n\nI can see what you mean by the endpoint contention.\n",
+        "timestamp": "2014-12-11T19:56:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "Yes, the server API wasn't doing course import/export. However, I think using content negotiation to unify the apis would be a reasonable choice.\n",
+        "timestamp": "2014-12-11T20:05:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "I rebased and removed some merge conflicts.\n\n@cpennington That sounds like a good idea. Could we review this branch and merge the server API into this one, or should it go the other way around? This PR is much simpler, but the CMS is refactored to use this API for import/export.\n",
+        "timestamp": "2014-12-15T15:00:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy Thanks for the review. All comments addressed.\n",
+        "timestamp": "2015-01-23T21:10:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "nedbat",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero do you have a sense yet of how the Course API Unification will affect this pull request?\n",
+        "timestamp": "2015-02-05T14:54:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@nedbat As the proposal is very abstract at this point, it's still difficult to tell.\n",
+        "timestamp": "2015-02-05T18:35:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@ormsbee As per yesterday's architecture discussion, could you let me know where you think this API should come into the picture? I.e. where/how do you think this might \"dock in\" in the context of the layered API model as some of the details are being fleshed out?\n",
+        "timestamp": "2015-02-06T18:44:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "ormsbee",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero: Since import/export is mostly a conversation with the modulestore/contentstore I think in concrete terms, it would just mean:\n1. Renaming the new app that this is in to indicate a narrower focus (e.g. \"import_export\"). Maybe in openedx/common/djangoapps/content/import_export.\n2. Changing the URLs to be `/api/import_export/v1/courses/{course_key}` so that the versioning can happen at the app level, rather than for all course information.\n\nThank you.\n",
+        "timestamp": "2015-02-09T17:15:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@mhoeber this PR has documentation impact, however, it is unlikely we will have time to review it in the short term because of its size and high priority asks from many of our partners.\n",
+        "timestamp": "2015-03-19T14:47:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "mhoeber",
+        "role": "CONTRIBUTOR",
+        "body": "Created https://openedx.atlassian.net/browse/DOC-1773\n",
+        "timestamp": "2015-03-19T15:32:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "There are complex merge conflicts cause by these: 8ad4d081fbdc024ed08cd1477380b395d78bb051 8c920b469c28c1a8962676038b8a9f755f709ca6\nI'll need to rip import/export of content libraries out of the CMS and reconstruct these changes to get it all working again.\n",
+        "timestamp": "2015-03-24T13:24:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "I think you'll have to do a rebase to get Jenkins working on your branch :disappointed: \n",
+        "timestamp": "2015-03-24T13:37:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@nedbat @singingwolfboy @sarina I don't think continuing minor refactors of the tests and primary logic in the import/export is in the scope of this PR as most of this code was just moved over from the contentstore app in the CMS. This PR is hard to maintain as-is, and while these are good suggestions, I think additional changes will make maintaining this needlessly harder.\n\nI'm currently trying to reconstruct the changes from https://github.com/edx/edx-platform/commit/8ad4d081fbdc024ed08cd1477380b395d78bb051 in order to get content libraries working. Of course, with the bugs popping up around import/export recently, I suspect I may be playing catchup quite a bit.\n",
+        "timestamp": "2015-03-27T18:12:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "@mhoeber If I was to help draft the API documentation, what existing API documentation would be a good model for the format you prefer?\n",
+        "timestamp": "2015-04-03T19:02:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "There are a few things left to be done with this:\n- [x] Get all tests passing with content libraries\n- [x] The `import_status` state is persisted via session - it needs to be dealt with some other way (like memcached), since session support can't be assumed for clients using OAuth\n- [x] Change URLs to match the recommendation by @ormsbee\n- [x] Remove the course list endpoint for now since there's currently no efficient way to do this in the platform, which needs to be addressed in a larger scope\n",
+        "timestamp": "2015-04-03T19:25:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "mhoeber",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero   we just merged an updated platform API doc in which we are consolidating all the API modules.   See:  https://github.com/edx/edx-platform/tree/master/docs/en_us/platform_api/source\n\nThe mobile subfolder is a good example of putting together the submodules.  \n\nWe are moving towards standardizing the docstrings for the API view classes.  Good examples in https://github.com/edx/edx-platform/blob/master/lms/djangoapps/mobile_api/course_info/views.py\n\nLet me know if I can help.\n",
+        "timestamp": "2015-04-03T19:40:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "ormsbee",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero: Hey, just wanted to check in and see how this was going. :-) Is there anything you wanted to talk about tomorrow?\n",
+        "timestamp": "2015-04-24T03:36:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @ormsbee . Things have been slow with this, but it's just about done. There's just an issue exporting libraries. Nothing in particular that needs a discussion, I'd say.\n\nWould it be possible for me to trigger another jenkins build? Not sure if there's access control for this, but I'll try saying what I see everyone saying: \"test this please\"\n",
+        "timestamp": "2015-04-24T17:40:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "add to whitelist\n",
+        "timestamp": "2015-04-24T17:42:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero I added you to the whitelist which means future builds should properly trigger when you invoke that magic phrase. For your reference, rebasing your commits is another easy way to trigger a fresh build.\n",
+        "timestamp": "2015-04-24T17:43:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "Neat, thanks @sarina !\n",
+        "timestamp": "2015-04-24T17:53:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero I had already started one for you, but you triggered yet another which I think caused the whole thing to fail. I'm going to trigger a new one, please let it run fully before triggering another. You should try to rebase to trigger new builds rather than running the command, when possible (you have no conflicts right now, so next time you want a build try rebasing first). Also, to see our flaky tests, visit http://bit.ly/1w91U41\n",
+        "timestamp": "2015-04-24T18:03:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "Triggered build available at https://build.testeng.edx.org/job/edx-platform-all-tests-pr-flow/4546/. Again, please let this build run fully.\n",
+        "timestamp": "2015-04-24T18:04:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "I think this is ready for review again. I tested everything over and all seems to be working well. I'm unable to reproduce the remainder of the Jenkins test failures on my devstack (they're all passing).\n",
+        "timestamp": "2015-04-28T16:02:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero could you please rebase the PR? There are no conflicts. Being up to date, though, is helpful in diagnosing test failures.\n",
+        "timestamp": "2015-04-28T17:10:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "```\n15:22:56 Quality Report: pep8\n15:22:56 -------------\n15:22:56 ./cms/djangoapps/contentstore/views/import_export.py:122:5: E303 too many blank lines (2)\n15:22:56 ./openedx/core/djangoapps/import_export/courses/views.py:467:33: E131 continuation line unaligned for hanging indent\n15:22:56 ./openedx/core/djangoapps/import_export/courses/tests/test_course_import_export.py:470:43: W292 no newline at end of file\n15:22:56 -------------\n15:22:56 Violations: 3\n15:22:56 FAILURE: pep8 count should be 0\n```\n",
+        "timestamp": "2015-04-28T21:25:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@bdero please address all comments and rebase this branch. Then I will send it to others for more review.\n",
+        "timestamp": "2015-04-28T21:25:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "ormsbee",
+        "role": "CONTRIBUTOR",
+        "body": "@sarina: I'll pick up the next review round, but I might not be able to get to it until tomorrow night.\n",
+        "timestamp": "2015-04-29T15:29:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@ormsbee I'd like @bdero to do the things I've asked for before passing off to another reviewer. There are a bunch of other things for you to review tomorrow night.\n",
+        "timestamp": "2015-04-29T15:34:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "bdero",
+        "role": "CONTRIBUTOR",
+        "body": "All comments addressed.\n",
+        "timestamp": "2015-04-29T20:06:46Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "c94abd2",
+        "message": "edX Course/Library Import/Export API\n\nThis is a public, versioned, RESTful API for importing and\nexporting full course content. The code was initially ripped from the\nexisting import/export API in the CMS contentstore djangoapp and wrapped\nin Django Rest Framework view classes. It's a new djangoapp in\nthe openedx directory which is largely an abstraction off the CMS\nImport/Export views.\n\nThis PR includes configuration changes. Most notably, Studio is\nconfigured to serve the OAuth2 provider alongside the LMS.\n\nThis is the initial thread on the code list:\nhttps://groups.google.com/forum/#!msg/edx-code/DmnHWmly25A/ZqjD1zb4o7oJ\n\nAnd this thread contains another description of the changes:\nhttps://groups.google.com/d/msg/edx-code/6dP9SEKsmqQ/Pvyn8fBDx68J\n\nThere are a numerous non-covered lines, all of which are missing\ncoverage in the CMS API this was ported from. They're mostly error\nconditions, such as handling of multipart file upload errors.",
+        "author": "Brandon DeRosier",
+        "timestamp": "2015-06-09T19:58:42Z"
+      },
+      {
+        "sha": "85b3bfe",
+        "message": "Add feature flag for Import/Export API in LMS\n\nThis feature flag gates the exposure of the Full course/library\nImport/Export API URLs in the LMS. This allows openedX deployments\nthat operate without Studio to take advantage of the API, while\nothers may turn the feature off to reserve all content authoring for\nStudio.",
+        "author": "Brandon DeRosier",
+        "timestamp": "2015-06-26T19:24:30Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#6308",
+    "metadata": {
+      "title": "Assign cohorts to groups in the instructor dashboard",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2015-01-07T20:59:15Z",
+      "reviewers": [],
+      "changed_files": 29
+    },
+    "issue_payload": {
+      "body": "TNL-653\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "talbs",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux, my second technical pass is completed. I've tried to sync up your progress since https://github.com/edx/edx-platform/pull/6255 and add only additional/follow-up notes. Let me know if you have any questions and when you have revisions to review and sign off on.\n",
+        "timestamp": "2014-12-18T19:57:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux @talbs @cahrens @explorerleslie - I've implemented a read-only version of the new functionality just to see how it hangs together. You can check it out using my test course here:\n\nhttp://andy-armstrong.m.sandbox.edx.org/courses/AndyA/AA101/1/instructor#view-membership\n\nIf I have time later tonight I'll see if I can implement the full round-trip using @cahrens' new API.\n\n@clrux the styling doesn't look great right now, so I could use your help looking at what I have. Let me know if my HTML isn't what you expected, or if there are SASS changes needed.\n",
+        "timestamp": "2014-12-18T23:55:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "Reminder to update the code that shows errors returned from the server. I didn't find a bok choy test for trying to create a cohort with the same name as an existing cohort.\n",
+        "timestamp": "2014-12-19T20:04:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens @clrux @talbs I've implemented the shared form so that creation and editing of cohorts both get to specify a name and an optional content group, and @cahrens has implemented the backend API to support this. As part of this, I've implemented support for the new style server errors.\n\nYou can see all of this with my test course on my sandbox:\n\nhttp://andy-armstrong.m.sandbox.edx.org/courses/AndyA/AA101/1/instructor#view-membership\n\nI've also fixed all the Jasmine tests (at least locally) and I'll work on covering all the new capabilities next. @clrux, I think this is ready for your styling support if you can get to this on Monday. We still plan on demoing this to Miki on Monday at 4pm.\n",
+        "timestamp": "2014-12-20T05:39:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "I don't see that changing the name of an existing cohort works properly. I either get \"We've encountered an error. Please refresh your browser and then try again.\", or it creates a new cohort instead of changing the name.\n\nI'm also wondering if we need to disable the ability to change the name of a \"random\" cohort. Those names are defined in the configuration in Studio, and changing their names could be confusing.\n",
+        "timestamp": "2014-12-20T20:38:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens Changing the name worked before I rebased to your last set of changes, so something went wrong. It looks like it is sending the correct request, but I don't have time to debug it today to be sure. Did the contract change? Let's discuss in person on Monday.\n",
+        "timestamp": "2014-12-21T17:48:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens That's an interesting question about renaming random cohorts. The interaction with Studio is confusing, but equally the instructor dashboard UI could be confusing if it changes around. I recommend that we leave it as is until Leslie returns and we can run it by her.\n",
+        "timestamp": "2014-12-21T17:54:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@andy-armstrong If we allow renaming random cohorts, we have to update the cohort_config advanced setting. Otherwise, this is what happens-- the renamed random cohort converts into a manual cohort (keeping the students previously in the random cohort), and a new random cohort is created with the original name. This is because the random cohorts are stored by name, not by ID.\n\nI'm really leaning towards not allowing renaming of cohorts with this work. I don't think it would be confusing if the name doesn't appear in the settings tab-- I don't think the user would necessarily expect the \"new cohort\" form to be identical to the \"settings tab\". The code could stay as-is, just hide the cohort name field for settings.\n\nUpdate: see note below-- I explored supporting the renaming of random cohorts.\n",
+        "timestamp": "2014-12-22T01:19:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "I figured out the reproduction steps for the bug I was seeing. I've pushed up a bug and unit test.\n\nI also added a method to change cohort_config when renaming a random cohort... as long as we are OK with the openedx code importing modulestore. Haven't added a test for it yet.\n",
+        "timestamp": "2014-12-22T02:23:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@andy-armstrong @cahrens I agree with @cahrens. I think we need to disable renaming cohorts until we get rid of the advanced setting, because of the interaction with random cohorts. I didn't think about that interaction but it will be very bad if we're renaming automatically assigned cohorts and converting them to manually assigned, etc.\n",
+        "timestamp": "2014-12-23T04:05:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@andy-armstrong can you disable (gray out) the content group dropdown when the \"No\" option is selected? It's awkward that you can change the content group if the cohort group isn't assigned to a content group at all. Even better would be to not see any content group listed at all (clear the dropdown, don't have any group selected) if the \"No\" option is selected, so it doesn't confuse the staff.\n",
+        "timestamp": "2014-12-23T04:14:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong You should be able to give it an attribute of `disabled` (HTML5) or `disabled=\"disabled\"` (XHTML) which should gray it out.\n",
+        "timestamp": "2014-12-23T12:57:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens @dan-f I've completed the implementation and written Jasmine tests. Please review when you have a chance.\n\n@explorerleslie @talbs @clrux I've improved the logic when switching from \"No\" to \"Yes\" and vice versa. I no longer disable the drop down, but instead clear the setting when switching back to \"No\" as you suggested. Making any selection automatically switches the radio button to \"Yes\". I think this behavior is much clearer so let me know what you think. I've also removed the ability to rename cohorts for the reasons discussed above.\n\nI've updated my sandbox to include all of these changes:\n\nhttp://studio.andy-armstrong.m.sandbox.edx.org/course/AndyA/ACTC/1\n\nI think that all that remains is to write Bok Choy tests which @cahrens and I will do tomorrow.\n",
+        "timestamp": "2014-12-31T00:31:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "- Need to make some adjustments with the `+ Add Cohort Group` button cc @clrux\n- Need to adjust styling on feedback messaging cc @clrux\n",
+        "timestamp": "2014-12-31T13:24:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@clrux the \"no content groups exist\" message seems very small to me. What do you think of making the text larger?\n\n![image](https://cloud.githubusercontent.com/assets/484484/5588566/b6707a4a-90d9-11e4-9567-22bc0decf33c.png)\n\nAlso, what do you think of where the confirmation message is shown (\"Saved cohort group\", which you really shouldn't be able to do in this case)?\n\nOne final suggestion-- could the \"tabs\" be made smaller? They are so large in comparison to other parts of the UI that they look, IMHO, a little odd.\n",
+        "timestamp": "2014-12-31T15:42:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": ":+1: for your changes, @cahrens. I have some comments around HTTP request method handling, but I'm not sure that the conventions have really been settled yet.\n",
+        "timestamp": "2014-12-31T16:19:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@catong Can you help us decide on the final wording for this story when you have some time. The particular screen I'm having difficulty with right now is in the instructor dashboard when adding a new cohort:\n\nhttp://andy-armstrong.m.sandbox.edx.org/courses/AndyA/ACTC/1/instructor#view-membership\n\n![image](https://cloud.githubusercontent.com/assets/5985072/5589117/081ba170-90e5-11e4-85ae-da54e61ce254.png)\n\nI find the wording very hard to parse, and I don't like having \"Yes\" and \"No\" buttons. Can we have a shorter label, and then have the radio button labels be more descriptive?\n",
+        "timestamp": "2014-12-31T17:04:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong per our conversation, what do you think about a single checkbox instead of 2 radio buttons?\nThat would mean no text needed before the checkbox. Checkbox would have a label such as: \"Associate this cohort group with a content group\". Then the chooser thingy for the content group.\nIf users don't want to associate with content group they just move on to \"Save\".\n",
+        "timestamp": "2014-12-31T18:05:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie @talbs @clrux What do you think of @catong's suggestion to switch to a check box instead of two radio buttons? See above ^^^\n",
+        "timestamp": "2015-01-05T14:39:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong How are we doing with this? Do you need anything from me?\n",
+        "timestamp": "2015-01-05T18:13:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@catong @andy-armstrong I'm not a fan of having a single checkbox that toggles on and off a feature. I'd prefer to keep the radio buttons. Maybe we could have something like: \n\n(field label) Content Group\n( ) No Content Group\n( ) Select a content group (dropdown)\n",
+        "timestamp": "2015-01-05T18:36:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@clrux did you see my notes above (https://github.com/edx/edx-platform/pull/6308#issuecomment-68449113)? I haven't checked out the branch lately, so perhaps some of those have already been addressed (or voted down). I was concerned though about the very small text size for the warning message, and wondered if it would have accessibility issues.\n",
+        "timestamp": "2015-01-05T18:42:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie @andy-armstrong If we go with the 2 radio button option, I would suggest that we need more \"action\" guidance in the field label, perhaps \"Associate this cohort group with a content group:\"  (which brings us right back to the original \"Yes\" and \"No\" options :-))\nCan we by default have \"No content group\" selected so that people who aren't ready to make that association don't have to do anything?  \n",
+        "timestamp": "2015-01-05T18:54:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@catong Yeah, we could do something like that:\n\nAssociate this cohort group with a content group:\nNo content group\nSelect a content group: ______\n",
+        "timestamp": "2015-01-05T19:02:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@andy-armstrong @talbs @clrux (I don't remember who's UX point on the FED at this point) couple of minor pieces of feedback: \n- The green \"Save\" confirmation message looks smashed up against the tabs, which looks odd considering how much breathing room we give everything else in this area. Could we put some whitespace there? \n- I agree that the message \"The selected content group has been deleted, you may wish to reassign this cohort group.\" is too small. We should also put some space after the icon and before the text. \n- For a deleted content group in the dropdown, we show \"Some content group that's been deleted\" @catong should provide a better string for that case.\n- I think I mentioned this before, but I still want to gray out the dropdown for content group if the \"No\" option is selected. We should have an explicit action to switch from the No to Yes option.\n",
+        "timestamp": "2015-01-05T19:15:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong @talbs @explorerleslie I made [a commit](https://github.com/edx/edx-platform/commit/49c48b265561d86913b9ca45e55bc4927ff969a8) a bit ago that addresses some of the visual styling mentioned here.\n",
+        "timestamp": "2015-01-05T19:19:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie re the \"Some content group that's been deleted\" text, it should already be addressed in some commit. There was some conversation about it with @andy-armstrong and @cahrens. We already use \"Deleted content group\" elsewhere and will go with that string here as well.\n",
+        "timestamp": "2015-01-05T19:38:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie @catong I think your suggested wording is much better. My only question now is whether the label capitalization is inconsistent. There are now two fields:\n\n```\nCohort Group Name\nAssociate this cohort group with a content group\n```\n\nIf we're going more conversational, should I change the former? Or if not, I think we need something more like:\n\n```\n Associated Content Group\n```\n",
+        "timestamp": "2015-01-05T21:44:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@andy-armstrong I think you're right from a consistency perspective. @explorerleslie it's up to you. \nAlso, we now call them \"cohorted content groups\" when we create them on the Group Configurations page. Do we live with the inconsistency of referring to them elsewhere by the shorter \"content group\" form? Agh....\n",
+        "timestamp": "2015-01-05T21:55:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@explorerleslie @catong @cahrens @dan-f I've addressed all the feedback and updated my sandbox:\n\nhttp://andy-armstrong.m.sandbox.edx.org/courses/AndyA/ACTC/1/instructor#view-membership\n\nPlease re-review when you have a chance.\n\n@cahrens there are still Bok Choy failures that I'll investigate tomorrow if you don't beat me to it. I believe that all the Jasmine tests should be passing now.\n",
+        "timestamp": "2015-01-05T23:57:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux @talbs I forgot to tag you before... my sandbox has been updated:\n\nhttp://andy-armstrong.m.sandbox.edx.org/courses/AndyA/ACTC/1/instructor#view-membership\n",
+        "timestamp": "2015-01-05T23:58:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "I'm good with \"Associated Cohorted Content Group\" (I never remember if we title-case or sentence-case field labels), @catong @andy-armstrong \n",
+        "timestamp": "2015-01-06T14:31:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@explorerleslie and @catong what do you think of the select being empty before you have selected a content group? I would prefer there be some text in there, perhaps \"No Content Group Selected\".\n\n![image](https://cloud.githubusercontent.com/assets/484484/5630911/0687244c-9590-11e4-8593-945a7e01a108.png)\n\nI'm also not crazy about the fact that selecting a content group, then going back to \"Yes\" clears the previously selected content group from the selector. I would expect the selector to become disabled, but the previous selection to remain. This seems more minor to me though than the empty text issue.\n",
+        "timestamp": "2015-01-06T15:38:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@andy-armstrong The behavior is unexpected if you press \"Save\" with a deleted content group selected. I would have expected Save to be disabled (best) or at least an error message. Instead, it just selects another group and saves that.\n\nAlso, the display of the warning message could be \"smarter\". It doesn't clear when you select \"No Content Group\", or when you select a valid group.\n",
+        "timestamp": "2015-01-06T15:46:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens Good catch. I thought I'd covered that case but I see I didn't write a test for it. I was thinking that the save would just work and it would continue to have the deleted content group selected. In general for editors I like them to be able to save a previously saved value even if it is an error, because you might be editing to change a different value. However, for now we don't support editing any other fields, so I'd be okay with disallowing the save. @explorerleslie do you have an opinion?\n",
+        "timestamp": "2015-01-06T15:51:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@clrux The error text isn't responsive (doesn't wrap).\n\n![image](https://cloud.githubusercontent.com/assets/484484/5631151/37fdd4d8-9592-11e4-89c6-a2f18fed132e.png)\n",
+        "timestamp": "2015-01-06T15:53:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@cahrens @talbs @andy-armstrong I actually prefer the selection to be blank, so as to not confuse with the \"No content group\" radio button above. However, we probably need an error state that says that you must select a content group. \n",
+        "timestamp": "2015-01-06T16:14:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "-- Please select --\n\nOn Tue, Jan 6, 2015 at 11:15 AM, Leslie Gerhat notifications@github.com\nwrote:\n\n> @cahrens https://github.com/cahrens @talbs https://github.com/talbs I\n> actually prefer the selection to be blank, so as to not confuse with the\n> \"No content group\" radio button above. However, we probably need an error\n> state that says that you must select a content group.\n> \n> —\n> Reply to this email directly or view it on GitHub\n> https://github.com/edx/edx-platform/pull/6308#issuecomment-68886856.\n\n## \n\nChris Rodriguez | Front End Developer\n141 Portland Street, 9th Floor\nCambridge, MA 02139\n607-333-1667\ncrodriguez@edx.org\n@clrux\n",
+        "timestamp": "2015-01-06T16:17:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@andy-armstrong a few minor comments, but otherwise :+1: (I don't need to re-review).\n\nI'll work on cleaning up my stuff now and finishing that one bok choy test.\n",
+        "timestamp": "2015-01-06T16:30:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "talbs",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux, a few visual tweaks/feedback notes (in order of relative importance to fix):\n\n**The font-size for the inline message and the radio button labels seems a bit big (when compared to the \"Associate this cohort group with a content group\" header). Please make the equivalent of 14px**\n![screen shot 2015-01-06 at 12 22 54 pm](https://cloud.githubusercontent.com/assets/163763/5632719/ee5fc216-959e-11e4-9400-81881f6c73b8.png)\n\n**The border-width on the active tab and bottom of the tab nav is too thick - please reduce.**\n![screen shot 2015-01-06 at 12 18 12 pm](https://cloud.githubusercontent.com/assets/163763/5632713/d3b1c1b2-959e-11e4-93c7-8e6016145166.png)\n\n**The visual horizontal margin on this error message seems off. It should span the width of its parent**\n![screen shot 2015-01-06 at 12 18 45 pm](https://cloud.githubusercontent.com/assets/163763/5632867/39eb57a8-95a0-11e4-9f65-4b41b1bb8c39.png)\n\n**I'd second @cahrens' [feedback on the inline message not reacting well in small viewports](https://github.com/edx/edx-platform/pull/6308#issuecomment-68883348)**\n\nMind addressing these?\n",
+        "timestamp": "2015-01-06T17:34:20Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5779807",
+        "message": "UX for associating content groups with cohorts in the instructor dashboard.",
+        "author": "Chris",
+        "timestamp": "2014-12-12T20:46:18Z"
+      },
+      {
+        "sha": "5bc53d6",
+        "message": "Create a RESTful handle_cohort view method for GET and PUT/POST.",
+        "author": "cahrens",
+        "timestamp": "2014-12-18T22:09:16Z"
+      },
+      {
+        "sha": "91ec9b3",
+        "message": "Use edx namespace for Backbone classes",
+        "author": "Andy Armstrong",
+        "timestamp": "2014-12-19T03:23:34Z"
+      },
+      {
+        "sha": "a9f2b71",
+        "message": "Assign cohorts to groups in the instructor dashboard\n\nTNL-653",
+        "author": "Andy Armstrong",
+        "timestamp": "2014-12-18T22:23:58Z"
+      },
+      {
+        "sha": "82a3c2d",
+        "message": "New bok choy tests for content group linking.",
+        "author": "cahrens",
+        "timestamp": "2014-12-31T18:52:57Z"
+      },
+      {
+        "sha": "3ce7d6d",
+        "message": "Address most of Christina's code review comments",
+        "author": "Andy Armstrong",
+        "timestamp": "2015-01-05T15:38:52Z"
+      },
+      {
+        "sha": "d90157b",
+        "message": "Bok choy test improvements.",
+        "author": "cahrens",
+        "timestamp": "2015-01-06T16:31:57Z"
+      },
+      {
+        "sha": "bdde8c3",
+        "message": "Addressing items in the latest PR; includes RTL-ifying all SCSS",
+        "author": "Chris Rodriguez",
+        "timestamp": "2015-01-06T21:23:00Z"
+      },
+      {
+        "sha": "09e03ff",
+        "message": "Implement better select handling and tests",
+        "author": "Andy Armstrong",
+        "timestamp": "2015-01-06T23:20:13Z"
+      },
+      {
+        "sha": "a6b062c",
+        "message": "Stop using to_deprecated_string.",
+        "author": "cahrens",
+        "timestamp": "2014-12-31T21:11:41Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#9075",
+    "metadata": {
+      "title": "Create new team",
+      "labels": [],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2015-08-05T13:44:00Z",
+      "reviewers": [],
+      "changed_files": 28
+    },
+    "issue_payload": {
+      "body": "TNL-1899\n\nTicket Link: https://openedx.atlassian.net/browse/TNL-1899\nsandbox: http://tnl1899.m.sandbox.edx.org/courses/course-v1:edX+DemoX+Demo_Course/teams/\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "sandbox: http://tnl1899.m.sandbox.edx.org/courses/course-v1:edX+DemoX+Demo_Course/teams/\nHi Folks, Please Review. Thanks\n@explorerleslie Acceptance\n@marcotuts @frrrances UI/UX \n@cptvitamin Accessibility\n@catong UI Strings\n",
+        "timestamp": "2015-07-27T16:06:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar @catong where should the 'Try browsing all teams' link redirect to? I had assumed it would redirect to the topics page. If so, @muhammad-ammar I think you should have it link to the teams tab's `'#browse'` URL.\n",
+        "timestamp": "2015-07-27T18:03:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "Besides @dan-f 's comment above (which should also apply to the \"searching\" link as well), I don't have any more feedback. I'll wait to give thumbs until I see the final UI text strings and UX feedback.\n",
+        "timestamp": "2015-07-27T19:00:01Z",
+        "source": "issue"
+      },
+      {
+        "author": "explorerleslie",
+        "role": "NONE",
+        "body": "@muhammad-ammar I also logged a bug here: https://openedx.atlassian.net/browse/TNL-2892 Can you please take a look? I think sometimes when you create a team, it gets counted twice in counts. \n",
+        "timestamp": "2015-07-27T19:28:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "I agree with @dan-f 's comment - \"browsing all teams\" should go to the browse tab, \"searching team descriptions\" shoud go to browse for now (but later can bring focus to the search field), and we should add some context to the last action so it says \"create a new team in this topic\" since that is what happens. \n",
+        "timestamp": "2015-07-27T20:53:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "When tabbing through the form, the focus skips the optional language and location fields on the form. \n",
+        "timestamp": "2015-07-27T20:56:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @muhammad-ammar, I've taken a pass at the strings.\n",
+        "timestamp": "2015-07-27T21:53:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances We have checked the tabbing on chrome, firefox and safari and its working. Can you please add more detail about how to reproduce the issue?\n@catong I haver updated the UI strings, team description also has restriction on length, please continue the review.\n",
+        "timestamp": "2015-07-28T09:10:37Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@catong Can we have a single message for both(empty field(s),  number of characters exceeded) cases? Something like `Your team could not be created because some required information is incorrect.` \nCan you suggest something?\n",
+        "timestamp": "2015-07-28T10:55:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@catong Actually the scenario is, if both fields are empty then ...missing message is fine but if one field is empty and other one has exceeded the length limit or if both fields has exceeded the length than what should be the message? We can only show single message in the message banner.\nSo i think it would be nice to have single generic message if possible?\nDo you any suggestions for these? \n",
+        "timestamp": "2015-07-28T11:02:22Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I suggested a replacement for messageIncorrect. Please let me know if I understood correctly what you were asking, or if you need anything else. Thanks!\n",
+        "timestamp": "2015-07-28T13:00:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@catong Sorry for the confusion, Actually what i am trying to say is that one message for all the scenarios would be good. If we define multiple messages for different cases like the `messageMissing` and `messageIncorrect` then it will create issue in the scenario below:\nLets say if `name field` is empty and `description field` has exceeded the length limit or if both fields has exceeded the length limit than what should be the message `messageMissing` or `messageIncorrect`? Neither one fits and we can't show both messages.We can only show single message in the message banner.\n\nSo the summary is to use a single message for all the scenarios, what about `Your team could not be created. Check the highlighted required fields below and try again.`\n\nThanks a lot\n",
+        "timestamp": "2015-07-28T13:16:20Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "Hey @muhammad-ammar. I'm beginning my review now.\n\nCould you please define a route for the Create Team View using the backbone router? Right now, this change isn't working with the back/forward buttons. You can see examples of how we do this in `teams_tab.js`.\n",
+        "timestamp": "2015-07-29T13:14:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f i have made the back/forward navigation changes. Sandbox update is in progress.\n",
+        "timestamp": "2015-07-29T15:54:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I am seeing the team count bug still. Have you rebased on master recently? Example: the algorithms topic located at http://tnl1899.m.sandbox.edx.org/courses/course-v1:edX+DemoX+2015_R1/teams/#browse\n",
+        "timestamp": "2015-07-29T18:02:57Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I've finished this round of review. Please tag me when you've responded to my feedback. Thanks!\n",
+        "timestamp": "2015-07-29T19:34:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "muzaffaryousaf",
+        "role": "NONE",
+        "body": "jenkins run bokchoy\n",
+        "timestamp": "2015-07-30T14:59:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f @frrrances I have updated the code as per you feedback. Please continue the review. Sandbox update is in progress. I will update you when sandbox is ready. Thanks\n",
+        "timestamp": "2015-07-30T18:16:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f @frrrances @clrux Here is the sandbox. Please continue the review.\nhttp://tnl1899.m.sandbox.edx.org/courses/course-v1:edX+DemoX+Demo_Course/teams/\n",
+        "timestamp": "2015-07-30T19:17:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "test this please\n",
+        "timestamp": "2015-07-30T19:21:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar @frrrances Are we adding a space above the fields to allow for text that applies for all fields in this PR, or a future other PR?\n",
+        "timestamp": "2015-07-30T19:26:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar, a few things:\n- the Team Description textarea has an incorrectly identified `aria-labelledby`. It should point to the `id` of the the helper text that follows\n- focus isn't sent to the error message when the Create Team form is submitted with empty required fields\n- furthermore, the error message (`wrapper-msg`) should have `tabindex=\"-1\"` so that it can receive focus programmatically\n- the error message instructs users to \"see\" the highlighted fields below, but seeing may not always be an option. The error message should indicate which fields are incorrect and if possible, provide a link to quickly fix the issue. [Something like this would be ideal](http://webaim.org/techniques/formvalidation/media/formvalidation4.gif)\n- it would be nice to include additional contextual information for those fields that do have errors (if not covered in the above suggested solution)\n- the error message title (Oops) isn't descriptive. Consider something identifiable if viewed or announced a) in a list, and b) out of context\n- the `aria-live=\"polite\"` isn't being used correctly and, if we send focus to the error message, isn't necessary\n\nLet me know when you get these items addressed and I will take another pass!\n",
+        "timestamp": "2015-07-30T19:33:00Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run all\n",
+        "timestamp": "2015-07-30T19:37:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar You are right, I can tab to the drop-downs, but the focus state is missing in Chrome so I couldn't tell I was able to interact with them. \n",
+        "timestamp": "2015-07-30T20:02:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for addressing my feedback. :+1: \n",
+        "timestamp": "2015-07-30T21:08:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I am still working on my second round of code review, but I have to leave the office. I'll pick it back up first thing tomorrow morning.\n",
+        "timestamp": "2015-07-30T21:26:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f Thanks a lot\n",
+        "timestamp": "2015-07-30T21:30:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux made the accessibility changes as per your feedback\n@catong updated the UI strings and added the new one\n@frrrances added new message, can you please suggest styling?\n\nsandbox: http://tnl1899.m.sandbox.edx.org/courses/course-v1:edX+DemoX+Demo_Course/teams/\n",
+        "timestamp": "2015-07-31T08:09:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar Thanks for adding the instruction space. I think we should keep it simple but can you add one more generic class \"form-instructions\" to the \"team-instructions\" div? Then you can add this in the sass:\n\n```\n.form-instructions {\nmargin: ($baseline/2) 0 $baseline 0;\n}\n```\n",
+        "timestamp": "2015-07-31T11:27:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances I have added some styling, is it OK? \n\n<img width=\"1197\" alt=\"screen shot 2015-07-31 at 4 50 04 pm\" src=\"https://cloud.githubusercontent.com/assets/6767924/9006762/770fd888-37a4-11e5-8cec-20c55a2c9787.png\">\n",
+        "timestamp": "2015-07-31T11:53:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar Much better, nice work. I found one more thing:\n- The error message now says, \"Your team could not created!\" Let's make this say \"Your team could not _be_ created.\" Nice work with the screen reader only listing of which fields were problematic.\n",
+        "timestamp": "2015-07-31T12:28:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "muhammad-ammar",
+        "role": "CONTRIBUTOR",
+        "body": "@clrux Oops. I will update the message. \n",
+        "timestamp": "2015-07-31T12:33:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "catong",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar This looks great! Thanks for your patience working out these messages.\n",
+        "timestamp": "2015-07-31T12:35:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "downzer0",
+        "role": "CONTRIBUTOR",
+        "body": ":+1: \n",
+        "timestamp": "2015-07-31T12:55:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "frrrances",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I think the style you added is too heavy for this case, especially if there is an error. Can you remove those styles and just add some margin top and bottom? \n",
+        "timestamp": "2015-07-31T14:46:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@muhammad-ammar I'm done with my second pass. Things are looking much better, and my concerns are mostly around testing logic and translation. Please let me know if I can further clarify any of my comments. Ping me when you've addressed them. Thanks!\n",
+        "timestamp": "2015-07-31T15:29:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances @muhammad-ammar I've noticed a few visual bugs:\n\nIn the following image the \"enter information\" copy looks a little too close to the top of the form.\n<img width=\"1125\" alt=\"screen shot 2015-07-31 at 11 35 36 am\" src=\"https://cloud.githubusercontent.com/assets/2146312/9011153/6ad44980-3779-11e5-86e6-881523c70be6.png\">\n\n@frrrances I don't have a screenshot, but should \"Optional Characteristics\" really be a `<label>`? I'm confused by the pointer-finger on hover, and there's no `for` attribute.\n",
+        "timestamp": "2015-07-31T15:46:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@frrrances mind clarifying the expected breadcrumb trail? This PR only encapsulates the parent topic, (e.g. `{parent topic} > Create a New Team`). This is inconsistent with the Team Page which @andy-armstrong is working on, where the header looks like `\"All Topics\" > {parent topic} > {team name}`. It seems to me that the header should have the same number of breadcrumbs in both cases. Which is correct?\n",
+        "timestamp": "2015-07-31T15:51:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "marcotuts",
+        "role": "CONTRIBUTOR",
+        "body": "@dan-f, @muhammad-ammar, @explorerleslie  One note I had while looking back at the team creation wireframe ( https://invis.io/NB2GSSJSP) \n\n1.) We had an element that duplicated the Team Topic right near the input fields for name / description but that isn't currently in the sandbox. We can decide to add this later perhaps, or perhaps it was taken out in earlier discussions, but just in case it was missing I thought I'd mention it. Thanks! \n\n---\n\n@dan-f  Regarding your last note about the breadcrumb trail, originally we only used \"Topic Name\" as the breadcrumb for the team creation screen, as that seemed like the only relevant depth / context for this. It is true that the topics are nested within All Topics, but it looks like when we decided to add in breadcrumbs to this view (~April 6th according to InvisionApp) we only added 1 level of depth.\n",
+        "timestamp": "2015-07-31T16:56:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "dan-f",
+        "role": "CONTRIBUTOR",
+        "body": "@marcotuts thanks for the context. Which breadcrumb trail is correct for which view?\n",
+        "timestamp": "2015-07-31T17:09:15Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "69450fc",
+        "message": "create a new team\n\nTNL-1899",
+        "author": "muhammad-ammar",
+        "timestamp": "2015-07-16T00:02:02Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#6163",
+    "metadata": {
+      "title": "Implement Pagination for Content libraries (SOL-4)",
+      "labels": [
+        "open-source-contribution"
+      ],
+      "qualities": [
+        "modifiability",
+        "usability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2014-12-22T17:50:00Z",
+      "reviewers": [],
+      "changed_files": 28
+    },
+    "issue_payload": {
+      "body": "- **Background**: This PR provides pagination for content Libraries in the container view, when displaying the blocks contained in the library.\n- **Jira tickets**: Implements SOL-4\n- **Discussions**: Architecture discussed extensively on the wiki and in meetings, then the revised proposal was presented to the Arch Council on Oct. 21 and given thumbs up.\n- **Dependencies**: https://github.com/edx/edx-platform/pull/6046 (merged, in feature branch https://github.com/edx/edx-platform/commits/content-libraries)\n- **Sandbox URL**: http://sandbox.opencraft.com:18010/library/library-v1:TST-X-01+now\n- **Internal code reviews PRs**: https://github.com/open-craft/edx-platform/pull/9 https://github.com/open-craft/edx-platform/pull/18\n- **Partner information**: 3rd party-hosted open edX instance, for an edX solutions client.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "openedx-webhooks",
+        "role": "NONE",
+        "body": "Thanks for the pull request, @Kelketek! I've created [OSPR-261](https://openedx.atlassian.net/browse/OSPR-261) to keep track of it in JIRA. JIRA is a place for product owners to prioritize feature reviews by the engineering development teams. \n\nFeel free to add as much of the following information to the ticket:\n- supporting documentation\n- edx-code email threads\n- timeline information ('this must be merged by XX date', and why that is)\n- partner information ('this is a course on edx.org')\n- any other information that can help Product understand the context for the PR\n\nAll technical communication about the code itself will still be done via the Github pull request interface. As a reminder, [our process documentation is here](http://edx-developer-guide.readthedocs.org/en/latest/process/overview.html).\n",
+        "timestamp": "2014-12-05T20:07:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@sarina This should be ready for review now-- removed the WIP flag, but I'm not sure what to do about Jenkins' quality report, since it's flagging a couple of 'TODO' comments, both of which are not intended to be addressed in this PR but which we don't really want to forget either.\n",
+        "timestamp": "2014-12-05T21:34:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "Sorry @sarina , just found out you're not the person to ping for this. :) @explorerleslie @cahrens , this is ready for your review, and a sandbox is available, linked in the description with the standard `staff@example.com` account.\n",
+        "timestamp": "2014-12-07T16:10:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "sarina",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek this PR will help the TODO issue: https://github.com/edx/edx-platform/pull/6122\n",
+        "timestamp": "2014-12-08T12:46:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "When you add a new component to the page, it is currently scrolling to show the top of the page. It should instead scroll down to show the newly added component. Related to this, it seems like the entire page is re-rendering each time a component is added, which does not seem necessary. Adding a new component will either case you go to go the next page (if at least 10 components already exist on the page), or it will be added as the last component on the current page. It seems like you can easily avoid re-rendering in the 2nd case.\n\n(also note that I screwed up Xavier's test library by adding a discussion component-- I am so used to just clicking anything and forgot that it isn't expected to work)\n",
+        "timestamp": "2014-12-08T15:45:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "Drag and drop is now disabled. Is that intentional?\n",
+        "timestamp": "2014-12-08T15:46:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "singingwolfboy",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek: now that #6122 is merged, you should be able to get a passing Jenkins build if you rebase on top of the latest master. Can you do that?\n",
+        "timestamp": "2014-12-08T16:19:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy Certainly! I'll get right on that.\n",
+        "timestamp": "2014-12-08T16:58:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens Yes, drag-and-drop's disabling is intentional, as I remember-- I can try to find the historical conversation on it, if you wish.\n",
+        "timestamp": "2014-12-08T16:59:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy Wait, if I rebase on top of master with that, won't a merge with this feature branch be unclean? The feature branch would need a rebase first. Has it been?\n",
+        "timestamp": "2014-12-08T17:02:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "singingwolfboy",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek no, rebasing a branch makes it _more_ clean than merging master into it. See the [How to Rebase a Pull Request](https://github.com/edx/edx-platform/wiki/How-to-Rebase-a-Pull-Request) page for more info.\n",
+        "timestamp": "2014-12-08T17:05:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "I think the feature branch should be rebased on master, then this branch rebased on the feature branch.\n",
+        "timestamp": "2014-12-08T17:06:59Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy That's not what I mean-- This branch is not intended to be merged into master. It's intended to be merged into the `content-libraries` feature branch. That branch is the one I need to rebase against. If I rebase against master, then I will have diverged from the `content-libraries` feature branch.\n",
+        "timestamp": "2014-12-08T17:07:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "singingwolfboy",
+        "role": "CONTRIBUTOR",
+        "body": "Oh! I totally missed that, sorry. We'll need to get the `content-libraries` branch rebased onto master, and then you can rebase this pull request onto the newly-rebased `content-libraries` branch.\n",
+        "timestamp": "2014-12-08T17:13:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy What's the procedure for that? Does one just create a new branch with the rebase, and someone on your end does a reset --hard against it?\n",
+        "timestamp": "2014-12-08T17:14:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "singingwolfboy",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek yes, that's basically the procedure. I'll take care of it -- I just want to make sure that everyone within edX (who cares about this branch) is aware of the change.\n",
+        "timestamp": "2014-12-08T17:20:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy Thank you. I'll let the others at OpenCraft know that the feature branch will be rebased, and to prepare accordingly, since that means they may have to discard commits that aren't theirs on their rebase against the feature branch.\n",
+        "timestamp": "2014-12-08T17:22:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@Kelketek Copy-paste makes me cringe. Should library-container view extend the container view?\n",
+        "timestamp": "2014-12-08T18:07:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "e-kolpakov",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens I've just went through that file again - there're like two or three methods that can be shared. So it's not good and shame on me (since I have implemented it initially), but that's not that bad to cringe :) But of course it's useful to factor it out so that those methods are shared.\n\nOn the other hand, if library container extend ordinary container there would be more overloads than shared methods, so it might make sense to have a common ancestor, but not making library-container a descendant of ordinary container.\n",
+        "timestamp": "2014-12-08T18:16:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "From a functionality perspective, extension seems like the right thing here-- a library is a container page that adds additional features like paging.\n",
+        "timestamp": "2014-12-08T18:18:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "I am going to hold off further review until the issues that have already been brought up are addressed. Please let me know when that is the case and when there is a new sandbox.\n",
+        "timestamp": "2014-12-08T18:32:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "e-kolpakov",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens I might have a slight advantage of knowing what will happen next to library container. There are not just additional features, but some features are removed/disabled, e.g. drag and drop reordering, advanced xblocks and discussion, etc. So most likely library-container and ordinary container will drift away from each other in future.\n",
+        "timestamp": "2014-12-08T18:32:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "singingwolfboy",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek I tried to rebase the `content-libraries` branch onto master, but ran into a lot of conflicts that I wasn't sure how to resolve. Could you, @e-kolpakov, or @antoviaque do it? (I just want to be sure that I don't accidentally break anything, and don't drop an important change.) If you have permissions to push to the `edx` fork, then feel free to force-push the `content-libraries` branch to update it -- otherwise, just make a pull request with your rebased branch and indicate in the PR description that this is what the rebased `content-libraries` branch should be.\n",
+        "timestamp": "2014-12-08T18:36:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@e-kolpakov I see your point. And views/container.js has less code in it than I recalled. But take care to look at the code that began life as a copy/paste to remove things that aren't actually necessary.\n",
+        "timestamp": "2014-12-08T18:40:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoviaque",
+        "role": "CONTRIBUTOR",
+        "body": "@singingwolfboy Thanks for attempting it - yes, it makes sense that we would do the rebase given the conflicts. @bradenmacdonald is back from holidays today, that sounds like a good first task to get up to date on the changes from last week.\n",
+        "timestamp": "2014-12-09T08:10:45Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "When do you expect this PR to be ready for re-review (green build, all issues already raised addressed)?\n",
+        "timestamp": "2014-12-11T15:13:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens I expect it to be there tonight, since JS tests are the only part which seems to still be broken. After that, it's a matter of refactoring as requested in SCSS, and the pagination stuff. So long as there aren't any more surprises (and there have been a lot of them, working on this PR), it should be done tonight or tomorrow.\n",
+        "timestamp": "2014-12-11T15:45:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens @singingwolfboy @marcotuts \n\nThis is ready to be churned through Jenkins again (I'll double-check after it finishes, but all the tests should be passing) and re-reviewed, I believe. Sorry it took so long-- there were a number of surprises that came up when I removed that 'full refresh on every change' thing. Shout-out to @e-kolpakov for helping me out on a couple of the bigger quandaries. Jasmine test fixing also took a while since I've never used them before.\n\nBut! All of that aside, and experience gained, it should be ready. A couple notes:\n1. PagedContainer is its own thing now. LibraryContainer's elements, at current, only dealt with pagination, but since they are likely to be differentiated later, a stub has been included that just points to the existing PagedContainer view.\n2. The SCSS notes are mostly implemented-- as most of them contained literal things for me to do. I'm not actually familiar with SCSS and I'm my fourth day into my sprint for this PR alone. As the changes were marked as non-essential, a couple of them that I couldn't immediately understand, I dropped for now. I hope that's ok.\n",
+        "timestamp": "2014-12-11T20:07:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "Having the same issue with Jenkins on this one as in my other PR. Locally unreproduceable quality error on an unrelated file.\n",
+        "timestamp": "2014-12-12T12:38:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoviaque",
+        "role": "CONTRIBUTOR",
+        "body": "Updated the sandbox with the latest code: http://sandbox.opencraft.com:18010/\n",
+        "timestamp": "2014-12-12T12:44:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "Please take a look at the missing test coverage and add tests if possible.\nhttps://jenkins.testeng.edx.org/job/edx-all-tests-auto-pr/19614/SHARD=1,TEST_SUITE=unit/artifact/reports/diff_coverage_combined.html\n",
+        "timestamp": "2014-12-12T15:56:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "Thank you for refactoring to create the paging_container. Please also change the unit test so it is paging_container_spec.js (and instantiates the the paging container instead of the library container) instead of library_container_spec.js\n",
+        "timestamp": "2014-12-12T16:16:48Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "If comments on this could pause for a while-- it's going to take me a while to address the current notes, and at the rate at which they're coming in, I'm fairly certain they will not be done by the end of tonight. So it would be better for me to implement a bunch of the suggestions and see if this changes the nature of things before adding more notes.\n",
+        "timestamp": "2014-12-12T19:59:14Z",
+        "source": "issue"
+      },
+      {
+        "author": "cahrens",
+        "role": "NONE",
+        "body": "@Kelketek I'm done with my review and just asked @andy-armstrong to look at 4 specific files to get his feedback about how best the current code should be rewritten. So I think it is valuable for him to finish his review as well so you don't have to iterate multiple times.\n",
+        "timestamp": "2014-12-12T20:00:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens Very well.\n",
+        "timestamp": "2014-12-12T20:01:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "andy-armstrong",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek I'm done with my review of the four files that @cahrens mentioned.\n",
+        "timestamp": "2014-12-12T20:46:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@cahrens @andy-armstrong I've implemented almost all of the changes requested. The exception in particular is converting the collection to a Backbone object. I've not been successful in doing so. There are a number of roadblocks I'm running into trying to figure that out, enough to make me wonder if it's worth the trouble:\n1. I'm not clear on what the 'model' should be when instantiating the paginator. I'm still not familiar with Backbone, so this is confusing to me.\n2. The paginator seems to be built for a collection of models. I take it that we'd be moving models for XBlocks around. I'm not certain what scaffolding that would require, or where to begin with it.\n3. PagingHeader requires access to a size() function. I can't find where this is defined anywhere in our existing code aside from this emulation code, which means the function for size() is defined for AssetCollection somewhere I can't find. That means there's an entire section of the codebase I'm unaware of that is probably helping that thing's scenario, which I've not begun to uncover or reverse engineer.\n\nThe current code does work, and I have been able to isolate Paging out with a separate Page as requested. The tests appear to be passing, save for that unreproduceable quality failure, and a couple of tests that were declared flaky in https://github.com/edx/edx-platform/pull/6177 . I say that tentatively-- it's still running unit tests as I type this.\n\nPlease let me know what you think of the changes.\n",
+        "timestamp": "2014-12-16T23:40:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "e-kolpakov",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek \n- If I'm not mistaking, `model` should be a backbone collection, or at least an object that supports the same interface.\n- `size` is an [underscore method inherited by backbone collection](http://backbonejs.org/#Collection-Underscore-Methods).\n",
+        "timestamp": "2014-12-17T08:53:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "Kelketek",
+        "role": "CONTRIBUTOR",
+        "body": "@e-kolpakov I'm going to try this one more time, then. I hadn't expected that the model should be a collection, since it isn't in the case of AssetCollection-- the module there seems to imply that backbone.pagination.requestPaginator itself already provides the collection interface.\n",
+        "timestamp": "2014-12-17T15:38:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "e-kolpakov",
+        "role": "CONTRIBUTOR",
+        "body": "@Kelketek I might be wrong about that, so if you have tried it and it didn't work - probably no point in trying again. :)\n",
+        "timestamp": "2014-12-17T15:44:09Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "459b651",
+        "message": "Paging for LibraryView added with JS tests.",
+        "author": "E. Kolpakov",
+        "timestamp": "2014-11-03T13:20:29Z"
+      },
+      {
+        "sha": "523e8d9",
+        "message": "Added tests for Library pagination.",
+        "author": "Jonathan Piacenti",
+        "timestamp": "2014-12-04T21:25:52Z"
+      },
+      {
+        "sha": "26e9399",
+        "message": "Addressed notes from reviewers on Library Pagination.",
+        "author": "Jonathan Piacenti",
+        "timestamp": "2014-12-08T22:22:02Z"
+      },
+      {
+        "sha": "1581a39",
+        "message": "Factored out Pagination into its own Container view.",
+        "author": "Jonathan Piacenti",
+        "timestamp": "2014-12-11T19:53:08Z"
+      },
+      {
+        "sha": "be3371e",
+        "message": "Addressed further review notes for Library Pagination",
+        "author": "Jonathan Piacenti",
+        "timestamp": "2014-12-12T19:19:56Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#6154",
+    "metadata": {
+      "title": "Courses API",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2015-02-17T19:19:40Z",
+      "reviewers": [],
+      "changed_files": 18
+    },
+    "issue_payload": {
+      "body": "This is a subset of #6109. The goal here is to trim the code down to exactly what will be needed by Insights and get it merged soon. We will revisit the other APIs soon after so that the edx-solutions fork isn't too divergent.\n\n@mulby @mattdrayer @cpennington @ormsbee @dsjen @smagoun @shnayder @mikigoyal \n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@mulby @mattdrayer @cpennington @ormsbee @dsjen @rocha I've addressed all of the feedback. Anything else?\n",
+        "timestamp": "2014-12-10T21:29:03Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@mulby @cpennington I have responded to all feedback. Where do we stand on getting this approved?\n",
+        "timestamp": "2014-12-15T15:33:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "mulby",
+        "role": "CONTRIBUTOR",
+        "body": "I still have an open thread about versioning and stability over time:\n\nhttps://github.com/edx/edx-platform/pull/6154#discussion-diff-21454196R98\n\nI may be overly concerned about this, but it feels like a much weaker set of guarantees when compared with our other APIs, which could be confusing to consumers.\n",
+        "timestamp": "2014-12-15T15:54:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "@clintonb @mattdrayer @ormsbee: I continue to be concerned about this API, and the fact it hasn't been sent out either to the public list or in front of the architecture council for review. It's an API that many people are likely to want, so it behooves us to get it as close to something we want to support long-term as possible.\n",
+        "timestamp": "2014-12-15T16:23:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@cpennington Exactly what needs to be distributed (code, endpoints docs)? What do folks need to review?\n",
+        "timestamp": "2014-12-15T16:27:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "@clintonb I'd like to see the list of endpoints, and what data they accept/return, presented. That's the contract that we'll need to adhere to.\n",
+        "timestamp": "2014-12-15T16:34:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "I have no additional comments.\n",
+        "timestamp": "2014-12-15T18:17:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "fmyzjs",
+        "role": "CONTRIBUTOR",
+        "body": ":+1: \n",
+        "timestamp": "2014-12-17T08:28:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@mulby @cpennington Can I get a :+1: ?\n",
+        "timestamp": "2014-12-18T15:59:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "rocha",
+        "role": "CONTRIBUTOR",
+        "body": "Bringing attention to https://openedx.atlassian.net/wiki/display/AC/API+Thoughts\n\n@nasthagiri points to a great resource in the discussion: [Web API Design](https://pages.apigee.com/rs/apigee/images/api-design-ebook-2012-03.pdf)\n",
+        "timestamp": "2014-12-18T16:55:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "@clintonb: I'm explicitly not giving a `:+1:` until there has been some review of the API design. I think that https://openedx.atlassian.net/wiki/display/AN/Course+Content+API is a sufficient place to start that discussion, but it needs to be publicized so that discussion can start. I'm not gating merging this on actually resolving all issues brought up in the discussion, but I want to know what the issues are before we commit this API.\n",
+        "timestamp": "2014-12-18T18:30:40Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the great feedback @gwprice. You helped kill a lot of code!\n",
+        "timestamp": "2014-12-19T04:10:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@gwprice @mulby @rocha @cpennington Any other comments?\n",
+        "timestamp": "2014-12-29T21:53:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@gwprice @mulby @cpennington Approvals? More critiques?\n",
+        "timestamp": "2015-01-12T20:49:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "gwprice",
+        "role": "NONE",
+        "body": "The URL pattern that we have settled on is `.../v0/<resource_type>/<resource_id>/`; we should discuss whether we should make an exception for this API\n",
+        "timestamp": "2015-01-12T23:22:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "FYI: The modulestore changes can/should be reviewed separately in #6807.\n",
+        "timestamp": "2015-02-05T22:00:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@mulby @mattdrayer @cpennington @ormsbee @dsjen @ormsbee Any other feedback? Approvals? Note that the course structure work can be separately reviewed in #6935.\n",
+        "timestamp": "2015-02-12T17:10:31Z",
+        "source": "issue"
+      },
+      {
+        "author": "clintonb",
+        "role": "CONTRIBUTOR",
+        "body": "@gwprice @mulby @mattdrayer @cpennington @ormsbee @dsjen @ormsbee Any other feedback? Approvals? \n",
+        "timestamp": "2015-02-13T17:31:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "cpennington",
+        "role": "CONTRIBUTOR",
+        "body": "Minor nits. Otherwise, :+1: \n",
+        "timestamp": "2015-02-13T19:50:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "gwprice",
+        "role": "NONE",
+        "body": ":+1: \n",
+        "timestamp": "2015-02-17T18:25:01Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2854bb9",
+        "message": "Added Course Structure API",
+        "author": "Clinton Blackburn",
+        "timestamp": "2014-12-02T07:23:29Z"
+      }
+    ]
+  },
+  {
+    "story_id": "openedx/openedx-platform#13143",
+    "metadata": {
+      "title": "Persistent Grades Data Model",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2016-08-18T16:17:08Z",
+      "reviewers": [],
+      "changed_files": 6
+    },
+    "issue_payload": {
+      "body": "[TNL-5005](https://openedx.atlassian.net/browse/TNL-5005) Introduces database models and simple CRUD interface.\n\nReborn from the ashes of https://github.com/edx/edx-platform/pull/13094.\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "@jcdyer This work is \"first-pass-complete\", feel free to take a look if you'd like.\n\nI'm going to start in on the glue layer further.\n",
+        "timestamp": "2016-08-01T20:06:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "@sanfordstudent @ormsbee The robust grading data models are ready for review at your convenience.\n\nI'm going to keep working on https://github.com/edx/edx-platform/pull/13093 (gluing this work into actual usage) in the interim - I don't expect it to change anything hugely in this PR, but the possibility exists.\n",
+        "timestamp": "2016-08-05T19:10:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "sanfordstudent",
+        "role": "CONTRIBUTOR",
+        "body": "This looks great. The model seems sound and I didn't see any issue with implementation so 👍 \n",
+        "timestamp": "2016-08-08T14:37:15Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "Pass complete.\n",
+        "timestamp": "2016-08-08T15:58:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "ormsbee",
+        "role": "CONTRIBUTOR",
+        "body": "Done with my first pass.\n",
+        "timestamp": "2016-08-09T07:57:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "@ormsbee @jcdyer @sanfordstudent Ready for another round of review. All new changes contained in the latest commit.\n",
+        "timestamp": "2016-08-09T20:53:43Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run python\n",
+        "timestamp": "2016-08-11T14:24:36Z",
+        "source": "issue"
+      },
+      {
+        "author": "sanfordstudent",
+        "role": "CONTRIBUTOR",
+        "body": "Pass complete. A couple nits/questions.\n",
+        "timestamp": "2016-08-11T15:35:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "@nasthagiri @sanfordstudent @efischer19 All comments addressed.  Ready for a new pass.\n",
+        "timestamp": "2016-08-15T15:33:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "@nasthagiri I just reintroduced stable ordering, per your suggestion.\n",
+        "timestamp": "2016-08-15T16:28:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "Pass complete, just a few minor things.\n",
+        "timestamp": "2016-08-15T16:38:53Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "Question about the grades model: I updated the BlockRecordList to be a BlockRecordSet because we don't care about how the records are sorted coming in, but I'm not 100% sure it's the right thing to do.  The remaining question is: do we care about repeated blocks?\n\nI can't imagine a use case for a problem set to have the same problem appear twice, but just because I can't think of it, doesn't mean course teams won't do it.\n\nBut if it's the same block, then maybe it would only get scored once anyway, regardless of its ancestry, and it really is okay to have it represented once in the VisibleBlocks.  I'm not clear on how the code would behave.\n\nAny thoughts?\n",
+        "timestamp": "2016-08-16T15:15:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "@jcdyer that definitely sounds like one of those use cases that we wouldn't expect, but someone would do it anyways.\n\nWhat's the current behavior of the progress page in that situation? Can the two instances have differing scores?\n",
+        "timestamp": "2016-08-16T15:27:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "Via @nasthagiri: \"If a problem appears multiple times in a course-structure, yes, it will have the same score and metadata for the user.\"\n\nSo it sounds like it should be okay to treat the collection of visible blocks as a set.\n",
+        "timestamp": "2016-08-16T17:16:28Z",
+        "source": "issue"
+      },
+      {
+        "author": "efischer19",
+        "role": "CONTRIBUTOR",
+        "body": "Looking over the comments/diffs, everything looks great here. You've got a 👍 on the PR from me, unless there are more outstanding comments to address that I'm missing.\n",
+        "timestamp": "2016-08-16T20:55:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "Pass complete.  I think I've addressed all review comments.\n",
+        "timestamp": "2016-08-16T21:07:34Z",
+        "source": "issue"
+      },
+      {
+        "author": "nasthagiri",
+        "role": "CONTRIBUTOR",
+        "body": "👍  A few minor comments, otherwise looks good to merge.  We can iterate on it some more, if needed, as we massage the \"glue\" code.\n",
+        "timestamp": "2016-08-17T13:58:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "sanfordstudent",
+        "role": "CONTRIBUTOR",
+        "body": "Same from me. 👍 \n",
+        "timestamp": "2016-08-17T14:06:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run all\n",
+        "timestamp": "2016-08-17T18:00:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run all\n",
+        "timestamp": "2016-08-17T18:30:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "Only a11y is running...\n\njenkins run bokchoy\njenkins run python\n",
+        "timestamp": "2016-08-17T18:30:24Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run quality\n",
+        "timestamp": "2016-08-17T18:40:04Z",
+        "source": "issue"
+      },
+      {
+        "author": "jcdyer",
+        "role": "CONTRIBUTOR",
+        "body": "jenkins run a11y\n",
+        "timestamp": "2016-08-17T18:40:12Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "8fa2c23",
+        "message": "TNL-5005 Persistent Grades Data Model\n\nIntroduces database models and simple CRUD interface for robust grading\nusage.",
+        "author": "Eric Fischer",
+        "timestamp": "2016-07-25T19:48:54Z"
+      }
+    ]
+  }
+]

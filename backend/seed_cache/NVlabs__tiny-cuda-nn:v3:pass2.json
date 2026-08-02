@@ -1,0 +1,291 @@
+[
+  {
+    "story_id": "NVlabs/tiny-cuda-nn#69",
+    "metadata": {
+      "title": "Add partial support for second-order derivatives (for grid.h's input)",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-03-25T09:33:11Z",
+      "reviewers": [
+        "ventusff",
+        "Tom94"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "Hi,\r\n\r\nAs discussed in issue https://github.com/NVlabs/tiny-cuda-nn/issues/58, a backward_backward functionality is needed.\r\n\r\nFor now, I managed to add a partial support for second-order derivatives, **only** for `grid.h`, and **only** for `d(dL_dinput)_d(...)` . \r\nThis satifies the need of backwarding nablas's gradients toward grid params and downstream modules' params.\r\n\r\n**edit: now support d(dL_dinput)_d(input)**\r\n```\r\n# NOTE: currently support:\r\n#  ✓ d(dL_dinput)_d(dL_doutput)  ->  kernel_grid_backward_input_backward_dLdoutput\r\n#  ✓ d(dL_dinput)_d(params)      ->  kernel_grid_backward_input_backward_grid\r\n#  ✓ d(dL_dinput)_d(input)       ->  kernel_grid_backward_input_backward_input\r\n#  x d(dL_dparam)_d(...)\r\n```\r\n\r\nI tried my best to follow the code style of your original project, and have done various tests to ensure that the code is running correctly. \r\nThe changes are made as little as I can, and the compiling has passed with no errors.\r\n\r\n## Code tests\r\nI provide three testing tools for the newly added `backward_backward_input` functionality:\r\nhttps://gist.github.com/ventusff/57f47588eaff5f8b77a382260e7da8a3 \r\n\r\n1. :heavy_check_mark:  test_train(): train a toy SDF model with eikonal term.\r\n2. :heavy_check_mark:  grad_check(): check backward_backward **numerical correctness** via `torch.autograd.gradcheck`.\r\n3. :heavy_check_mark:  vis_graph(): visualize torch compute graph\r\n\r\n## Toy model compute graph:\r\ntoy_model:\r\n```python\r\nclass SDF(nn.Module):\r\n    def __init__(self, hash=True, n_levels=12, log2_hashmap_size=15, base_resolution=16) -> None:\r\n        super().__init__()\r\n        self.encoder = tcnn.Encoding(3, {\r\n            \"otype\": \"HashGrid\" if hash else \"DenseGrid\",\r\n            \"n_levels\": n_levels,\r\n            \"n_features_per_level\": 2,\r\n            \"log2_hashmap_size\": log2_hashmap_size,\r\n            \"base_resolution\": base_resolution,\r\n            \"per_level_scale\": 1.5\r\n        })\r\n        self.decoder = nn.Sequential(\r\n            nn.Linear(self.encoder.n_output_dims, 64),\r\n            nn.ReLU(True),\r\n            nn.Linear(64, 1)\r\n        )\r\n    \r\n    def forward(self, x):\r\n        encoded = self.encoder(x).to(dtype=torch.float)\r\n        sdf = self.decoder(encoded)\r\n        return sdf\r\n    \r\n    def forward_with_nablas(self, x):\r\n        with torch.enable_grad():\r\n            x = x.requires_grad_(True)\r\n            sdf = self.forward(x)\r\n            nablas = autograd.grad(\r\n                sdf,\r\n                x,\r\n                torch.ones_like(sdf, device=x.device),\r\n                create_graph=True,\r\n                retain_graph=True,\r\n                only_inputs=True)[0]\r\n        return sdf, nablas\r\n```\r\n\r\nYou can see that the gradients of `nablas` are backwared towards `grid_params` (needs `d(dL_dx)_dgrid)`) and `decoder.xxx` (needs `d(dL_dx)_d(dL_doutput)`) through `backwardBackward`.\r\n![attached](https://user-images.githubusercontent.com/25529198/158918445-a9c77462-2d21-465c-b260-81515faf43d4.png)\r\n\r\n## Theoretical derivation\r\nFrom gradients of `dL_dx`,  to gradients of `dL_dgrid` and `dL_d(dL_doutput)`.\r\n<img width=\"1473\" alt=\"second-order-grad\" src=\"https://user-images.githubusercontent.com/25529198/158921623-72b7e242-f5a9-4b65-83c4-ad215e3d5ce6.png\">\r\n\r\n### **edit: add theoretical derivations of d(dy_dx)_dx**\r\n<img width=\"865\" alt=\"image\" src=\"https://user-images.githubusercontent.com/25529198/160067731-83bec87a-6e88-4935-9b29-e8bec247ee05.png\">\r\n\r\n\r\n~~1. Since I add a **virtual** function `backward_backward_input` in `object.h:DifferentiableObject`, I must put a dummy error function in `network.h:Network` and `encoding.h:Encoding` to pass compiling, which inherit from `DifferentiableObject`. \r\nCurrently this funciton just throw a NotImplementedError. I hope this won't hurt any current mechanisms, and you can finish the remain support for backward_backward later to cancel this dummy function.~~"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Also just wanted to say that I _very much_ appreciate the detailed derivations and explanations in the PR. This is really something to point other people to as an example of how it should be done!",
+        "timestamp": "2022-03-18T09:27:37Z"
+      },
+      {
+        "author": "ventusff",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the nice tips and kind words :) I resolved some of the suggestions now. There are a few remains, mostly about computing that I'm not sure.",
+        "timestamp": "2022-03-18T16:15:01Z"
+      },
+      {
+        "author": "ventusff",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @Tom94,\r\nI've finished the following implementation and tests, and I think it's probably ready to merge now :smiley: \r\n- [x] update with your latest convention of code and data convention, including `MatrixView` and `xxx_impl`\r\n- [x] as you suggested, I add an implementation of `d(dL_dx)_dx`, which requires: \r\n  - [x] an implementation of  `d(dy_dx)_dx`\r\n  - [x] an overload of `pos_fract` for second-order derivatives, and second-order derivatives for `Smoothstep`\r\n  - [x] an additional kernel `kernel_grid_backward_input_backward_input`\r\n  - [x] bindings update and modules udpate\r\n- [x] passed additional `gradcheck` and `gradgradcheck` for the newly added `d(dL_dx)_dx`'s calculation; check numerical correctness under both `Linear` interpolation and `Smoothstep` interpolation (the previous gist script for testing is also updated)\r\n\r\n~~I will clean and upload theoretical derivations for `d(dy_dx)_dx` soon.~~ In the meantime you can review my changes :)\r\n**Edit: theoretical derivations are updated in the top PR comment.**",
+        "timestamp": "2022-03-25T03:25:22Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Wow, this is incredible, thank you so much for adding `d(dL_dx)_dx`! I haven't had the time to get back to this PR during the week and did not expect the follow-up. Will go through it now. :)\r\n\r\nBy the way: do you want to add your test script to the `scripts` folder? It would surely come in handy in the future to ensure nothing regresses. (E.g. when support for non-contiguous inputs from torch is added.)",
+        "timestamp": "2022-03-25T08:54:18Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Turns out that was the only nitpick I could find in the code -- so I quickly made the change myself and merged.\r\n\r\nThanks again for adding all this. I can't stress enough how much I appreciate this sort of high-quality code contribution!",
+        "timestamp": "2022-03-25T09:35:01Z"
+      },
+      {
+        "author": "juuso-oskari",
+        "role": "NONE",
+        "body": "@ventusff Thank you so much for your work on this. Are you still planning to do the double backwards for the fully_fused_mlp.cu? I would really like to test it on my thesis project.",
+        "timestamp": "2023-04-04T08:11:15Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "cb30a9f",
+        "message": "Add partial support for second-order derivatives (only for grid.h's input)",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-18T01:33:58Z"
+      },
+      {
+        "sha": "c6da39a",
+        "message": "Minor fixes typo",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-18T02:22:08Z"
+      },
+      {
+        "sha": "b0323b1",
+        "message": "Fix illegal memory access",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-18T03:31:58Z"
+      },
+      {
+        "sha": "243db3c",
+        "message": "Minor fix comments",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-18T05:08:30Z"
+      },
+      {
+        "sha": "97ff02e",
+        "message": "Unified module_function & throw Error directly at base class",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-18T16:06:13Z"
+      },
+      {
+        "sha": "b294a90",
+        "message": "Merge branch 'master' of github.com:NVlabs/tiny-cuda-nn",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-23T22:52:38Z"
+      },
+      {
+        "sha": "6d252a3",
+        "message": "Change to latest MatrixView & xxx_impl convention",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-24T02:54:25Z"
+      },
+      {
+        "sha": "83ac516",
+        "message": "Add d(dydx)_dx support & overload pos_fract",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-25T03:07:33Z"
+      },
+      {
+        "sha": "b35e196",
+        "message": "Minor updates of comment",
+        "author": "Jianfei (Ventus) Guo",
+        "timestamp": "2022-03-25T03:47:15Z"
+      }
+    ]
+  },
+  {
+    "story_id": "NVlabs/tiny-cuda-nn#486",
+    "metadata": {
+      "title": "Simplify Installation Cuda and latest Cuda",
+      "labels": [],
+      "qualities": [
+        "deployability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-01-14T15:08:49Z",
+      "reviewers": [],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "Update to last cuda and simplify cuda ubuntu installation"
+    },
+    "discussion_timeline": [
+      {
+        "author": "johnnynunez",
+        "role": "CONTRIBUTOR",
+        "body": "@Tom94 now its building with latest cuda and windows :)\r\neasier implementation and updated ubuntu cuda installation",
+        "timestamp": "2025-01-14T12:52:36Z"
+      },
+      {
+        "author": "johnnynunez",
+        "role": "CONTRIBUTOR",
+        "body": "![image](https://github.com/user-attachments/assets/db7d7229-dd1d-4a8a-aa8b-29b630f2fa10)\r\n",
+        "timestamp": "2025-01-14T13:00:05Z"
+      },
+      {
+        "author": "johnnynunez",
+        "role": "CONTRIBUTOR",
+        "body": "It's ready to add blackwell with cuda 12.7",
+        "timestamp": "2025-01-14T13:00:25Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Hi, thanks a bunch for the contribution -- it's nice to have CI for the latest architectures! That said, while older CUDA versions may be deprecated, many users (particularly those working in the cloud / on clusters) are stuck with them, and so the old CI runners should really not get removed. Could you add them back while keeping the new ones?",
+        "timestamp": "2025-01-14T14:15:48Z"
+      },
+      {
+        "author": "johnnynunez",
+        "role": "CONTRIBUTOR",
+        "body": "> Hi, thanks a bunch for the contribution -- it's nice to have CI for the latest architectures! That said, while older CUDA versions may be deprecated, many users (particularly those working in the cloud / on clusters) are stuck with them, and so the old CI runners should really not get removed. Could you add them back while keeping the new ones?\r\n\r\nWhat minimum version do you want? Because nvidia cuda changed packages names",
+        "timestamp": "2025-01-14T14:18:02Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "I was hoping for the same ones as previously, i.e. 11.3 on Linux and 11.5.1 on Windows (with the same spread over compute capabilities, starting from 37).",
+        "timestamp": "2025-01-14T14:21:19Z"
+      },
+      {
+        "author": "johnnynunez",
+        "role": "CONTRIBUTOR",
+        "body": "@Tom94 you can merge it:\r\n![image](https://github.com/user-attachments/assets/45d5bf44-8837-4950-9f05-37567499f50f)",
+        "timestamp": "2025-01-14T14:57:26Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Amazing, thanks for being so quick -- and for cleaning up the script while you were at it!",
+        "timestamp": "2025-01-14T15:08:46Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "900d6f4",
+        "message": "remove deprecated CI",
+        "author": "johnnynunez",
+        "timestamp": "2025-01-14T12:29:01Z"
+      },
+      {
+        "sha": "ae6a426",
+        "message": "fix windows",
+        "author": "johnnynunez",
+        "timestamp": "2025-01-14T12:36:46Z"
+      },
+      {
+        "sha": "6ef5941",
+        "message": "Update LICENSE.txt",
+        "author": "Johnny",
+        "timestamp": "2025-01-14T12:55:58Z"
+      },
+      {
+        "sha": "7c6537f",
+        "message": "Update README.md",
+        "author": "Johnny",
+        "timestamp": "2025-01-14T12:57:04Z"
+      },
+      {
+        "sha": "d643f24",
+        "message": "revert cuda",
+        "author": "Johnny",
+        "timestamp": "2025-01-14T14:43:07Z"
+      }
+    ]
+  },
+  {
+    "story_id": "NVlabs/tiny-cuda-nn#522",
+    "metadata": {
+      "title": "feat: rtc_set_cache_dir",
+      "labels": [],
+      "qualities": [
+        "deployability",
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-10-13T16:30:44Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "In some circumstances, the tiny-cuda-nn install location is read-only at runtime. For example, tiny-cuda-nn python bindings may be installed in a virtual environment that is specifically made read-only at runtime to avoid unexpected changes. In this case, tiny-cuda-nn fails to import as the cache directory cannot be created inside this read-only environment.\r\n\r\nAllow users to redirect the cache directory to a location of their choice via a new function in `modules.py`"
+    },
+    "discussion_timeline": [
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for the contribution!\r\n\r\nI'd prefer if the configuration of the cache dir was a Python setter rather than an env var. Like this:\r\n\r\n```python\r\ndef rtc_set_cache_dir(dir):\r\n   if not os.path.isdir(dir):\r\n       raise ValueError(f\"RTC cache dir {dir} does not exist\")\r\n   _C.rtc_set_cache_dir(dir)\r\n```\r\n\r\nThe current code could be guarded against import failure by\r\n\r\n```python\r\ntry:\r\n    _rtc_cache_dir = os.path.join(_rtc_dir, \"cache\")\r\n    os.makedirs(_rtc_cache_dir, exist_ok=True)\r\n    _C.rtc_set_cache_dir(_rtc_cache_dir)\r\nexcept:\r\n    pass\r\n```\r\n\r\ntcnn's JIT will work fine without a cache dir (simply re-compiling instead of loading from cache)",
+        "timestamp": "2025-10-08T13:24:55Z"
+      },
+      {
+        "author": "drewgilliam",
+        "role": "CONTRIBUTOR",
+        "body": "@Tom94  - would it be possible to do both an env. var. and setter for maximum flexibility?  I figured the environment variable would already make sense to most users since it mimics packages like pip (`PIP_CACHE_DIR`) and torch (`TORCH_HOME`). ",
+        "timestamp": "2025-10-08T14:48:03Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "I'd much prefer exposing just the setter and then leaving it up to the application built on top of tcnn to implement an env var setting if desired.\r\n\r\nMultiple reasons:\r\n- Priority: if both were allowed, should the env var or the setter take priority? I can imagine situations where either would be preferable, meaning it would be good to put the decision into the hands of app developers.\r\n- Complexity: the env var, as well as priority logic, would also have to be implemented in the C++ and CUDA APIs of tcnn, potentially needing downstream changes in existing apps that already follow the setter paradigm (like instant-ngp)\r\n- Precedent: right now, tcnn isn't directly user-controllable via env vars at all. Instead opting to be configured entirely by the app built on top of it. I'm not sure it's good to start changing that.\r\n\r\n",
+        "timestamp": "2025-10-08T15:13:42Z"
+      },
+      {
+        "author": "drewgilliam",
+        "role": "CONTRIBUTOR",
+        "body": "@Tom94 okie doke - I've revised as requested.  I took your concept a step further, letting the function create the cache directory if it doesn't exist and do a quick `tempfile` test to make sure the directory is writable.",
+        "timestamp": "2025-10-08T19:46:59Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you! I think the tempfile check is great -- however could you remove the `makedirs` part again and replace it with an `isdir` check?\r\n\r\nThe PyTorch extension should be as thin a wrapper around tcnn as possible, not introducing behavior that the C++/CUDA API doesn't have. I.e., `makedirs`, if added, should be in `rtc_kernel.cu`... and I think it's too late for this change for backward compatibility reasons.",
+        "timestamp": "2025-10-09T08:27:58Z"
+      },
+      {
+        "author": "drewgilliam",
+        "role": "CONTRIBUTOR",
+        "body": "done - `makedirs` replaced with `isdir`",
+        "timestamp": "2025-10-09T13:03:51Z"
+      },
+      {
+        "author": "Tom94",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you!",
+        "timestamp": "2025-10-13T16:30:41Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2756619",
+        "message": "feat(python): bindings for rtc_set_cache_dir",
+        "author": "Drew Gilliam",
+        "timestamp": "2025-10-08T12:38:00Z"
+      }
+    ]
+  }
+]

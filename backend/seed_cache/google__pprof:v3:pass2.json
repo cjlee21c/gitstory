@@ -1,0 +1,1680 @@
+[
+  {
+    "story_id": "google/pprof#369",
+    "metadata": {
+      "title": "add -diff flag for better profile comparision",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-05-29T19:22:02Z",
+      "reviewers": [
+        "nolanmar511",
+        "aalexand"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "Part of fixing #323.\r\n\r\nChanges made to design:\r\n* Using key \"base\" and value \"1\" to mark profiles in the base profile, rather than key \"pprof::base\" (or \"pprof::diff\") and value \"true\", because we don't want to use long values (the are lots of samples, so adding lots of tags might increase memory usage too much).\r\n* Using `-diff_base`, rather than `-diff` as the flag name. It should be clearer. \r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=h1) Report\n> Merging [#369](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/4d67f66d7c9469639518a80f378434bb7e9156b7?src=pr&el=desc) will **increase** coverage by `0.18%`.\n> The diff coverage is `88%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/369/graphs/tree.svg?token=nHgs4Smibv&width=650&height=150&src=pr)](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master     #369      +/-   ##\n==========================================\n+ Coverage   66.89%   67.08%   +0.18%     \n==========================================\n  Files          36       36              \n  Lines        7495     7532      +37     \n==========================================\n+ Hits         5014     5053      +39     \n+ Misses       2079     2078       -1     \n+ Partials      402      401       -1\n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [internal/driver/fetch.go](https://codecov.io/gh/google/pprof/pull/369/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2ZldGNoLmdv) | `68.34% <100%> (+0.18%)` | :arrow_up: |\n| [profile/profile.go](https://codecov.io/gh/google/pprof/pull/369/diff?src=pr&el=tree#diff-cHJvZmlsZS9wcm9maWxlLmdv) | `70.92% <100%> (+1.14%)` | :arrow_up: |\n| [internal/driver/cli.go](https://codecov.io/gh/google/pprof/pull/369/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2NsaS5nbw==) | `79.6% <78.26%> (+2.06%)` | :arrow_up: |\n| [internal/report/report.go](https://codecov.io/gh/google/pprof/pull/369/diff?src=pr&el=tree#diff-aW50ZXJuYWwvcmVwb3J0L3JlcG9ydC5nbw==) | `31.33% <90.9%> (+0.97%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=footer). Last update [4d67f66...9558b3c](https://codecov.io/gh/google/pprof/pull/369?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2018-05-02T19:55:15Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-02T20:39:49Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL, except for at docs.\r\n(Will add another PTAL when docs are ready to be looked at again)",
+        "timestamp": "2018-05-04T16:09:12Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "Also addressed (tried to address) comments on docs. \r\nThose are ready for PTAL, too.",
+        "timestamp": "2018-05-04T19:33:58Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-08T21:43:06Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-09T16:54:20Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@nolanmar511 Please LMK when you remove the `runtime.GOMAXPROCS(len(testcases))` code and I'll look again.",
+        "timestamp": "2018-05-09T19:26:38Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": " Removed the `runtime.GOMAXPROCS(len(testcases))` code.\r\nPTAL",
+        "timestamp": "2018-05-09T19:34:58Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-11T22:45:55Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-24T19:49:56Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "PTAL",
+        "timestamp": "2018-05-29T18:25:59Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "Did some manual testing. Looking at the graph view, the value for \"Total samples\" is equal to the total of the base profile.\r\n\r\nUsed -proto to output the profile, then used pprof again to inspect that profile, and saw same total reported with graph view.",
+        "timestamp": "2018-05-29T19:19:10Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5a69374",
+        "message": "add -diff flag for better profile comparision",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-04-26T23:28:51Z"
+      },
+      {
+        "sha": "b20456b",
+        "message": "address comments and fix errors which appeared in manual testing",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-01T21:36:40Z"
+      },
+      {
+        "sha": "190ce18",
+        "message": "address comments",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-01T22:40:38Z"
+      },
+      {
+        "sha": "ebd76df",
+        "message": "rename tags and update documentation",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-02T17:17:50Z"
+      },
+      {
+        "sha": "92f6fbe",
+        "message": "fix TestFetchWithBase",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-02T19:41:59Z"
+      },
+      {
+        "sha": "6921532",
+        "message": "update docs",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-02T20:39:02Z"
+      },
+      {
+        "sha": "14703a0",
+        "message": "use pprof::bass=true to mark diff base samples",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-03T22:31:08Z"
+      },
+      {
+        "sha": "49ff346",
+        "message": "update docs",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-04T17:49:23Z"
+      },
+      {
+        "sha": "f486417",
+        "message": "update documents",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-08T20:47:06Z"
+      },
+      {
+        "sha": "bd80566",
+        "message": "address comments on code",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-08T21:12:06Z"
+      },
+      {
+        "sha": "79b3df8",
+        "message": "address comments",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-09T16:15:14Z"
+      },
+      {
+        "sha": "ee3be39",
+        "message": "use t.Run",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-09T16:37:26Z"
+      },
+      {
+        "sha": "562c51d",
+        "message": "address comments",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-11T22:11:35Z"
+      },
+      {
+        "sha": "4b9834b",
+        "message": "address comments",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-24T19:44:45Z"
+      },
+      {
+        "sha": "9558b3c",
+        "message": "address comments",
+        "author": "Maggie Nolan",
+        "timestamp": "2018-05-29T18:24:59Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#519",
+    "metadata": {
+      "title": "Provide more helpful error message and require input for every non-bool option.",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-04-17T00:23:41Z",
+      "reviewers": [
+        "wyk9787",
+        "aalexand",
+        "nolanmar511"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Fixes: #441\r\n\r\n1. More helpful error messages and usages are added.\r\n2. All non-bool option now requires an input. That means \"call_tree\" is valid, but \"sample_index\" is invalid.\r\n\r\nBefore:\r\n```\r\n(pprof) sample_index\r\n(pprof)\r\n```\r\n\r\n```\r\n(pprof) sample_index 0\r\nunrecognized command: \"sample_index\"\r\n```\r\n\r\n```\r\n(pprof) help\r\n    ...\r\n    sample_index     Sample value to report (0-based index or name)\r\n    ...\r\n```\r\n\r\nAfter:\r\n```\r\n(pprof) sample_index\r\nplease input a value, e.g. sample_index=<val>\r\n(pprof) focus\r\nplease input a value, e.g. focus=<val>\r\n(pprof) call_tree\r\n(pprof) \r\n```\r\n\r\n```\r\n(pprof) sample_index 0\r\ndo you mean: \"sample_index=0\"?\r\n```"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=h1) Report\n> Merging [#519](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/b1a96885c1c6fcd3ab3c31712ac2b4eebf772171&el=desc) will **increase** coverage by `0.04%`.\n> The diff coverage is `100.00%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/519/graphs/tree.svg?width=650&height=150&src=pr&token=nHgs4Smibv)](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master     #519      +/-   ##\n==========================================\n+ Coverage   67.06%   67.11%   +0.04%     \n==========================================\n  Files          37       37              \n  Lines        7622     7627       +5     \n==========================================\n+ Hits         5112     5119       +7     \n+ Misses       2104     2103       -1     \n+ Partials      406      405       -1     \n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [internal/driver/interactive.go](https://codecov.io/gh/google/pprof/pull/519/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2ludGVyYWN0aXZlLmdv) | `61.65% <100.00%> (+1.50%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=footer). Last update [b1a9688...fc94335](https://codecov.io/gh/google/pprof/pull/519?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-04-08T22:37:16Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Could you include \"before\" and \"after\" outputs in the PR description? Basically, enough data for the reviewer to convince themselves that the bug is fixed on all its points.",
+        "timestamp": "2020-04-08T22:51:51Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "On\r\n\r\n```\r\n(pprof) sample_index 0\r\nUnrecognized command: \"sample_index\"\r\n```\r\n\r\nvs.\r\n\r\n```\r\n(pprof) sample_index\r\nplease input a value, e.g. option = value\r\n\r\n(pprof) focus\r\nplease input a value, e.g. option = value\r\n\r\n(pprof) sample_index 0\r\ndo you mean: \"sample_index=0\"?\r\n```\r\n\r\nCasing is inconsistent. User visible messages should use sentence case.",
+        "timestamp": "2020-04-09T17:43:07Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> On\r\n> \r\n> ```\r\n> (pprof) sample_index 0\r\n> Unrecognized command: \"sample_index\"\r\n> ```\r\n> \r\n> vs.\r\n> \r\n> ```\r\n> (pprof) sample_index\r\n> please input a value, e.g. option = value\r\n> \r\n> (pprof) focus\r\n> please input a value, e.g. option = value\r\n> \r\n> (pprof) sample_index 0\r\n> do you mean: \"sample_index=0\"?\r\n> ```\r\n> \r\n> Casing is inconsistent. User visible messages should use sentence case.\r\n\r\nActually before was lowercase as well and was consistent throughout the code base, i.e. \"unrecognized command ...\". Also, my IDE reminds me that error message should not start with uppercase, https://github.com/golang/go/wiki/CodeReviewComments#error-strings",
+        "timestamp": "2020-04-09T17:53:36Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> > On\r\n> > ```\r\n> > (pprof) sample_index 0\r\n> > Unrecognized command: \"sample_index\"\r\n> > ```\r\n> > \r\n> > \r\n> > vs.\r\n> > ```\r\n> > (pprof) sample_index\r\n> > please input a value, e.g. option = value\r\n> > \r\n> > (pprof) focus\r\n> > please input a value, e.g. option = value\r\n> > \r\n> > (pprof) sample_index 0\r\n> > do you mean: \"sample_index=0\"?\r\n> > ```\r\n> > \r\n> > \r\n> > Casing is inconsistent. User visible messages should use sentence case.\r\n> \r\n> Actually before was lowercase as well and was consistent throughout the code base, i.e. \"unrecognized command ...\". Also, my IDE reminds me that error message should not start with uppercase, https://github.com/golang/go/wiki/CodeReviewComments#error-strings\r\n\r\n@wyk9787 I took the example from the PR description. It's fine to keep these lowercase, but the casing should be consistent.",
+        "timestamp": "2020-04-09T17:56:27Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > On\r\n> > > ```\r\n> > > (pprof) sample_index 0\r\n> > > Unrecognized command: \"sample_index\"\r\n> > > ```\r\n> > > \r\n> > > \r\n> > > vs.\r\n> > > ```\r\n> > > (pprof) sample_index\r\n> > > please input a value, e.g. option = value\r\n> > > \r\n> > > (pprof) focus\r\n> > > please input a value, e.g. option = value\r\n> > > \r\n> > > (pprof) sample_index 0\r\n> > > do you mean: \"sample_index=0\"?\r\n> > > ```\r\n> > > \r\n> > > \r\n> > > Casing is inconsistent. User visible messages should use sentence case.\r\n> > \r\n> > \r\n> > Actually before was lowercase as well and was consistent throughout the code base, i.e. \"unrecognized command ...\". Also, my IDE reminds me that error message should not start with uppercase, https://github.com/golang/go/wiki/CodeReviewComments#error-strings\r\n> \r\n> @wyk9787 I took the example from the PR description. It's fine to keep these lowercase, but the casing should be consistent.\r\n\r\n@aalexand Sorry about! Description is updated.",
+        "timestamp": "2020-04-09T18:01:24Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Looking at the full output (below), I find the options section a bit too noisy on the left side now. I wonder if it would be sufficient to mention the option type in the parens after the option description or something like that. I don't think having the placeholder in the exact place of the option description text is that valuable - most command-line tools don't have it in their \"--help\" output and it works fairly well.\r\n\r\nAlso, there are flags like -timeout, -seconds and other which also accept values, and now their description is not consistent with the options part. This is another reason I would try to make this PR change the help formatting for options a bit less, to make sure the whole -help output is self-coherent and consistent.\r\n\r\nAlso summoning @rauls5382 for his opinion.\r\n\r\n```\r\n$ go run pprof.go\r\nusage:\r\n\r\nProduce output in the specified format.\r\n\r\n   pprof <format> [options] [binary] <source> ...\r\n\r\nOmit the format to get an interactive shell whose commands can be used\r\nto generate various views of a profile\r\n\r\n   pprof [options] [binary] <source> ...\r\n\r\nOmit the format and provide the \"-http\" flag to get an interactive web\r\ninterface at the specified host:port that can be used to navigate through\r\nvarious views of a profile.\r\n\r\n   pprof -http [host]:[port] [options] [binary] <source> ...\r\n\r\nDetails:\r\n  Output formats (select at most one):\r\n    -callgrind       Outputs a graph in callgrind format\r\n    -comments        Output all profile comments\r\n    -disasm          Output assembly listings annotated with samples\r\n    -dot             Outputs a graph in DOT format\r\n    -eog             Visualize graph through eog\r\n    -evince          Visualize graph through evince\r\n    -gif             Outputs a graph image in GIF format\r\n    -gv              Visualize graph through gv\r\n    -kcachegrind     Visualize report in KCachegrind\r\n    -list            Output annotated source for functions matching regexp\r\n    -pdf             Outputs a graph in PDF format\r\n    -peek            Output callers/callees of functions matching regexp\r\n    -png             Outputs a graph image in PNG format\r\n    -proto           Outputs the profile in compressed protobuf format\r\n    -ps              Outputs a graph in PS format\r\n    -raw             Outputs a text representation of the raw profile\r\n    -svg             Outputs a graph in SVG format\r\n    -tags            Outputs all tags in the profile\r\n    -text            Outputs top entries in text form\r\n    -top             Outputs top entries in text form\r\n    -topproto        Outputs top entries in compressed protobuf format\r\n    -traces          Outputs all profile samples in text form\r\n    -tree            Outputs a text rendering of call graph\r\n    -web             Visualize graph through web browser\r\n    -weblist         Display annotated source in a web browser\r\n\r\n  Options:\r\n    General format is <option>=<value>\r\n    <f> is a float, <n> is an integer, and <s> is a string\r\n    Use <option> or <option>=t to set a boolean flag to true and <option>=f to set it to false\r\n\r\n    -call_tree       Create a context-sensitive call tree\r\n    -compact_labels  Show minimal headers\r\n    -divide_by=<f>   <f> is the ratio to divide all samples before visualization\r\n    -drop_negative   Ignore negative differences\r\n    -edgefraction=<f> Hide edges below <f>*total\r\n    -focus=<s>       Restricts to samples going through a node matching regexp <s>\r\n    -hide=<s>        Skips nodes matching regexp <s>\r\n    -ignore=<s>      Skips paths going through any nodes matching regexp <s>\r\n    -mean            Average sample value over first value (count)\r\n    -nodecount=<n>   <n> is the max number of nodes to show\r\n    -nodefraction=<f> Hide nodes below <f>*total\r\n    -noinlines       Ignore inlines.\r\n    -normalize       Scales profile based on the base profile.\r\n    -output=<s>      <s> is the output filename for file-based outputs\r\n    -prune_from=<s>  Drops any functions below the matched frame <s>.\r\n    -relative_percentages Show percentages relative to focused subgraph\r\n    -sample_index=<x> Sample value to report (<x> is 0-based index or name)\r\n    -show=<s>        Only show nodes matching regexp <s>\r\n    -show_from=<s>   Drops functions above the highest matched frame <s>.\r\n    -source_path=<s> Search path <s> for source files\r\n    -tagfocus=<s>    Restricts to samples with tags in range or matched by regexp <s>\r\n    -taghide=<s>     Skip tags matching this regexp <s>\r\n    -tagignore=<s>   Discard samples with tags in range or matched by regexp <s>\r\n    -tagshow=<s>     Only consider tags matching this regexp <s>\r\n    -trim            Honor nodefraction/edgefraction/nodecount defaults\r\n    -trim_path=<s>   Path <s> to trim from source paths before search\r\n    -unit=<s>        <s> is the measurement unit to display\r\n\r\n  Option groups (only set one per group):\r\n    cumulative\r\n      -cum             Sort entries based on cumulative weight\r\n      -flat            Sort entries based on own weight\r\n    granularity\r\n      -addresses       Aggregate at the address level.\r\n      -filefunctions   Aggregate at the function level.\r\n      -files           Aggregate at the file level.\r\n      -functions       Aggregate at the function level.\r\n      -lines           Aggregate at the source code line level.\r\n\r\n  Source options:\r\n    -seconds              Duration for time-based profile collection\r\n    -timeout              Timeout in seconds for profile collection\r\n    -buildid              Override build id for main binary\r\n    -add_comment          Free-form annotation to add to the profile\r\n                          Displayed on some reports or with pprof -comments\r\n    -diff_base source     Source of base profile for comparison\r\n    -base source          Source of base profile for profile subtraction\r\n    profile.pb.gz         Profile in compressed protobuf format\r\n    legacy_profile        Profile in legacy pprof format\r\n    http://host/profile   URL for profile handler to retrieve\r\n    -symbolize=           Controls source of symbol information\r\n      none                  Do not attempt symbolization\r\n      local                 Examine only local binaries\r\n      fastlocal             Only get function names from local binaries\r\n      remote                Do not examine local binaries\r\n      force                 Force re-symbolization\r\n    Binary                  Local path or build id of binary for symbolization\r\n    -tls_cert             TLS client certificate file for fetching profile and symbols\r\n    -tls_key              TLS private key file for fetching profile and symbols\r\n    -tls_ca               TLS CA certs file for fetching profile and symbols\r\n\r\n  Misc options:\r\n   -http              Provide web interface at host:port.\r\n                      Host is optional and 'localhost' by default.\r\n                      Port is optional and a randomly available port by default.\r\n   -no_browser        Skip opening a browser for the interactive web UI.\r\n   -tools             Search path for object tools\r\n\r\n  Legacy convenience options:\r\n   -inuse_space           Same as -sample_index=inuse_space\r\n   -inuse_objects         Same as -sample_index=inuse_objects\r\n   -alloc_space           Same as -sample_index=alloc_space\r\n   -alloc_objects         Same as -sample_index=alloc_objects\r\n   -total_delay           Same as -sample_index=delay\r\n   -contentions           Same as -sample_index=contentions\r\n   -mean_delay            Same as -mean -sample_index=delay\r\n\r\n  Environment Variables:\r\n   PPROF_TMPDIR       Location for saved profiles (default $HOME/pprof)\r\n   PPROF_TOOLS        Search path for object-level tools\r\n   PPROF_BINARY_PATH  Search path for local binary files\r\n                      default: $HOME/pprof/binaries\r\n                      searches $name, $path, $buildid/$name, $path/$buildid\r\n   * On Windows, %USERPROFILE% is used instead of $HOME\r\npprof: no profile source specified\r\nexit status 2\r\n```",
+        "timestamp": "2020-04-10T19:02:37Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> mand-line tools don't have it in their \"--help\" output and it works fairly well.\r\n> \r\n> Also, there are flags like -timeout, -seconds and other which also accept values, and now their description is not consist\r\n\r\nSorry, I forgot to change back to 22 spaces after switching back to 16 spaces. I have changed back to 22 spaces now. Do we still need to take out the placeholders?\r\n\r\n```\r\n$ go run pprof.go\r\nusage:\r\n\r\nProduce output in the specified format.\r\n\r\n   pprof <format> [options] [binary] <source> ...\r\n\r\nOmit the format to get an interactive shell whose commands can be used\r\nto generate various views of a profile\r\n\r\n   pprof [options] [binary] <source> ...\r\n\r\nOmit the format and provide the \"-http\" flag to get an interactive web\r\ninterface at the specified host:port that can be used to navigate through\r\nvarious views of a profile.\r\n\r\n   pprof -http [host]:[port] [options] [binary] <source> ...\r\n\r\nDetails:\r\n  Output formats (select at most one):\r\n    -callgrind             Outputs a graph in callgrind format\r\n    -comments              Output all profile comments\r\n    -disasm                Output assembly listings annotated with samples\r\n    -dot                   Outputs a graph in DOT format\r\n    -eog                   Visualize graph through eog\r\n    -evince                Visualize graph through evince\r\n    -gif                   Outputs a graph image in GIF format\r\n    -gv                    Visualize graph through gv\r\n    -kcachegrind           Visualize report in KCachegrind\r\n    -list                  Output annotated source for functions matching regexp\r\n    -pdf                   Outputs a graph in PDF format\r\n    -peek                  Output callers/callees of functions matching regexp\r\n    -png                   Outputs a graph image in PNG format\r\n    -proto                 Outputs the profile in compressed protobuf format\r\n    -ps                    Outputs a graph in PS format\r\n    -raw                   Outputs a text representation of the raw profile\r\n    -svg                   Outputs a graph in SVG format\r\n    -tags                  Outputs all tags in the profile\r\n    -text                  Outputs top entries in text form\r\n    -top                   Outputs top entries in text form\r\n    -topproto              Outputs top entries in compressed protobuf format\r\n    -traces                Outputs all profile samples in text form\r\n    -tree                  Outputs a text rendering of call graph\r\n    -web                   Visualize graph through web browser\r\n    -weblist               Display annotated source in a web browser\r\n\r\n  Options:\r\n    General format is <option>=<value>\r\n    <f> is a float, <n> is an integer, and <s> is a string\r\n    Use <option> or <option>=t to set a boolean flag to true and <option>=f to set it to false\r\n\r\n    -call_tree             Create a context-sensitive call tree\r\n    -compact_labels        Show minimal headers\r\n    -divide_by=<f>         <f> is the ratio to divide all samples before visualization\r\n    -drop_negative         Ignore negative differences\r\n    -edgefraction=<f>      Hide edges below <f>*total\r\n    -focus=<s>             Restricts to samples going through a node matching regexp <s>\r\n    -hide=<s>              Skips nodes matching regexp <s>\r\n    -ignore=<s>            Skips paths going through any nodes matching regexp <s>\r\n    -mean                  Average sample value over first value (count)\r\n    -nodecount=<n>         <n> is the max number of nodes to show\r\n    -nodefraction=<f>      Hide nodes below <f>*total\r\n    -noinlines             Ignore inlines.\r\n    -normalize             Scales profile based on the base profile.\r\n    -output=<s>            <s> is the output filename for file-based outputs\r\n    -prune_from=<s>        Drops any functions below the matched frame <s>.\r\n    -relative_percentages  Show percentages relative to focused subgraph\r\n    -sample_index=<x>      Sample value to report (<x> is 0-based index or name)\r\n    -show=<s>              Only show nodes matching regexp <s>\r\n    -show_from=<s>         Drops functions above the highest matched frame <s>.\r\n    -source_path=<s>       Search path <s> for source files\r\n    -tagfocus=<s>          Restricts to samples with tags in range or matched by regexp <s>\r\n    -taghide=<s>           Skip tags matching this regexp <s>\r\n    -tagignore=<s>         Discard samples with tags in range or matched by regexp <s>\r\n    -tagshow=<s>           Only consider tags matching this regexp <s>\r\n    -trim                  Honor nodefraction/edgefraction/nodecount defaults\r\n    -trim_path=<s>         Path <s> to trim from source paths before search\r\n    -unit=<s>              <s> is the measurement unit to display\r\n\r\n  Option groups (only set one per group):\r\n    cumulative             \r\n      -cum                   Sort entries based on cumulative weight\r\n      -flat                  Sort entries based on own weight\r\n    granularity            \r\n      -addresses             Aggregate at the address level.\r\n      -filefunctions         Aggregate at the function level.\r\n      -files                 Aggregate at the file level.\r\n      -functions             Aggregate at the function level.\r\n      -lines                 Aggregate at the source code line level.\r\n\r\n  Source options:\r\n    -seconds              Duration for time-based profile collection\r\n    -timeout              Timeout in seconds for profile collection\r\n    -buildid              Override build id for main binary\r\n    -add_comment          Free-form annotation to add to the profile\r\n                          Displayed on some reports or with pprof -comments\r\n    -diff_base source     Source of base profile for comparison\r\n    -base source          Source of base profile for profile subtraction\r\n    profile.pb.gz         Profile in compressed protobuf format\r\n    legacy_profile        Profile in legacy pprof format\r\n    http://host/profile   URL for profile handler to retrieve\r\n    -symbolize=           Controls source of symbol information\r\n      none                  Do not attempt symbolization\r\n      local                 Examine only local binaries\r\n      fastlocal             Only get function names from local binaries\r\n      remote                Do not examine local binaries\r\n      force                 Force re-symbolization\r\n    Binary                  Local path or build id of binary for symbolization\r\n    -tls_cert             TLS client certificate file for fetching profile and symbols\r\n    -tls_key              TLS private key file for fetching profile and symbols\r\n    -tls_ca               TLS CA certs file for fetching profile and symbols\r\n\r\n  Misc options:\r\n   -http              Provide web interface at host:port.\r\n                      Host is optional and 'localhost' by default.\r\n                      Port is optional and a randomly available port by default.\r\n   -no_browser        Skip opening a browser for the interactive web UI.\r\n   -tools             Search path for object tools\r\n\r\n  Legacy convenience options:\r\n   -inuse_space           Same as -sample_index=inuse_space\r\n   -inuse_objects         Same as -sample_index=inuse_objects\r\n   -alloc_space           Same as -sample_index=alloc_space\r\n   -alloc_objects         Same as -sample_index=alloc_objects\r\n   -total_delay           Same as -sample_index=delay\r\n   -contentions           Same as -sample_index=contentions\r\n   -mean_delay            Same as -mean -sample_index=delay\r\n\r\n  Environment Variables:\r\n   PPROF_TMPDIR       Location for saved profiles (default $HOME/pprof)\r\n   PPROF_TOOLS        Search path for object-level tools\r\n   PPROF_BINARY_PATH  Search path for local binary files\r\n                      default: $HOME/pprof/binaries\r\n                      searches $name, $path, $buildid/$name, $path/$buildid\r\n   * On Windows, %USERPROFILE% is used instead of $HOME\r\npprof: no profile source specified\r\nexit status 2\r\n```",
+        "timestamp": "2020-04-10T19:11:02Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> Sorry, I forgot to change back to 22 spaces after switching back to 16 spaces. I have changed back to 22 spaces now. Do we still need to take out the placeholders?\r\n\r\nYes, I think so: my concern was not related to the wrapping / unaligned text.",
+        "timestamp": "2020-04-10T22:24:23Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > Sorry, I forgot to change back to 22 spaces after switching back to 16 spaces. I have changed back to 22 spaces now. Do we still need to take out the placeholders?\r\n> \r\n> Yes, I think so: my concern was not related to the wrapping / unaligned text.\r\n\r\nGot it. Just to clarify, for this PR, are you expecting something like:\r\n```\r\n-nodecount         Max number of nodes to show (n)\r\n-show              Only show nodes matching regexp (s)\r\n```\r\nfor all options and commands that require a parameter? Or, I should simply discard those changes for the help in this PR?\r\n",
+        "timestamp": "2020-04-11T00:30:21Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "Reverted all modifications to the help text and updated description.",
+        "timestamp": "2020-04-13T20:17:43Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> Or, I should simply discard those changes for the help in this PR?\r\n\r\nI would probably leave out that part of changing the help message. (And revert the header of the options section as needed)",
+        "timestamp": "2020-04-15T17:05:17Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > Or, I should simply discard those changes for the help in this PR?\r\n> \r\n> I would probably leave out that part of changing the help message. (And revert the header of the options section as needed)\r\n\r\nYes, already reverted all changes made to the help message. There is no modification to the help message in this PR and the description is updated as well.",
+        "timestamp": "2020-04-15T17:09:56Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@wyk9787 The travis build is failing?",
+        "timestamp": "2020-04-16T19:34:49Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> @wyk9787 The travis build is failing?\r\n\r\n It seems like the Travis times out before the test is even run: https://travis-ci.org/github/google/pprof/jobs/675881270.\r\n\r\nIs it possible to increase the time limit for travis? Currently it's set to 50 minutes.",
+        "timestamp": "2020-04-16T19:57:20Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "> > @wyk9787 The travis build is failing?\r\n> \r\n> It seems like the Travis times out before the test is even run: https://travis-ci.org/github/google/pprof/jobs/675881270.\r\n> \r\n> Is it possible to increase the time limit for travis? Currently it's set to 50 minutes.\r\n\r\nFor now, I restarted the errored tests. Can other folks restart these tests, too?",
+        "timestamp": "2020-04-16T20:08:14Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > @wyk9787 The travis build is failing?\r\n> > \r\n> > \r\n> > It seems like the Travis times out before the test is even run: https://travis-ci.org/github/google/pprof/jobs/675881270.\r\n> > Is it possible to increase the time limit for travis? Currently it's set to 50 minutes.\r\n> \r\n> For now, I restarted the errored tests. Can other folks restart these tests, too?\r\n\r\nI don't think I am able to. ",
+        "timestamp": "2020-04-16T20:12:12Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "@aalexand The Travis build just passed.",
+        "timestamp": "2020-04-17T00:04:55Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a9ea908",
+        "message": "Provide more helpful error message and require input for every non-bool option.",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-08T21:53:41Z"
+      },
+      {
+        "sha": "2a191ba",
+        "message": "Merge branch 'master' into helpful_error",
+        "author": "Maggie Nolan",
+        "timestamp": "2020-04-08T22:24:53Z"
+      },
+      {
+        "sha": "a2e56b4",
+        "message": "Improve the Option groups' help message",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T00:19:26Z"
+      },
+      {
+        "sha": "f3c38ed",
+        "message": "Rearrange TestShell to table driven tests",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T06:38:27Z"
+      },
+      {
+        "sha": "8563fb1",
+        "message": "Merge branch 'helpful_error' of github.com:wyk9787/pprof into helpful_error",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T06:41:07Z"
+      },
+      {
+        "sha": "99ff77d",
+        "message": "Remove unused function",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T17:10:27Z"
+      },
+      {
+        "sha": "b6459a5",
+        "message": "Remove space around equal sign in usage",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T17:44:21Z"
+      },
+      {
+        "sha": "7483e19",
+        "message": "Standardize the help message for all options",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T18:42:17Z"
+      },
+      {
+        "sha": "a0929fd",
+        "message": "Fix tests",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-09T18:45:41Z"
+      },
+      {
+        "sha": "2434176",
+        "message": "Mention option <s> in help",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-10T00:15:16Z"
+      },
+      {
+        "sha": "68e3bcf",
+        "message": "Rename the function from addVariablesPostFix to variablesPostFix",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-10T00:17:04Z"
+      },
+      {
+        "sha": "fee78be",
+        "message": "Improve the help message on individual option",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-10T17:14:16Z"
+      },
+      {
+        "sha": "71ef91f",
+        "message": "Fix a few nits",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-10T18:35:58Z"
+      },
+      {
+        "sha": "c882260",
+        "message": "Fix formatting",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-10T19:08:48Z"
+      },
+      {
+        "sha": "54872a3",
+        "message": "Merge branch 'master' into helpful_error",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-13T17:23:58Z"
+      },
+      {
+        "sha": "a7a638d",
+        "message": "Revert all changed made to help text",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-13T20:11:20Z"
+      },
+      {
+        "sha": "cebe0e4",
+        "message": "Fix merge conflicts",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-13T20:13:11Z"
+      },
+      {
+        "sha": "cbe760c",
+        "message": "Solve merge conflicts",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-13T20:16:47Z"
+      },
+      {
+        "sha": "091f3d9",
+        "message": "Change format string to be more idomatic",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-14T19:12:49Z"
+      },
+      {
+        "sha": "05e747c",
+        "message": "Fix typo",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-14T19:14:29Z"
+      },
+      {
+        "sha": "cfc1286",
+        "message": "Fix flags",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-16T17:42:09Z"
+      },
+      {
+        "sha": "fc94335",
+        "message": "Fix wording",
+        "author": "Garrett Wang",
+        "timestamp": "2020-04-16T18:35:54Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#541",
+    "metadata": {
+      "title": "Use Github Action to replace Travis and AppVeyor for CI.",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "deployability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-06-26T00:00:17Z",
+      "reviewers": [
+        "kalyanac",
+        "wyk9787",
+        "nolanmar511",
+        "aalexand"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "## TL;DR\r\n\r\n### Things included in this PR:\r\n\r\n* Added a Github Action script **draft** (macOS, Linux and Windows test).\r\n\r\n### Follow-up plan:\r\n\r\n* Verify the correctness of the draft.\r\n\r\n* Remove working {Go, OS, XCode} sections that are covered by this Github Action script from existing CI scripts.\r\n\r\n* Add build badge to README.md.\r\n\r\n* Enable Github Action as part of PR review process.\r\n\r\n## Details\r\n\r\n### Why it is only a draft?\r\n\r\nThe Github Action script (i.e. ci.yaml) is first introduced in this PR. That means any change made to ci.yaml can be only tested on the forked repo (i.e. it will trigger the Github Action on the forked repo if a commit is pushed to the master branch). This seems to be the intentional behavior as noted [here](https://github.community/t/run-a-github-action-on-pull-request-for-pr-opened-from-a-forked-repo/16054).\r\n\r\n### Limitations\r\n\r\n1. The master branch of Go is not supported by setup-go. There is an open PR that is working on this: https://github.com/actions/setup-go/pull/34, but no progress has been made since March and no ETA.\r\n\r\n2. Only the latest macOS is supported: https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on.\r\n\r\n3. Limited number of XCode versions are supported: https://github.com/actions/virtual-environments/blob/master/images/macos/macos-10.15-Readme.md#xcode, but this should not be an issue for us as we wouldn't support anything older than XCode 10.3.\r\n\r\n#### Solution\r\n\r\nWe will keep the tests for {GO, OS, XCode} combination that are **not** currently supported by Github Action in existing CI scripts. Ideally, we will only need to maintain one CI.\r\n\r\n\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-commenter",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=h1) Report\n> Merging [#541](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/03e1cf38a040dd596c700aa260c3eddc2bf38987&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/541/graphs/tree.svg?width=650&height=150&src=pr&token=nHgs4Smibv)](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##           master     #541   +/-   ##\n=======================================\n  Coverage   68.33%   68.33%           \n=======================================\n  Files          39       39           \n  Lines        8044     8044           \n=======================================\n  Hits         5497     5497           \n  Misses       2120     2120           \n  Partials      427      427           \n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=footer). Last update [03e1cf3...5c6d24e](https://codecov.io/gh/google/pprof/pull/541?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-06-02T01:12:28Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "The series of commits with \"Update to test\" message is not very useful. Either make commit messages useful or squash the commits and \"push -f\".",
+        "timestamp": "2020-06-02T01:46:48Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "The coverage report seems to say that the coverage has dropped - why?",
+        "timestamp": "2020-06-02T01:47:38Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> The series of commits with \"Update to test\" message is not very useful. Either make commit messages useful or squash the commits and \"push -f\".\r\n\r\nThis PR is still work in progress; there is \"DO NO REVIEW\" in PR description. I thought I needed to open the PR to test something. I will squash those commits once it is ready for review.",
+        "timestamp": "2020-06-02T16:59:21Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "The Travis CI build is marked as red. Should we disable this? Also, can we mark the new CI configuration as required to pass for any PR to be submitted? We want to ensure that only green testing status is allowed to be submitted.",
+        "timestamp": "2020-06-03T18:53:45Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> The Travis CI build is marked as red. Should we disable this? Also, can we mark the new CI configuration as required to pass for any PR to be submitted? We want to ensure that only green testing status is allowed to be submitted.\r\n\r\nThe Travis CI still suffers from the timeout issue. We should disable this and remove travis.yml once we verify Github action is working correctly. As far as this PR, we should just keep retrying the Travis test to make it pass. Starting from next PR, which I will create once this one gets merged, we can get rid of Travis and start using Github Action.\r\n\r\nOnce this PR gets merged, I think admin (I don't have that access) is able to mark the new CI configuration as required to pass for any PR to be submitted in this repo's settings.",
+        "timestamp": "2020-06-03T20:18:31Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "I'd be unhappy to lose testing against Go master branch.",
+        "timestamp": "2020-06-04T01:22:53Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> I'd be unhappy to lose testing against Go master branch.\r\n\r\nOne compromise we can make while we are waiting for https://github.com/actions/setup-go/pull/34 to happen is to keep the Travis CI but only testing against Go master branch. Supposedly, timeout should not be an issue in this case if we remove other Go versions.",
+        "timestamp": "2020-06-04T01:47:19Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> > I'd be unhappy to lose testing against Go master branch.\r\n> \r\n> One compromise we can make while we are waiting for [actions/setup-go#34](https://github.com/actions/setup-go/pull/34) to happen is to keep the Travis CI but only testing against Go master branch. Supposedly, timeout should not be an issue in this case if we remove other Go versions.\r\n\r\nThere isn't recent progress on https://github.com/actions/setup-go/pull/34 it seems. We should probably ping it to try to get an estimate on whether it's coming and when.",
+        "timestamp": "2020-06-04T02:45:39Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > I'd be unhappy to lose testing against Go master branch.\r\n> > \r\n> > \r\n> > One compromise we can make while we are waiting for [actions/setup-go#34](https://github.com/actions/setup-go/pull/34) to happen is to keep the Travis CI but only testing against Go master branch. Supposedly, timeout should not be an issue in this case if we remove other Go versions.\r\n> \r\n> There isn't recent progress on [actions/setup-go#34](https://github.com/actions/setup-go/pull/34) it seems. We should probably ping it to try to get an estimate on whether it's coming and when.\r\n\r\nDone.",
+        "timestamp": "2020-06-04T05:18:30Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "https://github.com/actions/setup-go/pull/34 has not had any updates since end of March and did not reply to my comments either. Should we move forward with this PR? \r\n\r\nAgain, this PR will NOT replace the Travis CI and AppVeyor yet. The next PR should be able to verify whether issues 1 and 2 in PR description is still a problem and then replace Travis CI and AppVeyor.",
+        "timestamp": "2020-06-08T17:15:08Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "I'll leave it to @kalyanac and @nolanmar511 to decide.",
+        "timestamp": "2020-06-09T20:01:36Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "The Travis timeouts are pretty annoying. \r\n\r\nPerhaps we migrate windows tests (and get rid of appveyor), and migrate the MacOS tests that we can migrate. \r\n\r\nThis will keep the number of distinct systems for CIs we use at 2 and should help reduce MacOS timeouts we experience on Travis. \r\n\r\n@kalyanac -- What are your thoughts?",
+        "timestamp": "2020-06-09T21:23:06Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> The Travis timeouts are pretty annoying.\r\n> \r\n> Perhaps we migrate windows tests (and get rid of appveyor), and migrate the MacOS tests that we can migrate.\r\n> \r\n> This will keep the number of distinct systems for CIs we use at 2 and should help reduce MacOS timeouts we experience on Travis.\r\n> \r\n> @kalyanac -- What are your thoughts?\r\n\r\n@nolanmar511 @kalyanac Having single config file to maintain would be nice. Maybe we can just pay for GitHub actions?",
+        "timestamp": "2020-06-09T21:29:29Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > The Travis timeouts are pretty annoying.\r\n> > Perhaps we migrate windows tests (and get rid of appveyor), and migrate the MacOS tests that we can migrate.\r\n> > This will keep the number of distinct systems for CIs we use at 2 and should help reduce MacOS timeouts we experience on Travis.\r\n> > @kalyanac -- What are your thoughts?\r\n> \r\n> @nolanmar511 @kalyanac Having single config file to maintain would be nice. Maybe we can just pay for GitHub actions?\r\n\r\nGithub Actions are free for public repo: https://help.github.com/en/github/setting-up-and-managing-billing-and-payments-on-github/about-billing-for-github-actions",
+        "timestamp": "2020-06-09T21:41:13Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "Having a single config is nice; and I've been super happy with GitHub actions in cloud-profiler-nodejs and pprof-nodejs.\r\n\r\n@wyk9787 -- Are we able to run all tests we run with GitHub actions that we currently run with Travis / Appveyor? If not, what limitations are there?",
+        "timestamp": "2020-06-09T21:47:59Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> Having a single config is nice; and I've been super happy with GitHub actions in cloud-profiler-nodejs and pprof-nodejs.\r\n> \r\n> @wyk9787 -- Are we able to run all tests we run with GitHub actions that we currently run with Travis / Appveyor? If not, what limitations are there?\r\n\r\nSee \"Current Limitations\" in PR descriptions. In addition, running on Windows may be an issue if issue 2 in PR description can not be solved.",
+        "timestamp": "2020-06-09T22:00:17Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "Timeouts are very annoying and slows down the process. We can migrate to GitHub actions and only use Travis CI for configs not currently supported by GA. \r\n\r\nWe should also take a look at what versions of OS X we want to use in these tests. The Travis CI uses pretty old versions. ",
+        "timestamp": "2020-06-09T22:05:49Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "Re Windows issue, can you try running manually on Windows to see if there are any hidden characters that are failing the test. You can start a Windows VM on a GCP VM. ",
+        "timestamp": "2020-06-09T22:11:22Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "* Separated macOS and Linux testing. \r\n* Used specific version for OS and Xcode per Github Action policy.\r\n* Changes to travis.ci will be introduced in next PR.\r\n\r\nThis PR is ready for review.",
+        "timestamp": "2020-06-22T16:25:44Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "I restarted Travis 2-3 times. It keeps timing out. ",
+        "timestamp": "2020-06-23T02:37:37Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@kalyanac @wyk9787 Does the PR description accurately reflect the work done in this PR and the future plan?",
+        "timestamp": "2020-06-23T03:13:16Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> @kalyanac @wyk9787 Does the PR description accurately reflect the work done in this PR and the future plan?\r\n\r\nYes. I added one last sentence \"...remove {Go, OS, XCode} sections that are covered by this Github action script.\" to better describe the next move.",
+        "timestamp": "2020-06-23T05:35:54Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "@aalexand Is it okay to merge this PR?",
+        "timestamp": "2020-06-24T21:44:55Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> @aalexand Is it okay to merge this PR?\r\n\r\nSorry, this might be just me, but I can't easily grok the full plan from the PR description. It's long and contains many details, but what I'm looking for to understand is a summary of:\r\n\r\n* What this PR does and why.\r\n* What this PR doesn't do (i.e. the delta from the desired state), why and when that's going to be done.\r\n\r\nAdditional details are good, but the above is what I'm looking for.\r\n\r\nThanks for bearing with me :)",
+        "timestamp": "2020-06-24T21:48:39Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > @aalexand Is it okay to merge this PR?\r\n> \r\n> Sorry, this might be just me, but I can't easily grok the full plan from the PR description. It's long and contains many details, but what I'm looking for to understand is a summary of:\r\n> \r\n> * What this PR does and why.\r\n> * What this PR doesn't do (i.e. the delta from the desired state), why and when that's going to be done.\r\n> \r\n> Additional details are good, but the above is what I'm looking for.\r\n> \r\n> Thanks for bearing with me :)\r\n\r\nYes, I agree. It was definitely a bit messy.\r\n\r\nModified description to have sections and emphasis the \"done\" and \"to-do\".",
+        "timestamp": "2020-06-24T22:18:05Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> > > @aalexand Is it okay to merge this PR?\r\n> > \r\n> > \r\n> > Sorry, this might be just me, but I can't easily grok the full plan from the PR description. It's long and contains many details, but what I'm looking for to understand is a summary of:\r\n> > \r\n> > * What this PR does and why.\r\n> > * What this PR doesn't do (i.e. the delta from the desired state), why and when that's going to be done.\r\n> > \r\n> > Additional details are good, but the above is what I'm looking for.\r\n> > Thanks for bearing with me :)\r\n> \r\n> Yes, I agree. It was definitely a bit messy.\r\n> \r\n> Modified description to have sections and emphasis the \"done\" and \"to-do\".\r\n\r\nThanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?",
+        "timestamp": "2020-06-24T22:26:56Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > > @aalexand Is it okay to merge this PR?\r\n> > > \r\n> > > \r\n> > > Sorry, this might be just me, but I can't easily grok the full plan from the PR description. It's long and contains many details, but what I'm looking for to understand is a summary of:\r\n> > > \r\n> > > * What this PR does and why.\r\n> > > * What this PR doesn't do (i.e. the delta from the desired state), why and when that's going to be done.\r\n> > > \r\n> > > Additional details are good, but the above is what I'm looking for.\r\n> > > Thanks for bearing with me :)\r\n> > \r\n> > \r\n> > Yes, I agree. It was definitely a bit messy.\r\n> > Modified description to have sections and emphasis the \"done\" and \"to-do\".\r\n> \r\n> Thanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?\r\n\r\nI certainly hope so but I am not too confident. See issue no. 2 in the last section. ",
+        "timestamp": "2020-06-24T22:30:07Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> > \r\n> > Thanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?\r\n> \r\n> I certainly hope so but I am not too confident. See issue no. 2 in the last section.\r\n\r\nI don't get the diff there - what's different? Visually these are the same, am I missed something? Or, line endings?..",
+        "timestamp": "2020-06-24T22:43:31Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > Thanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?\r\n> > \r\n> > \r\n> > I certainly hope so but I am not too confident. See issue no. 2 in the last section.\r\n> \r\n> I don't get the diff there - what's different? Visually these are the same, am I missed something? Or, line endings?..\r\n\r\nI don't get the diff either :) \r\nBut somehow the unit tests fail with this error message, showing me the diff that is the same. ",
+        "timestamp": "2020-06-24T22:47:13Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> > > > Thanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?\r\n> > > \r\n> > > \r\n> > > I certainly hope so but I am not too confident. See issue no. 2 in the last section.\r\n> > \r\n> > \r\n> > I don't get the diff there - what's different? Visually these are the same, am I missed something? Or, line endings?..\r\n> \r\n> I don't get the diff either :)\r\n> But somehow the unit tests fail with this error message, showing me the diff that is the same.\r\n\r\nSo line endings?",
+        "timestamp": "2020-06-24T22:47:55Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > > > > Thanks. Do I get it correctly that once we test it and it works, we should be able to at least get rid of the Appveyor config?\r\n> > > > \r\n> > > > \r\n> > > > I certainly hope so but I am not too confident. See issue no. 2 in the last section.\r\n> > > \r\n> > > \r\n> > > I don't get the diff there - what's different? Visually these are the same, am I missed something? Or, line endings?..\r\n> > \r\n> > \r\n> > I don't get the diff either :)\r\n> > But somehow the unit tests fail with this error message, showing me the diff that is the same.\r\n> \r\n> So line endings?\r\n\r\nFYI, @kalyanac and @nolanmar511 \r\n\r\nYou are right.\r\nAfter learning Windows dev 101 (very fun indeed), I was finally able to reproduce the error on a Windows VM.\r\nIt turns out when using https://golang.org/pkg/io/ioutil/#ReadFile to read test file, it will add a \"\\r\" in addition to \"\\n\" at the end of the line on Windows. It makes sense since on Windows, \"\\r\\n\" together indicates a new line.\r\n\r\nHowever, any pprof output (e.g. a dot file) does not include \"\\r\", and that's why we are seeing the \"weird\" diff mismatch.\r\n\r\n`ioutil.ReadFile` is widely used within pprof tests. Any immediate idea on how this issue can be easily addressed?\r\n",
+        "timestamp": "2020-06-25T01:36:24Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> `ioutil.ReadFile` is widely used within pprof tests. Any immediate idea on how this issue can be easily addressed?\r\n\r\n`strings.ReplaceAll(s, \"\\r\\n\", \"\\n\")` in the [Diff()](https://github.com/google/pprof/blob/03e1cf38a040dd596c700aa260c3eddc2bf38987/internal/proftest/proftest.go#L33) function used in the tests seems the most straightforward fix perhaps.",
+        "timestamp": "2020-06-25T01:54:51Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> It turns out when using https://golang.org/pkg/io/ioutil/#ReadFile to read test file, it will add a \"\\r\" in addition to \"\\n\" at the end of the line on Windows. It makes sense since on Windows, \"\\r\\n\" together indicates a new line.\r\n\r\nI am not sure that ReadFile has that logic. I would expect that what happens is that when pprof prints a line it uses \"\\n\" which on Windows expands to \"\\r\\n\". So the golden files read from disk have just \"\\n\", but the reference, pprof-generated output has \"\\r\\n\". If ReadFile would do the expansion, the test would pass since both golden and reference files are read from disk.\r\n\r\nSo I think you can ignore my previous suggestion and just add the line endings replacement here - https://github.com/google/pprof/blob/03e1cf38a040dd596c700aa260c3eddc2bf38987/internal/driver/driver_test.go#L196.",
+        "timestamp": "2020-06-25T02:03:35Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Is it possible to add an icon / thumbnail on the main page to indicate the status of this new CI build, like we have for Travis and Appveyor?",
+        "timestamp": "2020-06-25T02:05:19Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > It turns out when using https://golang.org/pkg/io/ioutil/#ReadFile to read test file, it will add a \"\\r\" in addition to \"\\n\" at the end of the line on Windows. It makes sense since on Windows, \"\\r\\n\" together indicates a new line.\r\n> \r\n> I am not sure that ReadFile has that logic. I would expect that what happens is that when pprof prints a line it uses \"\\n\" which on Windows expands to \"\\r\\n\". So the golden files read from disk have just \"\\n\", but the reference, pprof-generated output has \"\\r\\n\". If ReadFile would do the expansion, the test would pass since both golden and reference files are read from disk.\r\n> \r\n> So I think you can ignore my previous suggestion and just add the line endings replacement here -\r\n> \r\n> https://github.com/google/pprof/blob/03e1cf38a040dd596c700aa260c3eddc2bf38987/internal/driver/driver_test.go#L196\r\n> \r\n> .\r\n\r\nI was actually looking at the failed tests in `internal/graph/...`. I was printing the ascii values from both `got` and `want` in https://github.com/google/pprof/blob/03e1cf38a040dd596c700aa260c3eddc2bf38987/internal/graph/dotgraph_test.go#L190 using this function:\r\n```go\r\nfunc printAscii(chunk []byte) {\r\n  fmt.Println(“START”)\r\n  for _, b := range chunk {\r\n    fmt.Printf(“%d “, b)\r\n  }\r\n  fmt.Println(“DONE”)\r\n}\r\n```\r\nIt was actually `want` (golden files read from disk) which has 13 (\"\\r\"'s ascii value) followed by a 10 (\"\\n\"'s ascii value) in the output. `got` (output generated by pprof, and was not written to a file in this case) only has 10 in the out.\r\n\r\nBut you are right, for tests in `driver_test.go`, pprof generated outputs are first written to the disk and then read from disk using `ReadFile()`.  So something else is going on here.\r\n\r\n> strings.ReplaceAll(s, \"\\r\\n\", \"\\n\") in the Diff() function used in the tests seems the most straightforward fix perhaps.\r\n\r\nThis will not cut it here since `Diff()` is called after the bytes comparison: https://github.com/google/pprof/blob/03e1cf38a040dd596c700aa260c3eddc2bf38987/internal/graph/dotgraph_test.go#L197.",
+        "timestamp": "2020-06-25T05:05:29Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> Is it possible to add an icon / thumbnail on the main page to indicate the status of this new CI build, like we have for Travis and Appveyor?\r\n\r\nYes, see the third bullet point of \"follow-up plan\" in PR description.\r\n\r\nWill add it in the next PR following https://help.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#adding-a-workflow-status-badge-to-your-repository.",
+        "timestamp": "2020-06-25T05:07:35Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> It was actually `want` (golden files read from disk) which has 13 (\"\\r\"'s ascii value) followed by a 10 (\"\\n\"'s ascii value) in the output. `got` (output generated by pprof, and was not written to a file in this case) only has 10 in the out.\r\n\r\nI guess you need to look at whether it's Git here that replaces the line endings on checkout then.",
+        "timestamp": "2020-06-25T05:31:07Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > It was actually `want` (golden files read from disk) which has 13 (\"\\r\"'s ascii value) followed by a 10 (\"\\n\"'s ascii value) in the output. `got` (output generated by pprof, and was not written to a file in this case) only has 10 in the out.\r\n> \r\n> I guess you need to look at whether it's Git here that replaces the line endings on checkout then.\r\n\r\nI would have never thought it was actually Git that changes the line endings. Thanks!\r\nAdded a .gitattributes file to address this issue. Now tests are passing: https://github.com/wyk9787/pprof/actions/runs/147825124.\r\n\r\nAlso modified PR description.",
+        "timestamp": "2020-06-25T19:17:23Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@wyk9787 For the internal package import errors: in Travis config we use `go_import_path: github.com/google/pprof` setting to overcome that. Is there something similar in GH actions? If not, how are others dealing with this? It would be useful to figure this out, otherwise we won't know that the tests pass when someone sends us a PR?",
+        "timestamp": "2020-06-25T21:51:02Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> @wyk9787 For the internal package import errors: in Travis config we use `go_import_path: github.com/google/pprof` setting to overcome that. Is there something similar in GH actions? If not, how are others dealing with this? It would be useful to figure this out, otherwise we won't know that the tests pass when someone sends us a PR?\r\n\r\n@wyk9787 https://laszlo.cloud/setting-gopath-in-github-actions#controlling-the-checkout-path ?",
+        "timestamp": "2020-06-25T21:53:59Z"
+      },
+      {
+        "author": "wyk9787",
+        "role": "CONTRIBUTOR",
+        "body": "> > @wyk9787 For the internal package import errors: in Travis config we use `go_import_path: github.com/google/pprof` setting to overcome that. Is there something similar in GH actions? If not, how are others dealing with this? It would be useful to figure this out, otherwise we won't know that the tests pass when someone sends us a PR?\r\n> \r\n> @wyk9787 https://laszlo.cloud/setting-gopath-in-github-actions#controlling-the-checkout-path ?\r\n\r\nI was using a custom path for checkout but I included a variable `GITHUB_REPOSITORY`, which will lead to \"wyk9787/pprof\" for my testing branch. I thought the package checking is more than checking the path, so I didn't realize this was the issue.\r\n\r\nYour comments reminded me to change it to hardcoded \"google/pprof\" in the path and it works now :)\r\nhttps://github.com/wyk9787/pprof/runs/809235334?check_suite_focus=true\r\n\r\nThanks again for helping with both of those issues!\r\n\r\n",
+        "timestamp": "2020-06-25T22:49:44Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "9c77915",
+        "message": "Add Github Actions.",
+        "author": "Garrett Wang",
+        "timestamp": "2020-05-29T21:39:14Z"
+      },
+      {
+        "sha": "8ba8241",
+        "message": "Refine the push to be only trigger on master",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-03T17:18:47Z"
+      },
+      {
+        "sha": "b455ae0",
+        "message": "Fix syntax error",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-03T17:22:50Z"
+      },
+      {
+        "sha": "6ac392a",
+        "message": "Remove trailing whitespace",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-03T20:06:31Z"
+      },
+      {
+        "sha": "e3f7fac",
+        "message": "Address the comments",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-04T00:33:25Z"
+      },
+      {
+        "sha": "f21a7f0",
+        "message": "Address the comments",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-04T00:56:13Z"
+      },
+      {
+        "sha": "e8a115a",
+        "message": "Merge branch 'master' into github_action",
+        "author": "Kalyana Chadalavada",
+        "timestamp": "2020-06-09T22:08:55Z"
+      },
+      {
+        "sha": "16383de",
+        "message": "Separate mac and Linux tests",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-22T16:16:36Z"
+      },
+      {
+        "sha": "ffba363",
+        "message": "Merge branch 'github_action' of github.com:wyk9787/pprof into github_action",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-22T16:17:39Z"
+      },
+      {
+        "sha": "bcacc62",
+        "message": "Merge branch 'master' into github_action",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-22T16:18:22Z"
+      },
+      {
+        "sha": "fe468ad",
+        "message": "Enable GOPATH testing",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-22T16:19:01Z"
+      },
+      {
+        "sha": "bce9064",
+        "message": "Merge branch 'github_action' of github.com:wyk9787/pprof into github_action",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-22T16:19:08Z"
+      },
+      {
+        "sha": "06eda0c",
+        "message": "Add .gitattributes to support consistent line ending",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-25T19:14:01Z"
+      },
+      {
+        "sha": "4c0d48d",
+        "message": "Uncomment GOPATH testing",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-25T19:15:12Z"
+      },
+      {
+        "sha": "5c6d24e",
+        "message": "Fix GOPATH mode issue",
+        "author": "Garrett Wang",
+        "timestamp": "2020-06-25T22:46:44Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#183",
+    "metadata": {
+      "title": "Picking tags with tag focus and ignore",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2017-08-17T16:02:12Z",
+      "reviewers": [
+        "nolanmar511",
+        "aalexand"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "Addresses #178\r\n\r\nModifies tag filtering to allow options like `-tagfocus key1=value1` (or `tagfocus=key1=value1` in the interactive shell), which would select all samples with a value for key1, such that key1 has a value equal to value1. Things like `-tagfocus=bytes=1k` would also work.\r\n\r\nIn more details:\r\n* `-tagfocus 128kb:512kb` accepts a sample iff it has any numeric tag with memory value in the specified range.\r\n* `-tagfocus mytag=128kb:512kb` accepts a sample iff it has a numeric tag `mytag` with memory value in the specified range. There isn't a way to say `-tagfocus mytag=128kb:512kb,16kb:32kb` or `-tagfocus mytag=128kb:512kb,mytag2=128kb:512kb` for now. Just single value for numeric tags.\r\n* `-tagfocus somecoolregex` accepts a sample iff it has any string tag with `tagkey:tagvalue` string matching the specified regexp.\r\n* `-tagfocus mytag:myvalue` accepts a sample iff it has a string tag named `mytag` with value `myvalue` (omitting the fact that anchors need to be added here for full accuracy).\r\n* `-tagfocus mytag=myvalue1,myvalue2` match two tag values.\r\n\r\n`-tagignore` works similarly. \r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=h1) Report\n> Merging [#183](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/d127b8fbfcfe0a05e08ef39c6563afb1a002fe47?src=pr&el=desc) will **increase** coverage by `0.28%`.\n> The diff coverage is `97.14%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/183/graphs/tree.svg?width=650&token=nHgs4Smibv&height=150&src=pr)](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master     #183      +/-   ##\n==========================================\n+ Coverage   54.23%   54.52%   +0.28%     \n==========================================\n  Files          32       32              \n  Lines        6186     6210      +24     \n==========================================\n+ Hits         3355     3386      +31     \n+ Misses       2470     2463       -7     \n  Partials      361      361\n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [internal/driver/commands.go](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2NvbW1hbmRzLmdv) | `44.5% <ø> (ø)` | :arrow_up: |\n| [internal/driver/driver\\_focus.go](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2RyaXZlcl9mb2N1cy5nbw==) | `84.87% <97.14%> (+11.18%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=footer). Last update [d127b8f...da0c57f](https://codecov.io/gh/google/pprof/pull/183?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2017-08-03T23:13:12Z"
+      },
+      {
+        "author": "ahh",
+        "role": "CONTRIBUTOR",
+        "body": "For the record, I have no particular attraction to regexes, it was just the\nfirst thing that sprang to mind.\n\nI am happy iwth any sort of way to say \"no ,just this tag.\"\n\nOn Mon, Aug 7, 2017 at 3:30 PM Margaret Nolan <notifications@github.com>\nwrote:\n\n> *@nolanmar511* commented on this pull request.\n> ------------------------------\n>\n> In internal/driver/commands.go\n> <https://github.com/google/pprof/pull/183#discussion_r131780466>:\n>\n> > @@ -129,115 +129,115 @@ var pprofCommands = commands{\n>  // reported generated by pprof.\n>  var pprofVariables = variables{\n>  \t// Filename for file-based output formats, stdout by default.\n> -\t\"output\": &variable{stringKind, \"\", \"\", helpText(\"Output filename for file-based outputs\")},\n> +\t\"output\": &variable{stringKind, []string{\"\"}, \"\", helpText(\"Output filename for file-based outputs\")},\n>\n> I don't think it would be much harder do tag filtering on regular\n> expression, if that's why you don't want to do regex matches.\n> I liked the double equals sign concept better when a user would list\n> tagfocus multiple times\n> somthing about '-tagfocus=key1=value1,key2=value2' looks weird to me.\n> I think using slashes should be good. I'm assuming both\n> \"tagfocus=/mytag/128kb:512kb\" and \"tagfocus=mytag/128kb:512kb\" should be\n> valid?\n>\n> Do we only want the slashes to work for numeric labels, or for both types\n> of labels?\n>\n> I'm assuming something we'd keep the and-like notation, but accept a\n> sample as a match to\n> tagfocus=/mytag/128kb:512kb even if it had no tag mytag?\n>\n> —\n> You are receiving this because you were mentioned.\n> Reply to this email directly, view it on GitHub\n> <https://github.com/google/pprof/pull/183#discussion_r131780466>, or mute\n> the thread\n> <https://github.com/notifications/unsubscribe-auth/AAPHrmHVZ64hDV4GnD66icKga1Z6vzlSks5sV5AZgaJpZM4OtE9T>\n> .\n>\n",
+        "timestamp": "2017-08-07T22:33:33Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "I've updated the help message and docs.\r\nThe help message isn't too detailed -- I can add more, but didn't want it to be too long\r\nI think the docs could still use more on unit filtering, but I think I want to wait to add that until unit filtering is more supported.",
+        "timestamp": "2017-08-10T17:34:03Z"
+      },
+      {
+        "author": "googlebot",
+        "role": "COLLABORATOR",
+        "body": "So there's good news and bad news.\n\n:thumbsup: The good news is that everyone that needs to sign a CLA (the pull request submitter and all commit authors) have done so.  Everything is all good there.\n\n:confused: The bad news is that it appears that one or more commits were authored by someone other than the pull request submitter.  We need to confirm that they're okay with their commits being contributed to this project.  Please have them confirm that here in the pull request.\n\n*Note to project maintainer: This is a terminal state, meaning the `cla/google` commit status will not change from this state. It's up to you to confirm consent of the commit author(s) and merge this pull request when appropriate.*\n\n<!-- need_author_consent -->",
+        "timestamp": "2017-08-10T21:14:31Z"
+      },
+      {
+        "author": "nolanmar511",
+        "role": "CONTRIBUTOR",
+        "body": "Accidentally pulled from master and now the cla check fails. Should I make a new PR?\r\n\r\n(Also added example of ranges to help doc for tagfocus/tagignore)",
+        "timestamp": "2017-08-10T21:29:29Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Keeping the PR would be nice as it has discussions. I think you should be\nable to recover by \"git reset --hard <sha1 of last commit before the pull>\"\n(where I think the last commit is e9a520e, but double-check) and then\npushing with the --force flag.\n\nOn Thu, Aug 10, 2017 at 2:29 PM, Margaret Nolan <notifications@github.com>\nwrote:\n\n> Accidentally pulled from master and now the cla check fails. Should I make\n> a new PR?\n>\n> (Also added example of ranges to help doc for tagfocus/tagignore)\n>\n> —\n> You are receiving this because your review was requested.\n> Reply to this email directly, view it on GitHub\n> <https://github.com/google/pprof/pull/183#issuecomment-321678681>, or mute\n> the thread\n> <https://github.com/notifications/unsubscribe-auth/ABctwC9zSpD2iZCVqp09Z1eK_SKJRCoaks5sW3Y6gaJpZM4OtE9T>\n> .\n>\n\n\n\n-- \nAlexey\n",
+        "timestamp": "2017-08-10T22:19:51Z"
+      },
+      {
+        "author": "googlebot",
+        "role": "COLLABORATOR",
+        "body": "CLAs look good, thanks!\n\n<!-- ok -->",
+        "timestamp": "2017-08-10T23:12:26Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5f213dc",
+        "message": "Modified variable type to have []string value",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-02T15:03:39Z"
+      },
+      {
+        "sha": "8b8e4e7",
+        "message": "added repeatableStringKind",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-02T15:07:06Z"
+      },
+      {
+        "sha": "abb1e3e",
+        "message": "modify repeatableStringKind to actually handle multiple values",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-02T16:10:15Z"
+      },
+      {
+        "sha": "7172159",
+        "message": "Modify applyFocus to work with multiple values for tagfocus/tagignore",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-02T17:55:51Z"
+      },
+      {
+        "sha": "3b62091",
+        "message": "Modify applyFocus to work with multiple values for tagfocus/tagignore",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-02T18:17:20Z"
+      },
+      {
+        "sha": "ebe1e34",
+        "message": "Modified CompileTagFilter to handle tag filters of the form -tagfocus=key1=val1",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-03T15:59:58Z"
+      },
+      {
+        "sha": "b57d35a",
+        "message": "Modified StringList",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-03T16:20:42Z"
+      },
+      {
+        "sha": "152d7b0",
+        "message": "add testing for compileTagFilter",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-03T22:04:14Z"
+      },
+      {
+        "sha": "2593652",
+        "message": "fixed typo",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-03T22:41:23Z"
+      },
+      {
+        "sha": "0b1826c",
+        "message": "fixed code style error",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-03T22:46:06Z"
+      },
+      {
+        "sha": "9296560",
+        "message": "Revert \"fixed code style error\"\n\nThis reverts commit 0b1826c1633c995c3d7f82ada25a57050b3dec9c.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:02Z"
+      },
+      {
+        "sha": "64c2a7f",
+        "message": "Revert \"fixed typo\"\n\nThis reverts commit 2593652bd03299e8156b4aba4be9d388af24d2df.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:14Z"
+      },
+      {
+        "sha": "ff221cb",
+        "message": "Revert \"add testing for compileTagFilter\"\n\nThis reverts commit 152d7b0363fe98ad3e708699809a1d545aefb062.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:17Z"
+      },
+      {
+        "sha": "3b7b6f4",
+        "message": "Revert \"Modified StringList\"\n\nThis reverts commit b57d35a7626530f93a5bbbdfbeee3481bc6f72e0.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:19Z"
+      },
+      {
+        "sha": "65fd305",
+        "message": "Revert \"Modified CompileTagFilter to handle tag filters of the form -tagfocus=key1=val1\"\n\nThis reverts commit ebe1e344bfa953df00f5228a01c9b274f4fd2111.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:21Z"
+      },
+      {
+        "sha": "4619696",
+        "message": "Revert \"Modify applyFocus to work with multiple values for tagfocus/tagignore\"\n\nThis reverts commit 3b62091b67714d695f37c4e489ef4c0b758bdb95.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:22Z"
+      },
+      {
+        "sha": "ef66928",
+        "message": "Revert \"Modify applyFocus to work with multiple values for tagfocus/tagignore\"\n\nThis reverts commit 7172159cd39021cd6cb05c0b8637a9664420f743.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:24Z"
+      },
+      {
+        "sha": "e1dcd47",
+        "message": "Revert \"modify repeatableStringKind to actually handle multiple values\"\n\nThis reverts commit abb1e3ec4be910a3ae7e1a0e4ac1182f5898ed05.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:28Z"
+      },
+      {
+        "sha": "e01f81d",
+        "message": "Revert \"added repeatableStringKind\"\n\nThis reverts commit 8b8e4e76fcf27ab7564ebd9515b6e447206e3cf6.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:31Z"
+      },
+      {
+        "sha": "4e411ad",
+        "message": "Revert \"Modified variable type to have []string value\"\n\nThis reverts commit 5f213dc4d12fa177342cd6fe9d63bd41e380282e.",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T14:40:33Z"
+      },
+      {
+        "sha": "b012964",
+        "message": "added support for filtering by specific tags",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T17:55:08Z"
+      },
+      {
+        "sha": "1ff0208",
+        "message": "Fixed formatting problems",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-08T18:00:15Z"
+      },
+      {
+        "sha": "0442cf8",
+        "message": "Updated variable name for clarity",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-09T15:52:48Z"
+      },
+      {
+        "sha": "d148e55",
+        "message": "Added test cases for tag filtering",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-09T15:53:21Z"
+      },
+      {
+        "sha": "6d2e400",
+        "message": "Update tagfocus and tagignore description",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-10T15:22:56Z"
+      },
+      {
+        "sha": "f158f58",
+        "message": "Fixed formatting error",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-10T15:26:30Z"
+      },
+      {
+        "sha": "b59393d",
+        "message": "Updated docs to explain new tag filtering",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-10T16:54:50Z"
+      },
+      {
+        "sha": "5be15ce",
+        "message": "Updated docs to clarify tag filtering",
+        "author": "Margaret Nolan",
+        "timestamp": "2017-08-10T16:57:15Z"
+      },
+      {
+        "sha": "e9a520e",
+        "message": "Updated docs to clarify tag filtering",
+        "author": "Margaret Nolan",
+        "timestamp": "2017-08-10T17:31:35Z"
+      },
+      {
+        "sha": "cc93e34",
+        "message": "Updated docs and help comments for tag filtering",
+        "author": "Maggie Nolan",
+        "timestamp": "2017-08-11T16:31:34Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#313",
+    "metadata": {
+      "title": "Set base address on OSX",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-02-09T16:50:40Z",
+      "reviewers": [
+        "Timmmm",
+        "aalexand"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "This fixes issue #311. The mapped address of libraries was never considered, nor was the load address of the segments."
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=h1) Report\n> Merging [#313](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/a8f279b7952b27edbcb72e5a6c69ee9be4c8ad93?src=pr&el=desc) will **decrease** coverage by `0.05%`.\n> The diff coverage is `33.33%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/313/graphs/tree.svg?src=pr&token=nHgs4Smibv&height=150&width=650)](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff            @@\n##           master    #313      +/-   ##\n=========================================\n- Coverage   65.86%   65.8%   -0.06%     \n=========================================\n  Files          36      36              \n  Lines        7402    7429      +27     \n=========================================\n+ Hits         4875    4889      +14     \n- Misses       2132    2142      +10     \n- Partials      395     398       +3\n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [internal/binutils/binutils.go](https://codecov.io/gh/google/pprof/pull/313/diff?src=pr&el=tree#diff-aW50ZXJuYWwvYmludXRpbHMvYmludXRpbHMuZ28=) | `56.75% <0%> (-2.82%)` | :arrow_down: |\n| [internal/binutils/disasm.go](https://codecov.io/gh/google/pprof/pull/313/diff?src=pr&el=tree#diff-aW50ZXJuYWwvYmludXRpbHMvZGlzYXNtLmdv) | `89.04% <77.77%> (-2.14%)` | :arrow_down: |\n| [internal/driver/webui.go](https://codecov.io/gh/google/pprof/pull/313/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL3dlYnVpLmdv) | `59.4% <0%> (+0.95%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=footer). Last update [a8f279b...25f4ba0](https://codecov.io/gh/google/pprof/pull/313?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2018-02-06T13:19:29Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "I can accept the fix as is because it's an improvement we need, but how about a test?",
+        "timestamp": "2018-02-06T16:19:32Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "Sure. What should it test exactly though? I could throw a small mach-o library and binary in there to check `getTextAddress()` works? ",
+        "timestamp": "2018-02-06T17:12:46Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Yes, a test similar to the ones in https://github.com/google/pprof/blob/master/internal/binutils/binutils_test.go against a canned binary from testdata. The test will need to be skipped on anything non-Mac.",
+        "timestamp": "2018-02-06T18:08:02Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "I added a test. The test actually found some bugs elsewhere in the code. Also I'm not 100% sure about the intent of some of the test I copied it from. Anyway the test passes and I guess it was useful as it contains bug fixes.",
+        "timestamp": "2018-02-07T17:20:39Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@Timmmm Huh, Mac tests fail on Travis with\r\n\r\n```\r\n--- FAIL: TestMachoFiles (0.62s)\r\n    --- FAIL: TestMachoFiles/normal_mapping (0.57s)\r\n    \tbinutils_test.go:325: SourceLine for main: got [{_main  0}]; want [{main /tmp/hello.c 3}]\r\n    --- FAIL: TestMachoFiles/other_mapping (0.02s)\r\n    \tbinutils_test.go:325: SourceLine for main: got [{_main  0}]; want [{main /tmp/hello.c 3}]\r\n    --- FAIL: TestMachoFiles/lib_normal_mapping (0.03s)\r\n    \tbinutils_test.go:325: SourceLine for main: got [{_bar  0}]; want [{bar /tmp/lib.c 6}]\r\n```",
+        "timestamp": "2018-02-07T18:03:12Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Hoisting out this question from the last round of comments because those top-level Github comments are easy to miss so not sure you saw it:\r\n\r\nDo files internal/binutils/debug.test, internal/binutils/testdata/exe_mac_64.dSYM/Contents/Info.plist, internal/binutils/testdata/exe_mac_64.dSYM/Contents/Resources/DWARF/exe_mac_64, internal/binutils/testdata/lib_mac_64.dSYM/Contents/Info.plist, internal/binutils/testdata/lib_mac_64.dSYM/Contents/Resources/DWARF/lib_mac_64 need to be part of the PR?",
+        "timestamp": "2018-02-07T20:51:23Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "Ah yeah I missed that, and yes they do, except `debug.test`. Not sure where that came from. I can't work out why the travis test fails. I just downloaded it on a totally separate mac and the test passes for me. I wonder if Travis uses `addr2line` instead of `llvm-symbolizer` and there is some difference there?",
+        "timestamp": "2018-02-07T21:08:45Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "Yeah that seems to be it. Removing `llvm-symbolizer` and installing binutils (for `gaddr2line`) gives the exact same failure as above.\r\n\r\nHowever `gaddr2line` does seem to work when I run it manually, so I guess there is *another* bug in `pprof` around that. I'll look into it tomorrow. I guess you guys don't use Macs!",
+        "timestamp": "2018-02-07T21:15:53Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@Timmmm A lot of development here happens on Linux. I carry a Mac laptop but a lot of times I'm just in an SSH window to my Linux machine. And when I do use it for actual coding, that's Go and I'm not hitting the issues you've found because the Golang profiles are pre-symbolized by the runtime.\r\n\r\nThanks for figuring many things out here!",
+        "timestamp": "2018-02-07T21:26:33Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "I've updated it as requested. The test will still fail because `pprof` because of a number of issues:\r\n\r\n1. `pprof` only looks for `addr2line` but on my system at least it is called `gaddr2line`. No idea why. Probably a stupid reason. It should search for both anyway. I wasn't sure how you would want to handle that so I'll leave it to you.\r\n2. When using `addr2line` there is [some code that attempts to \"improve\" the symbol names](https://github.com/google/pprof/blob/master/internal/binutils/addr2liner.go#L218) using `nm`. Unfortunately the names `nm` returns are mangled (it is executed as `nm -n` to prevent demangling), so it finds `_main` instead of `main` and the test fails.\r\n3. If there is no `addr2line` or `llvm-symbolizer` the test will clearly fail, but I guess that case is ok because the test environment should have one of those.\r\n\r\nI'd suggest the easiest thing for now is to install `llvm-symbolizer` on the Mac test environment so the test passes, and open issues for the other things. I can't really spend any more time on this sorry!",
+        "timestamp": "2018-02-08T10:43:35Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "Oh yeah I also forgot to ask - is the logic behind `matchSymbol()` actually correct? If the symbol is matched by address, all of the names are returned, but for regex matching only the first one is. Seems suspicious to me.",
+        "timestamp": "2018-02-08T10:46:41Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@Timm I left some comments, those are minor, please address.\r\n\r\nI apologize it took so much longer than I thought it would. I'd probably suggest that you leave the test code in as is, but make the mac test skipped permanently, and I'll look into enabling that.\r\n\r\nFor `matchSymbol` behavior - that code pre-dates me on the project, I found the behavior a bit unexpected as well, it should be at least documented better, will look at it later.",
+        "timestamp": "2018-02-09T03:38:18Z"
+      },
+      {
+        "author": "Timmmm",
+        "role": "CONTRIBUTOR",
+        "body": "Ok I fixed some of the nits (getting a little extreme!) and lowercased other error messages. I didn't use your exact error message suggestions because they still *are* mach files - and there was already an error message for failing to find the base address for ELF so I copied that.\r\n\r\nThe source I used was:\r\n\r\n`/tmp/hello.c`\r\n\r\n```\r\n#include <stdio.h>\r\n\r\nint main() {\r\n\tprintf(\"Hello, world!\\n\");\r\n\treturn 0;\r\n}\r\n```\r\n\r\n`/tmp/lib.c`\r\n\r\n```\r\nint foo() {\r\n\r\n\treturn 1;\t\r\n}\r\n\r\nint bar() {\r\n\r\n\treturn 2;\r\n}\r\n```\r\n\r\nCompiled with `clang -g /tmp/hello.c -o exe_mac_64` and `clang -g /tmp/lib.c -dynamiclib -o lib_mac_64` (which should generate the dSYM's in both cases).",
+        "timestamp": "2018-02-09T10:05:26Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@Timmmm LGTM, merging. Thanks for bearing with those nit comments. And thanks for this fix overall. I'll get the test fixed.",
+        "timestamp": "2018-02-09T16:49:19Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5bdb9a9",
+        "message": "Set base address on OSX\n\nThis fixes issue #311. The mapped address of libraries was never considered, nor was the load address of the segments.",
+        "author": "Tim",
+        "timestamp": "2018-02-06T13:12:30Z"
+      },
+      {
+        "sha": "98b3a8b",
+        "message": "Simplify openMachO, add tests\n\nThere is already a function very similar to getTextAddress(). This also adds a test that tries reading symbols / source addresses from a library and an executable.\n\nI also had to fix a couple of bugs for the tests to work:\n\n1. Crash when the regex passed to f.Symbols() was nil.\n2. The last symbol returned by `nm` is always discarded.",
+        "author": "Tim Hutt",
+        "timestamp": "2018-02-07T17:19:02Z"
+      },
+      {
+        "sha": "ebd8f8c",
+        "message": "Address various binutils issues in previous commits\n\n* Return an error if __TEXT isn't found\n* Return an error if start - textSegment.addr would underflow\n* Break out findSymbol() function\n* Rework findSymbols() function, it now returns non-EOF errors instead of ignoring them\n* Remove accidentally added debug binary",
+        "author": "Tim Hutt",
+        "timestamp": "2018-02-08T10:38:26Z"
+      },
+      {
+        "sha": "25f4ba0",
+        "message": "Fix nits & remove unused test binaries for now",
+        "author": "Tim Hutt",
+        "timestamp": "2018-02-09T10:01:25Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#684",
+    "metadata": {
+      "title": "allow rendering big flame graphs by avoiding stack overflow in JS parser",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-04-01T02:06:41Z",
+      "reviewers": [
+        "NHDaly",
+        "aalexand"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "Fixes #663 \r\n\r\n## Before\r\n\r\nVery large flame graphs fail to render, with a mysterious error in the console: `Maximum call stack size exceeded`, without a stack trace.\r\n\r\ne.g. [big-profile.pb.gz](https://github.com/google/pprof/files/8094230/big-profile.pb.gz):\r\n\r\n```\r\npprof -http localhost:9876 ~/Downloads/big-profile.pb.gz\r\n```\r\n\r\n<img width=\"1193\" alt=\"image\" src=\"https://user-images.githubusercontent.com/7341/154617713-ed27c92d-45c8-442a-80ef-57c26c184536.png\">\r\n\r\nI suspected that the very large array in `var data = …` might be a problem, so I inserted `console.log`s before and after it. To my surprise, neither log showed up. This, combined with the missing stack trace, indicated to me that the stack overflow was not in javascript execution, but in parsing the javascript itself.\r\n\r\n## After\r\n\r\nThe same flame graph now renders.\r\n\r\n<img width=\"1904\" alt=\"image\" src=\"https://user-images.githubusercontent.com/7341/154621134-1a4af1b0-be5d-4c2d-88de-3962228ca440.png\">\r\n\r\nThe fix is to use the browser's JSON parser (via `JSON.parse`) instead of its JS parser. Due to the JSON grammar being simpler, the browser can handle larger strings.\r\n\r\nPresumably JSON parsing has a limit too, past which you'd have to chunk the string or something; but this should be good enough for profiles that are quite big.\r\n\r\n## Drawbacks\r\n\r\nGo's `template.JS` seems to escape the string in a very verbose way. Before, it came out as\r\n\r\n```js\r\nvar data = {\"n\":\"root\", ...}\r\n```\r\n\r\nNow it's:\r\n\r\n```js\r\nvar data = JSON.parse(\"{\\u0022n\\u0022:\\u0022root\\u0022…\")\r\n```\r\n\r\nIt works, but it kind of blows up the size. Not sure what an idiomatic Go way of fixing this is.\r\n\r\ncc @NHDaly "
+    },
+    "discussion_timeline": [
+      {
+        "author": "NHDaly",
+        "role": "CONTRIBUTOR",
+        "body": "Hi again, @aalexand. If you're still managing this repository, could you please have a look at this PR when you get a moment? We are currently unable to open many of the profiles we're recording, such as the one uploaded in the PR description, and it would be great to have this fixed!!\r\n\r\nPlease let us know if there's anything we can do to help with this review!\r\nBest, -Nathan",
+        "timestamp": "2022-03-04T15:29:19Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "I played a bit with the escaping here - https://go.dev/play/p/X0_CvkZedlo - but couldn't find an easy way to avoid this \\u sequences.",
+        "timestamp": "2022-03-06T08:27:42Z"
+      },
+      {
+        "author": "codecov-commenter",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=h1&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) Report\n> Merging [#684](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) (0e33222) into [master](https://codecov.io/gh/google/pprof/commit/85950bbee15654156a89717dd88ad204a6c8aa08?el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) (85950bb) will **increase** coverage by `0.00%`.\n> The diff coverage is `n/a`.\n\n```diff\n@@           Coverage Diff           @@\n##           master     #684   +/-   ##\n=======================================\n  Coverage   68.21%   68.22%           \n=======================================\n  Files          41       41           \n  Lines        7394     7396    +2     \n=======================================\n+ Hits         5044     5046    +2     \n  Misses       1909     1909           \n  Partials      441      441           \n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) | Coverage Δ | |\n|---|---|---|\n| [...github.com/google/pprof/internal/driver/webhtml.go](https://codecov.io/gh/google/pprof/pull/684/diff?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google#diff-c3JjL2dpdGh1Yi5jb20vZ29vZ2xlL3Bwcm9mL2ludGVybmFsL2RyaXZlci93ZWJodG1sLmdv) | `100.00% <0.00%> (ø)` | |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=continue&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta?utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=footer&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google). Last update [85950bb...0e33222](https://codecov.io/gh/google/pprof/pull/684?src=pr&el=lastupdated&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments?utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n",
+        "timestamp": "2022-03-06T08:29:38Z"
+      },
+      {
+        "author": "NHDaly",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for looking into it, @aalexand!! From what I read here, it seems like the escaping is maybe the expected behavior?: https://github.com/golang/go/issues/42506\r\n\r\nIt's a bit too bad, but probably fine to leave it. Like @vilterp said, hopefully we should have a lot more room before hitting a stack overflow with the JSON parser, so the extra size should be okay here.. 🤞 ",
+        "timestamp": "2022-03-12T00:47:48Z"
+      },
+      {
+        "author": "NHDaly",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks @aalexand. Is this waiting on anything else? it looks like maybe it's blocked on CI failures?",
+        "timestamp": "2022-03-31T21:16:08Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> Thanks @aalexand. Is this waiting on anything else? it looks like maybe it's blocked on CI failures?\r\n\r\nUpdated the branch. #692 should fix the CI failures.",
+        "timestamp": "2022-04-01T01:13:03Z"
+      },
+      {
+        "author": "NHDaly",
+        "role": "CONTRIBUTOR",
+        "body": "amazing, thank you! Indeed that did it. :) ",
+        "timestamp": "2022-04-01T01:41:37Z"
+      },
+      {
+        "author": "NHDaly",
+        "role": "CONTRIBUTOR",
+        "body": "🎉 thanks @aalexand! :)",
+        "timestamp": "2022-04-01T17:36:40Z"
+      },
+      {
+        "author": "vilterp",
+        "role": "CONTRIBUTOR",
+        "body": "Seconded; thank you!",
+        "timestamp": "2022-04-01T17:59:18Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "9488747",
+        "message": "parse as JSON instead of JS, to avoid stack-overflowing the JS parser",
+        "author": "Pete Vilter",
+        "timestamp": "2022-02-18T04:05:40Z"
+      },
+      {
+        "sha": "7f718a4",
+        "message": "update tests",
+        "author": "Pete Vilter",
+        "timestamp": "2022-02-18T04:16:57Z"
+      },
+      {
+        "sha": "2db1dab",
+        "message": "Merge branch 'master' into pv-big-flamegraphs",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2022-03-06T08:27:49Z"
+      },
+      {
+        "sha": "4067f50",
+        "message": "add comment",
+        "author": "Pete Vilter",
+        "timestamp": "2022-03-08T21:53:28Z"
+      },
+      {
+        "sha": "3040ca7",
+        "message": "Merge branch 'master' into pv-big-flamegraphs",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2022-03-31T02:27:44Z"
+      },
+      {
+        "sha": "0e33222",
+        "message": "Merge branch 'master' into pv-big-flamegraphs",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2022-04-01T01:12:09Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#891",
+    "metadata": {
+      "title": "Use llvm-symbolizer's JSON output to provide function start lines",
+      "labels": [],
+      "qualities": [
+        "testability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2024-09-29T19:19:54Z",
+      "reviewers": [
+        "insilications",
+        "aalexand"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "When analyzing a perf.data profile converted automatically via perf_to_profile via pprof -raw perf.data, no function start lines (s=0) are present in any of the locations. With https://github.com/google/pprof/commit/813a5fbdbec8a66f7a5aedb876e1b2c3ee0f99ac, this can be easily solved by using the same JSON frame data from llvm-symbolizer to provide StartLine for Function.start_line. This solves https://github.com/google/pprof/issues/823."
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-commenter",
+        "role": "NONE",
+        "body": "## [Codecov](https://app.codecov.io/gh/google/pprof/pull/891?dropdown=coverage&src=pr&el=h1&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) Report\nAll modified and coverable lines are covered by tests :white_check_mark:\n> Project coverage is 66.91%. Comparing base [(`0ed6a68`)](https://app.codecov.io/gh/google/pprof/commit/0ed6a68c8d9e6d5df69a1f2694c7b5c3297fdf4f?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) to head [(`27c179c`)](https://app.codecov.io/gh/google/pprof/commit/27c179c62bd38b4168d1da5d5244743db54e17d7?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n> Report is 42 commits behind head on main.\n\n<details><summary>Additional details and impacted files</summary>\n\n\n```diff\n@@            Coverage Diff             @@\n##             main     #891      +/-   ##\n==========================================\n+ Coverage   66.86%   66.91%   +0.05%     \n==========================================\n  Files          44       44              \n  Lines        9824     9857      +33     \n==========================================\n+ Hits         6569     6596      +27     \n- Misses       2794     2820      +26     \n+ Partials      461      441      -20     \n```\n\n</details>\n\n[:umbrella: View full report in Codecov by Sentry](https://app.codecov.io/gh/google/pprof/pull/891?dropdown=coverage&src=pr&el=continue&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).   \n:loudspeaker: Have feedback on the report? [Share it here](https://about.codecov.io/codecov-pr-comment-feedback/?utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n",
+        "timestamp": "2024-09-10T15:14:36Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "A few CI tests failed:\r\n\r\n```\r\n++ go test github.com/google/pprof/fuzz github.com/google/pprof/internal/binutils github.com/google/pprof/internal/driver github.com/google/pprof/internal/elfexec github.com/google/pprof/internal/graph github.com/google/pprof/internal/measurement github.com/google/pprof/internal/report github.com/google/pprof/internal/symbolizer github.com/google/pprof/internal/symbolz github.com/google/pprof/profile\r\nok  \tgithub.com/google/pprof/fuzz\t0.003s\r\n--- FAIL: TestObjFile (0.80s)\r\n    --- FAIL: TestObjFile/fixed_load_address (0.67s)\r\n        binutils_test.go:379: SourceLine for main: got [{main /tmp/hello.c 3 0 0}]; want [{main /tmp/hello.c 3 0 3}]\r\n    --- FAIL: TestObjFile/simulated_ASLR_address (0.13s)\r\n        binutils_test.go:379: SourceLine for main: got [{main /tmp/hello.c 3 0 0}]; want [{main /tmp/hello.c 3 0 3}]\r\nFAIL\r\nFAIL\tgithub.com/google/pprof/internal/binutils\t0.860s\r\n```",
+        "timestamp": "2024-09-10T17:01:12Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "Fixed TestPEFile windows tests that were failing and were obviously wrong. I have no idea why TestObjFile linux tests were failing in the CI tests. Let's try again please?",
+        "timestamp": "2024-09-11T10:09:47Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Looks like the CI still failed.",
+        "timestamp": "2024-09-12T15:32:11Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Maybe the CI setup needs to install llvm-symbolizer.",
+        "timestamp": "2024-09-12T15:33:51Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "> Maybe the CI setup needs to install llvm-symbolizer.\r\n\r\nCould be... The TestPEFile windows tests were fixed because `ci / test-windows` is not failing anymore. I have no idea why it is failing on Linux. In my Linux system I even added a temporary debug log to double check: `t.Logf(\"DEBUG SourceLine for main: got %v; want %v\\n\", gotFrames, wantFrames)`:\r\n\r\n```\r\n=== RUN   TestObjFile\r\n=== RUN   TestObjFile/fixed_load_address\r\n    binutils_test.go:378: DEBUG SourceLine for main: got [{main /tmp/hello.c 3 0 3}]; want [{main /tmp/hello.c 3 0 3}]\r\n=== RUN   TestObjFile/simulated_ASLR_address\r\n    binutils_test.go:378: DEBUG SourceLine for main: got [{main /tmp/hello.c 3 0 3}]; want [{main /tmp/hello.c 3 0 3}]\r\n--- PASS: TestObjFile (0.10s)\r\n    --- PASS: TestObjFile/fixed_load_address (0.09s)\r\n    --- PASS: TestObjFile/simulated_ASLR_address (0.01s)\r\n```\r\n    \r\n\r\nI wish we could solve this because it would close https://github.com/google/pprof/issues/823",
+        "timestamp": "2024-09-13T08:59:28Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> Could be... The TestPEFile windows tests were fixed because `ci / test-windows` is not failing anymore. I have no idea why it is failing on Linux. In my Linux system I even added a temporary debug log to double check: `t.Logf(\"DEBUG SourceLine for main: got %v; want %v\\n\", gotFrames, wantFrames)`:\r\n\r\n[binutils.go](https://github.com/google/pprof/blob/main/internal/binutils/binutils.go) falls back to nm or binutils' addr2line if llvm-symbolizer is not available. I think this is what might be happening since perhaps the CI environment doesn't have llvm-symbolizer. I suspect we need to figure out how to install llvm-symbolizer around this line: https://github.com/google/pprof/blob/a0b0bb1d4134f37be44de6c328680339b0fc13ad/.github/workflows/ci.yaml#L149",
+        "timestamp": "2024-09-15T23:35:06Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "> [binutils.go](https://github.com/google/pprof/blob/main/internal/binutils/binutils.go) falls back to nm or binutils' addr2line if llvm-symbolizer is not available. I think this is what might be happening since perhaps the CI environment doesn't have llvm-symbolizer. I suspect we need to figure out how to install llvm-symbolizer around this line:\r\n> \r\n> https://github.com/google/pprof/blob/a0b0bb1d4134f37be44de6c328680339b0fc13ad/.github/workflows/ci.yaml#L149\r\n\r\nI have pushed changes to `ci.yaml` to attempt to fix it. Lets check if it passes now?\r\n",
+        "timestamp": "2024-09-16T10:44:40Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "I ran the CI workflow on my fork. It is now passing all `test-linux` jobs on `ubuntu-22.04`. But it's failing on `ubuntu-20.04`. My added `Verify llvm-symbolizer installation` step shows that `llvm-symbolizer --version` on `ubuntu-22.04` is:\r\n\r\n```\r\nllvm-symbolizer\r\nUbuntu LLVM version 14.0.0\r\n  \r\n  Optimized build.\r\n  Default target: x86_64-pc-linux-gnu\r\n  Host CPU: znver3\r\n```\r\n\r\nBut on `ubuntu-20.04` is:\r\n\r\n```\r\nLLVM (http://llvm.org/):\r\n  LLVM version 10.0.0\r\n  \r\n  Optimized build.\r\n  Default target: x86_64-pc-linux-gnu\r\n  Host CPU: (unknown)\r\n```",
+        "timestamp": "2024-09-16T11:02:00Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "Last commit addresses the issue of an outdated `llvm-symbolizer` on Ubuntu 20.04. It is now passing all tests.",
+        "timestamp": "2024-09-16T11:23:03Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "Sorry it's taking me a while to review this. I've been staring at the code on and off, I'm just not a fan of how much this complicates the CI configuration with this code to get llvm/clang installed. But I guess there is no better way so I should just bite the bullet and LGTM.",
+        "timestamp": "2024-09-25T18:10:58Z"
+      },
+      {
+        "author": "insilications",
+        "role": "CONTRIBUTOR",
+        "body": "> Sorry it's taking me a while to review this. I've been staring at the code on and off, I'm just not a fan of how much this complicates the CI configuration with this code to get llvm/clang installed. But I guess there is no better way so I should just bite the bullet and LGTM.\r\n\r\nNot a problem at all. Take the time you need to give it a thorough review.\r\n\r\nYeah, the additional complexity is sad but it is required... Ubuntu 20.04 provides LLVM 10's `llvm-symbolizer`, which is very old and does not produce a JSON data frame with `StartLine`. The alternative would be to add a minimum version check (LLVM 14) before the test that uses `llvm-symbolizer` and skip it: https://github.com/google/pprof/blob/a0b0bb1d4134f37be44de6c328680339b0fc13ad/internal/binutils/binutils_test.go#L336",
+        "timestamp": "2024-09-25T18:40:30Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "a088559",
+        "message": "Use llvm-symbolizer's JSON output to provide function start lines\n\nWhen analyzing a perf.data profile converted automatically via perf_to_profile via pprof -raw perf.data, no function start lines (s=0) are present in any of the locations. With https://github.com/google/pprof/commit/813a5fbdbec8a66f7a5aedb876e1b2c3ee0f99ac, this can be easily solved by using the same JSON frame data from llvm-symbolizer to provide StartLine for Function.start_line. This solves https://github.com/google/pprof/issues/823.",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-01T15:40:00Z"
+      },
+      {
+        "sha": "659b4d1",
+        "message": "Merge branch 'main' into llvm-symbolizer-startline",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2024-09-10T15:09:12Z"
+      },
+      {
+        "sha": "8dda08c",
+        "message": "Fixed TestPEFile windows test",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-11T10:07:21Z"
+      },
+      {
+        "sha": "df836a4",
+        "message": "Fixed TestMachoFiles mac tests",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-11T10:13:03Z"
+      },
+      {
+        "sha": "ad527e0",
+        "message": "Fix making sure llvm-symbolizer is available in the CI env for Linux tests\n\nModify the `Fetch dependencies` step in `test-linux` job to include the installation of llvm. Add `Verify llvm-symbolizer installation` step to ensure that llvm-symbolizer is available in the CI environment for the Linux tests. This should resolve the test failures related to the missing llvm-symbolizer tool.",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-16T10:42:20Z"
+      },
+      {
+        "sha": "9b8fb87",
+        "message": "ci: Improve LLVM installation for Ubuntu 20.04 and 22.04\n\nEnhances the CI workflow to ensure proper installation of LLVM and the `llvm-symbolizer` across both Ubuntu 20.04 and 22.04 environments. These changes address the issue of an outdated llvm-symbolizer on Ubuntu 20.04, while maintaining compatibility with Ubuntu 22.04.\n\n- Add LLVM official repository for Ubuntu 20.04\n- Install LLVM 14 on Ubuntu 20.04 to ensure a recent version\n- Use update-alternatives to manage llvm-symbolizer versions\n- Maintain existing LLVM 14 for Ubuntu 22.04",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-16T11:21:22Z"
+      },
+      {
+        "sha": "b3032ec",
+        "message": "Merge branch 'main' into llvm-symbolizer-startline",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2024-09-27T23:24:14Z"
+      },
+      {
+        "sha": "6ad3ca5",
+        "message": "ci: Make it clear that our goal is to install llvm-symbolizer",
+        "author": "Francisco Boni",
+        "timestamp": "2024-09-29T09:53:49Z"
+      },
+      {
+        "sha": "27c179c",
+        "message": "Merge branch 'main' into llvm-symbolizer-startline",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2024-09-29T18:27:44Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#420",
+    "metadata": {
+      "title": "Make '-noinlines' a separate flag, introduce '-filefunctions' granularity",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-09-21T15:41:08Z",
+      "reviewers": [
+        "hyangah",
+        "rauls5382",
+        "aalexand",
+        "nolanmar511"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "This change consists of two relatively independent parts, but they are\r\nboth about handling the granularity, so bundling them together.\r\n\r\nFirst, in #415 there is a discussion that having a granularity mode by\r\nsource lines but with inlines hidden would be useful. The agreement is\r\nalso that adding `-linenoinlines` granularity would make the granularity\r\nflags too messy (and they are already somewhat messy with `-addresses`\r\nand `-addressnoinlines`. So, it was proposed to make `-noinlines` a\r\nseparate flag, which is what this change does. Note that the flag is now\r\npulled out of the granularity group so it's a bit of backward\r\nincompatible change but I think it is acceptable. For the example in\r\nissue #415 the user would now be able to specify `-list foo -noinlines`\r\nto produce annotated source where the metrics from the inlined functions\r\nare attributed to the calling inliner line.\r\n\r\nWith this change, I am also dropping the `-addressnoinlines` granularity\r\nwhich is now supported as `-addresses -noinlines` combination. I\r\ncouldn't find any usage of this option at least internally at Google, so\r\nI think it's safe to remove it.\r\n\r\nSecond, I am adding a separate `-filefunctions` granularity which groups\r\nthe data by both function and file. This is a follow-up to #110 from the\r\npast where we changed the `-functions` granularity to not group by file\r\n(it used to), and since then there was a couple of reports where using\r\njust function name alone would over-aggregate the data in cases when a\r\nfunction with the same name is contained in multiple source files (e.g.\r\nsee b/18874275 internally).\r\n\r\nAlso, make a number of assorted documentation and `-help` fixes."
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=h1) Report\n> Merging [#420](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/e027b505a088ac3c68c339a1d7ce7724bf34538b?src=pr&el=desc) will **increase** coverage by `0.02%`.\n> The diff coverage is `93.33%`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/420/graphs/tree.svg?width=650&token=nHgs4Smibv&height=150&src=pr)](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=tree)\n\n```diff\n@@            Coverage Diff             @@\n##           master     #420      +/-   ##\n==========================================\n+ Coverage   67.59%   67.61%   +0.02%     \n==========================================\n  Files          36       36              \n  Lines        7612     7611       -1     \n==========================================\n+ Hits         5145     5146       +1     \n+ Misses       2062     2060       -2     \n  Partials      405      405\n```\n\n\n| [Impacted Files](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [internal/driver/commands.go](https://codecov.io/gh/google/pprof/pull/420/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2NvbW1hbmRzLmdv) | `44% <ø> (ø)` | :arrow_up: |\n| [internal/driver/driver.go](https://codecov.io/gh/google/pprof/pull/420/diff?src=pr&el=tree#diff-aW50ZXJuYWwvZHJpdmVyL2RyaXZlci5nbw==) | `69.88% <93.33%> (+0.95%)` | :arrow_up: |\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=footer). Last update [e027b50...1aa4a2b](https://codecov.io/gh/google/pprof/pull/420?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2018-09-20T17:04:02Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@nolanmar511 @rauls5382 Could you re-approve the most recent changes please?",
+        "timestamp": "2018-09-21T04:37:20Z"
+      },
+      {
+        "author": "ardan-bkennedy",
+        "role": "NONE",
+        "body": "What version will this change in be @aalexand ",
+        "timestamp": "2019-01-08T16:38:54Z"
+      },
+      {
+        "author": "ardan-bkennedy",
+        "role": "NONE",
+        "body": "The default on the console is -noinlines, I need the opposite, I want the list command to use inlining.",
+        "timestamp": "2019-01-08T16:42:08Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "> What version will this change in be @aalexand\r\n\r\nDo you mean which Go version? I am not 100% sure about that, Go team would know. @hyangah do you know if 1.12 is going to have this change in?\r\n\r\n> The default on the console is -noinlines, I need the opposite, I want the list command to use inlining.\r\n\r\nIs that with pprof from master branch of this repo?",
+        "timestamp": "2019-01-08T16:55:15Z"
+      },
+      {
+        "author": "ardan-bkennedy",
+        "role": "NONE",
+        "body": "Inside pprof I need to be able to say\r\n\r\n`list algOne -inlines`\r\n\r\nThe default is to use `-noinlines`.\r\n\r\nIt hurts to have to use `weblist` to see the `inline` view.",
+        "timestamp": "2019-01-08T16:57:55Z"
+      },
+      {
+        "author": "hyangah",
+        "role": "CONTRIBUTOR",
+        "body": "@aalexand Vendored version in 1.12 is google/pprof@fde099a545debf81bf2a96a0ec13d7da2c2a6663, so includes google/pprof@7dadf64105bba38bab598048e7721cc9d34f7e75 \r\n\r\n(while we are here - if there is any important fix to be cherry picked for 1.12, please file an issue)",
+        "timestamp": "2019-01-08T17:08:44Z"
+      },
+      {
+        "author": "ardan-bkennedy",
+        "role": "NONE",
+        "body": "I had this issue and it was closed?\r\n\r\nhttps://github.com/google/pprof/issues/415\r\n\r\nDo I need to create a new one from this?",
+        "timestamp": "2019-01-08T17:10:52Z"
+      },
+      {
+        "author": "aalexand",
+        "role": "COLLABORATOR",
+        "body": "@ardan-bkennedy Do you use pprof from the master branch? The list command should have -inlines as the default, see https://github.com/google/pprof/blob/985cf9b4fdd2b479e4563ec57352005f69d5f9f6/internal/driver/driver.go#L180.",
+        "timestamp": "2019-01-08T19:46:41Z"
+      },
+      {
+        "author": "ardan-bkennedy",
+        "role": "NONE",
+        "body": "Sorry, I didn't try the master branch. If this is the case, then we are good. Thanks for making that change. I can't wait for it to land.",
+        "timestamp": "2019-01-08T19:47:38Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "1afa21f",
+        "message": "Make '-noinlines' a separate flag, introduce '-filefunctions' granularity.\n\nThis change consists of two relatively independent parts, but they are\nboth about handling the granularity, so bundling them together.\n\nFirst, in #415 there is a discussion that having a granularity mode by\nsource lines but with inlines hidden would be useful. The agreement is\nalso that adding `-linenoinlines` granularity would make the granularity\nflags too messy (and they are already somewhat messy with `-addresses`\nand `-addressnoinlines`. So, it was proposed to make `-noinlines` a\nseparate flag, which is what this change does. Note that the flag is now\npulled out of the granularity group so it's a bit of backward\nincompatible change but I think it is acceptable. For the example in\nissue #415 the user would now be able to specify `-list foo -noinlines`\nto produce annotated source where the metrics from the inlined functions\nare attributed to the calling inliner line.\n\nWith this change, I am also dropping the `-addressnoinlines` granularity\nwhich is now supported as `-addresses -noinlines` combination. I\ncouldn't find any usage of this option at least internally at Google, so\nI think it's safe to remove it.\n\nSecond, I am adding a separate `-filefunctions` granularity which groups\nthe data by both function and file. This is a follow-up to #110 from the\npast where we changed the `-functions` granularity to not group by file\n(it used to), and since then there was a couple of reports where using\njust function name alone would over-aggregate the data in cases when a\nfunction with the same name is contained in multiple source files (e.g.\nsee b/18874275 internally).\n\nAlso, make a number of assorted documentation and `-help` fixes.",
+        "author": "Alexey Alexandrov",
+        "timestamp": "2018-09-20T16:26:49Z"
+      }
+    ]
+  },
+  {
+    "story_id": "google/pprof#570",
+    "metadata": {
+      "title": "Only run TestDisasm on amd64",
+      "labels": [
+        "cla: yes"
+      ],
+      "qualities": [
+        "testability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-10-08T23:02:24Z",
+      "reviewers": [
+        "kalyanac"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "It seems objdump is not able to dump other architecture object."
+    },
+    "discussion_timeline": [
+      {
+        "author": "zhsj",
+        "role": "CONTRIBUTOR",
+        "body": "hmm, I'm not using master, it has been fixed.",
+        "timestamp": "2020-10-07T19:52:54Z"
+      },
+      {
+        "author": "zhsj",
+        "role": "CONTRIBUTOR",
+        "body": "Not really fixed...\r\n\r\nStill failing\r\n\r\n```\r\n=== RUN   TestDisasm\r\n    binutils_test.go:205: Disasm: unexpected error [/usr/bin/objdump --disassemble-all --demangle --no-show-raw-insn --line-numbers --start-address=0x0 --stop-address=0xffffffffffffffff testdata/exe_linux_64]: exit status 1\r\n--- FAIL: TestDisasm (0.04s)\r\n=== RUN   TestDisasmIntelSyntax\r\n    binutils_test.go:228: This test only works on x86_64 Linux or macOS as it tests Intel asm syntax\r\n--- SKIP: TestDisasmIntelSyntax (0.00s)\r\n```\r\n\r\n```\r\n/usr/bin/objdump: testdata/exe_linux_64: file format not recognized\r\n```",
+        "timestamp": "2020-10-07T20:00:44Z"
+      },
+      {
+        "author": "codecov-io",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=h1) Report\n> Merging [#570](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=desc) into [master](https://codecov.io/gh/google/pprof/commit/1066cbb265c7de58e80c3e80392f29bb42c75c95?el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n[![Impacted file tree graph](https://codecov.io/gh/google/pprof/pull/570/graphs/tree.svg?width=650&height=150&src=pr&token=nHgs4Smibv)](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=tree)\n\n```diff\n@@           Coverage Diff           @@\n##           master     #570   +/-   ##\n=======================================\n  Coverage   67.14%   67.14%           \n=======================================\n  Files          78       78           \n  Lines       14072    14072           \n=======================================\n  Hits         9449     9449           \n  Misses       3788     3788           \n  Partials      835      835           \n```\n\n\n\n------\n\n[Continue to review full report at Codecov](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=continue).\n> **Legend** - [Click here to learn more](https://docs.codecov.io/docs/codecov-delta)\n> `Δ = absolute <relative> (impact)`, `ø = not affected`, `? = missing data`\n> Powered by [Codecov](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=footer). Last update [1066cbb...924778f](https://codecov.io/gh/google/pprof/pull/570?src=pr&el=lastupdated). Read the [comment docs](https://docs.codecov.io/docs/pull-request-comments).\n",
+        "timestamp": "2020-10-07T20:13:45Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "From your error, it tooks like objdump is not able to recognize Linux binaries.\r\nWhat architecture are you running the tests on? And what is the objdump version you are using? ",
+        "timestamp": "2020-10-07T20:39:00Z"
+      },
+      {
+        "author": "zhsj",
+        "role": "CONTRIBUTOR",
+        "body": "I'm on arm.\r\n\r\n```\r\n$ uname -a\r\nLinux abel 4.19.0-11-armmp-lpae #1 SMP Debian 4.19.146-1 (2020-09-17) armv7l GNU/Linux\r\n\r\n$ objdump --version\r\nGNU objdump (GNU Binutils for Debian) 2.35.1\r\nCopyright (C) 2020 Free Software Foundation, Inc.\r\nThis program is free software; you may redistribute it under the terms of\r\nthe GNU General Public License version 3 or (at your option) any later version.\r\nThis program has absolutely no warranty.\r\n\r\n$ cat /etc/os-release \r\nPRETTY_NAME=\"Debian GNU/Linux bullseye/sid\"\r\nNAME=\"Debian GNU/Linux\"\r\nID=debian\r\nHOME_URL=\"https://www.debian.org/\"\r\nSUPPORT_URL=\"https://www.debian.org/support\"\r\nBUG_REPORT_URL=\"https://bugs.debian.org/\"\r\n```",
+        "timestamp": "2020-10-07T21:46:14Z"
+      },
+      {
+        "author": "zhsj",
+        "role": "CONTRIBUTOR",
+        "body": "on x86 system, it seems objdump can't dump arm64 as well.\r\n\r\n```\r\n$ cat a.c \r\nvoid main(){}\r\n$ aarch64-linux-gnu-gcc a.c \r\n$ file a.out \r\na.out: ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=d65928b56beaf07019c6d04159c7e0ed28a7917f, for GNU/Linux 3.7.0, not stripped\r\n$ /usr/bin/objdump --disassemble-all --demangle --no-show-raw-insn --line-numbers --start-address=0x0 --stop-address=0xffffffffffffffff a.out \r\n\r\na.out:     file format elf64-little\r\n\r\n/usr/bin/objdump: can't disassemble for architecture UNKNOWN!\r\n\r\n$\r\n\r\n$ objdump --version\r\nGNU objdump (GNU Binutils for Debian) 2.35.1\r\nCopyright (C) 2020 Free Software Foundation, Inc.\r\nThis program is free software; you may redistribute it under the terms of\r\nthe GNU General Public License version 3 or (at your option) any later version.\r\nThis program has absolutely no warranty.\r\n\r\n$ uname -a\r\nLinux zhsj-debian 5.8.0-1-amd64 #1 SMP Debian 5.8.7-1 (2020-09-05) x86_64 GNU/Linux\r\n```",
+        "timestamp": "2020-10-07T21:51:56Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "Can you try with llvm-objdump? pprof will now prefer llvm-objdump if it is available. That should help the test pass.",
+        "timestamp": "2020-10-07T22:02:15Z"
+      },
+      {
+        "author": "zhsj",
+        "role": "CONTRIBUTOR",
+        "body": "llvm-objdump works.",
+        "timestamp": "2020-10-08T08:19:16Z"
+      },
+      {
+        "author": "kalyanac",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you for checking. I think it still makes sense to merge this PR. llvm-objdump installation may not always have all the backends available. Instead of trying to parse the support and run the test, we will limit the test to only x86-64.\r\n\r\nIf you reopen the PR, I can merge it. If not, I will submit a new PR.",
+        "timestamp": "2020-10-08T18:25:52Z"
+      },
+      {
+        "author": "codecov-commenter",
+        "role": "NONE",
+        "body": "## [Codecov](https://app.codecov.io/gh/google/pprof/pull/570?dropdown=coverage&src=pr&el=h1&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) Report\nAll modified and coverable lines are covered by tests :white_check_mark:\n> Project coverage is 67.14%. Comparing base [(`1066cbb`)](https://app.codecov.io/gh/google/pprof/commit/1066cbb265c7de58e80c3e80392f29bb42c75c95?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google) to head [(`924778f`)](https://app.codecov.io/gh/google/pprof/commit/924778fab6709b7b623f50fd73520cc52882dbed?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n\n<details><summary>Additional details and impacted files</summary>\n\n\n```diff\n@@           Coverage Diff           @@\n##           master     #570   +/-   ##\n=======================================\n  Coverage   67.14%   67.14%           \n=======================================\n  Files          78       78           \n  Lines       14072    14072           \n=======================================\n  Hits         9449     9449           \n  Misses       3788     3788           \n  Partials      835      835           \n```\n\n</details>\n\n[:umbrella: View full report in Codecov by Sentry](https://app.codecov.io/gh/google/pprof/pull/570?dropdown=coverage&src=pr&el=continue&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).   \n:loudspeaker: Have feedback on the report? [Share it here](https://about.codecov.io/codecov-pr-comment-feedback/?utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=google).\n\n<details><summary> :rocket: New features to boost your workflow: </summary>\n\n- :snowflake: [Test Analytics](https://docs.codecov.com/docs/test-analytics): Detect flaky tests, report on failures, and find test suite problems.\n- :package: [JS Bundle Analysis](https://docs.codecov.com/docs/javascript-bundle-analysis): Save yourself from yourself by tracking and limiting bundle sizes in JS merges.\n</details>",
+        "timestamp": "2025-07-10T23:54:30Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "924778f",
+        "message": "Only run TestDisasm on amd64\n\nIt seems objdump is not able to dump other architecture object.",
+        "author": "Shengjing Zhu",
+        "timestamp": "2020-10-07T19:45:00Z"
+      }
+    ]
+  }
+]

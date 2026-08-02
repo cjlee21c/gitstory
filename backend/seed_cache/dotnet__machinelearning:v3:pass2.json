@@ -1,0 +1,3089 @@
+[
+  {
+    "story_id": "dotnet/machinelearning#4925",
+    "metadata": {
+      "title": "add root cause localization transformer",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "testability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-05-11T17:36:16Z",
+      "reviewers": [
+        "mstfbl",
+        "yaeldekel",
+        "suxi-ms",
+        "ganik"
+      ],
+      "changed_files": 7
+    },
+    "issue_payload": {
+      "body": "The goal of this pull request is to provide a decision tree based algorithm to localize the root cause of an incident on multi-dimensional time series on a specified timestamp.\r\n\r\n- [ ] Fixes #4960 .\r\n\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnfclas",
+        "role": "NONE",
+        "body": "[![CLA assistant check](https://cla.dotnetfoundation.org/pull/badge/signed)](https://cla.dotnetfoundation.org/dotnet/machinelearning?pullRequest=4925) <br/>All CLA requirements met. #Resolved",
+        "timestamp": "2020-03-10T01:30:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "mstfbl",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @suxi-ms , thank you for your PR! Can you please briefly describe the changes you've made according to our [contribution guide](https://github.com/dotnet/machinelearning/blob/master/CONTRIBUTING.md)?",
+        "timestamp": "2020-03-10T01:36:38Z",
+        "source": "review"
+      },
+      {
+        "author": "frank-dong-ms-zz",
+        "role": "CONTRIBUTOR",
+        "body": "@suxi-ms, please do following thing then we can start code review:\r\n1. brief describe what you are going to do at the PR comments\r\n2. how many stages/PRs you plan to submit\r\n3. what is purpose of each PRs\r\n4. add reviewers that you need sign off from who have best knowledge for your change (you can find that from code history), you can always add harishsk to review as Harish is the manager of ML.NET\r\n5. always add necessary tests #Resolved",
+        "timestamp": "2020-03-10T23:46:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >SaveModel [](start = 40, length = 9)\r\n\r\nDon't you need to save (and load) `_beta`? #Resolved",
+        "timestamp": "2020-03-24T10:04:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[test/Microsoft.ML.TimeSeries.Tests/TimeSeriesDirectApi.cs] >RootCauseLocalizationWithDT [](start = 20, length = 27)\r\n\r\nPlease also test serialization/deserialization. #Resolved",
+        "timestamp": "2020-03-24T10:06:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >disposer [](start = 16, length = 8)\r\n\r\nI think this is not necessary. This is used by components that use resources that are `IDisposable`, for example, `ImageResizer` that uses a `Bitmap` for its computations. #Resolved",
+        "timestamp": "2020-03-24T10:37:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >[] [](start = 157, length = 2)\r\n\r\nSince this transformer is non-trainable (meaning, the estimator doesn't need to look at the data in order to create a transformer), there is no advantage to supporting multiple input/output columns here - if there is ever a scenario where there are multiple input columns, the user can create an estimator chain instead. #Resolved",
+        "timestamp": "2020-03-24T10:54:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >SignatureDataTransform [](start = 30, length = 22)\r\n\r\nThis (and the matching attribute) is only needed if you want to use this component from the command line. If this is the intention, please add a test for running this using maml. #Resolved",
+        "timestamp": "2020-03-24T10:56:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >col.Kind, col.ItemType, col.IsKey, col.Annotations [](start = 100, length = 50)\r\n\r\nThese should be the  values for the output column. The `Kind` should be `SchemaShape.Column.VectorKind.Scalar` (this should match `col.Kind` since you are checking above that it is a scalar), but what should the `ItemType` be? Also, seems like `col.IsKey` is always false, and are there any annotations that need to be passed from the input to the output? #Resolved",
+        "timestamp": "2020-03-24T11:02:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ganik",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] >causess [](start = 88, length = 7)\r\n\r\ntypo #Resolved",
+        "timestamp": "2020-03-24T23:13:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > SaveModel [](start = 40, length = 9)\r\n> \r\n> Don't you need to save (and load) `_beta`?\r\n\r\nThank you for the suggestion, I have added changeds to save _beta #Resolved",
+        "timestamp": "2020-03-27T05:38:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.TimeSeries.Tests/TimeSeriesDirectApi.cs] > > RootCauseLocalizationWithDT [](start = 20, length = 27)\r\n> \r\n> Please also test serialization/deserialization.\r\n\r\nCould you help explain more, I did't exactly understand the suggestion. Which part needs serialization/deserialization? #Resolved",
+        "timestamp": "2020-03-27T05:38:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > disposer [](start = 16, length = 8)\r\n> \r\n> I think this is not necessary. This is used by components that use resources that are `IDisposable`, for example, `ImageResizer` that uses a `Bitmap` for its computations.\r\n\r\nHave changed, please help review whether the change is right #Resolved",
+        "timestamp": "2020-03-27T05:39:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > [] [](start = 157, length = 2)\r\n> \r\n> Since this transformer is non-trainable (meaning, the estimator doesn't need to look at the data in order to create a transformer), there is no advantage to supporting multiple input/output columns here - if there is ever a scenario where there are multiple input columns, the user can create an estimator chain instead.\r\n\r\nI find that ImageLoading and TextNormalizing are also non-trainable, however they defines this columns parameter, could you help explain when to use it and when not? #Resolved",
+        "timestamp": "2020-03-27T05:39:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > SignatureDataTransform [](start = 30, length = 22)\r\n> \r\n> This (and the matching attribute) is only needed if you want to use this component from the command line. If this is the intention, please add a test for running this using maml.\r\n\r\nI have no idea about the maml, could you help provide more information? #Resolved",
+        "timestamp": "2020-03-27T05:40:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > col.Kind, col.ItemType, col.IsKey, col.Annotations [](start = 100, length = 50)\r\n> \r\n> These should be the values for the output column. The `Kind` should be `SchemaShape.Column.VectorKind.Scalar` (this should match `col.Kind` since you are checking above that it is a scalar), but what should the `ItemType` be? Also, seems like `col.IsKey` is always false, and are there any annotations that need to be passed from the input to the output?\r\n\r\nmade some udpates, could you help review whether they are right? #Resolved",
+        "timestamp": "2020-03-27T05:40:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] > > causess [](start = 88, length = 7)\r\n> \r\n> typo\r\n\r\nThank you for pointing it out, has fixed it. #Resolved",
+        "timestamp": "2020-03-27T05:40:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >byte [](start = 30, length = 4)\r\n\r\nWhy are you casting this from double to byte? #Resolved",
+        "timestamp": "2020-03-28T12:29:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >DTRootCauseLocalizationTransformer [](start = 16, length = 34)\r\n\r\nThis constructor loads the transformer from a serialized model, so you need to read `_beta` here. #Resolved",
+        "timestamp": "2020-03-28T12:31:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[test/Microsoft.ML.TimeSeries.Tests/TimeSeriesDirectApi.cs] Part of the `DTRootCauseLocalizationTransformer` class is methods that save the model to a file, and that load the model back from a file. This test should exercise these methods, by using the `ml.Model.Save` and `ml.Model.Load` APIs, and checking that the values returned by the deserialized model are the same as the ones returned by the original model.\r\n\r\n---\r\nIn reply to: [399045379](https://github.com/dotnet/machinelearning/pull/4925#discussion_r399045379) [](ancestors = 399045379)",
+        "timestamp": "2020-03-28T12:47:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] You can also assign `null` instead.\r\n\r\n---\r\nIn reply to: [399045482](https://github.com/dotnet/machinelearning/pull/4925#discussion_r399045482) [](ancestors = 399045482)",
+        "timestamp": "2020-03-28T12:48:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] Why was this check removed -  `col.Kind != SchemaShape.Column.VectorKind.Scalar`? Isn't it correct?\r\n\r\n---\r\nIn reply to: [399045854](https://github.com/dotnet/machinelearning/pull/4925#discussion_r399045854) [](ancestors = 399045854)",
+        "timestamp": "2020-03-28T12:53:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >col.ItemType [](start = 110, length = 12)\r\n\r\n`col.ItemType` is the type of the input, you need to change this to the type of the output. #Resolved",
+        "timestamp": "2020-03-28T13:01:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >col.IsKey [](start = 124, length = 9)\r\n\r\nThis should always be `false`. #Resolved",
+        "timestamp": "2020-03-28T13:02:20Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] >col.Annotations [](start = 135, length = 15)\r\n\r\nDoing this will pass the annotations from the input to the output. If this is not your intention then you do not need to pass this argument at all (it has a default value of `null`). #Resolved",
+        "timestamp": "2020-03-28T13:04:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.TimeSeries.Tests/TimeSeriesDirectApi.cs] > Part of the `DTRootCauseLocalizationTransformer` class is methods that save the model to a file, and that load the model back from a file. This test should exercise these methods, by using the `ml.Model.Save` and `ml.Model.Load` APIs, and checking that the values returned by the deserialized model are the same as the ones returned by the original model.\r\n> \r\n> In reply to: [399045379](https://github.com/dotnet/machinelearning/pull/4925#discussion_r399045379) [](ancestors = 399045379)\r\n\r\nDo I need to save the model, I find in the document, the save menthod is used for training related data? #Resolved",
+        "timestamp": "2020-03-29T13:07:25Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] Ha\r\n\r\n> Why was this check removed - `col.Kind != SchemaShape.Column.VectorKind.Scalar`? Isn't it correct?\r\n> \r\n> In reply to: [399045854](https://github.com/dotnet/machinelearning/pull/4925#discussion_r399045854) [](ancestors = 399045854)\r\n\r\nHave updated.  #Resolved",
+        "timestamp": "2020-03-29T13:37:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > byte [](start = 30, length = 4)\r\n> \r\n> Why are you casting this from double to byte?\r\n\r\nThank you for pointing it out. Upated #Resolved",
+        "timestamp": "2020-03-29T13:38:04Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > DTRootCauseLocalizationTransformer [](start = 16, length = 34)\r\n> \r\n> This constructor loads the transformer from a serialized model, so you need to read `_beta` here.\r\n\r\nUpdated #Resolved",
+        "timestamp": "2020-03-29T13:38:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > col.ItemType [](start = 110, length = 12)\r\n> \r\n> `col.ItemType` is the type of the input, you need to change this to the type of the output.\r\n\r\nHave changed to the output dataview type #Resolved",
+        "timestamp": "2020-03-29T13:38:28Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > col.IsKey [](start = 124, length = 9)\r\n> \r\n> This should always be `false`.\r\n\r\nUpdated to false. #Resolved",
+        "timestamp": "2020-03-29T13:38:45Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TimeSeries/DTRootCauseLocalization.cs] > > col.Annotations [](start = 135, length = 15)\r\n> \r\n> Doing this will pass the annotations from the input to the output. If this is not your intention then you do not need to pass this argument at all (it has a default value of `null`).\r\n\r\nUpdated to null #Resolved",
+        "timestamp": "2020-03-29T13:38:56Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "> Hi @suxi-ms , thank you for your PR! Can you please briefly describe the changes you've made according to our [contribution guide](https://github.com/dotnet/machinelearning/blob/master/CONTRIBUTING.md)?\r\n\r\nHave updated, could you help review? #Resolved",
+        "timestamp": "2020-04-08T07:51:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "> Hi @suxi-ms , thank you for your PR! Can you please briefly describe the changes you've made according to our [contribution guide](https://github.com/dotnet/machinelearning/blob/master/CONTRIBUTING.md)?\r\n\r\nI think I have made related changes, could some reviewers resolve this comment? #Resolved",
+        "timestamp": "2020-04-16T06:27:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "suxi-ms",
+        "role": "MEMBER",
+        "body": "> @suxi-ms, please do following thing then we can start code review:\r\n> \r\n> 1. brief describe what you are going to do at the PR comments\r\n> 2. how many stages/PRs you plan to submit\r\n> 3. what is purpose of each PRs\r\n> 4. add reviewers that you need sign off from who have best knowledge for your change (you can find that from code history), you can always add harishsk to review as Harish is the manager of ML.NET\r\n> 5. always add necessary tests\r\n\r\nHave updated in recent changes #Resolved",
+        "timestamp": "2020-04-16T06:28:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/dotnet/machinelearning/pull/4925?src=pr&el=h1) Report\n> Merging [#4925](https://codecov.io/gh/dotnet/machinelearning/pull/4925?src=pr&el=desc) into [master](https://codecov.io/gh/dotnet/machinelearning/commit/7c1c348cd51b9f7c980994909dc1df31232b2280&el=desc) will **not change** coverage.\n> The diff coverage is `n/a`.\n\n```diff\n@@           Coverage Diff           @@\n##           master    #4925   +/-   ##\n=======================================\n  Coverage   75.57%   75.57%           \n=======================================\n  Files         995      995           \n  Lines      179292   179292           \n  Branches    19294    19294           \n=======================================\n  Hits       135493   135493           \n  Misses      38535    38535           \n  Partials     5264     5264           \n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #Debug | `75.57% <0.00%> (ø)` | |\n| #production | `71.51% <0.00%> (ø)` | |\n| #test | `88.67% <0.00%> (ø)` | |\n\n",
+        "timestamp": "2020-05-07T09:58:35Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d5ee205",
+        "message": "add root cause localization transformer",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-10T01:24:42Z"
+      },
+      {
+        "sha": "f727a79",
+        "message": "add test cases",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-16T14:26:48Z"
+      },
+      {
+        "sha": "92de1dc",
+        "message": "revert sln changes",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-18T01:21:22Z"
+      },
+      {
+        "sha": "798289c",
+        "message": "add evaluation",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-18T09:50:41Z"
+      },
+      {
+        "sha": "f2e128d",
+        "message": "temp save for internal review",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-20T03:08:15Z"
+      },
+      {
+        "sha": "51569e3",
+        "message": "rename function",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-20T03:13:33Z"
+      },
+      {
+        "sha": "59c6e89",
+        "message": "temp save bottom up points for switch desktop",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-22T13:08:56Z"
+      },
+      {
+        "sha": "29216e0",
+        "message": "update from laptop",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-22T14:21:50Z"
+      },
+      {
+        "sha": "69da330",
+        "message": "save for add test",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T02:49:04Z"
+      },
+      {
+        "sha": "e1c5432",
+        "message": "add root cause localization algorithm",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T07:12:20Z"
+      },
+      {
+        "sha": "3a1d1c5",
+        "message": "add root cause localization algorithm",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T07:53:24Z"
+      },
+      {
+        "sha": "8f97602",
+        "message": "print score, path and directions in sample",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T08:43:05Z"
+      },
+      {
+        "sha": "48123f4",
+        "message": "merge with master",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T08:51:37Z"
+      },
+      {
+        "sha": "c47302f",
+        "message": "extract root cause analyzer",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T09:25:15Z"
+      },
+      {
+        "sha": "b07ad28",
+        "message": "refine code",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-23T23:59:31Z"
+      },
+      {
+        "sha": "c729877",
+        "message": "merge with master",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-24T00:25:50Z"
+      },
+      {
+        "sha": "ebbdb0d",
+        "message": "update for algorithm",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-26T08:48:28Z"
+      },
+      {
+        "sha": "0d43b0d",
+        "message": "add evaluatin",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-26T08:48:57Z"
+      },
+      {
+        "sha": "5778eed",
+        "message": "some refine for code",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-26T13:55:14Z"
+      },
+      {
+        "sha": "c9ed044",
+        "message": "fix some typo",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-27T02:16:03Z"
+      },
+      {
+        "sha": "e440f25",
+        "message": "remove unused code",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-27T02:18:41Z"
+      },
+      {
+        "sha": "feba6f4",
+        "message": "reformat code",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-27T03:03:30Z"
+      },
+      {
+        "sha": "686831c",
+        "message": "updates",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-27T03:16:29Z"
+      },
+      {
+        "sha": "ddc8a36",
+        "message": "update from review",
+        "author": "suxi-ms",
+        "timestamp": "2020-03-29T13:36:35Z"
+      },
+      {
+        "sha": "475ee8a",
+        "message": "read double for beta",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-01T03:06:13Z"
+      },
+      {
+        "sha": "8d874ca",
+        "message": "remove SignatureDataTransform constructor",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-01T07:21:15Z"
+      },
+      {
+        "sha": "0674ab3",
+        "message": "update",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-01T07:47:11Z"
+      },
+      {
+        "sha": "4c5b8fb",
+        "message": "update",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-01T13:11:24Z"
+      },
+      {
+        "sha": "08d607c",
+        "message": "remove white space",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-02T03:26:58Z"
+      },
+      {
+        "sha": "c688233",
+        "message": "refine internal logic",
+        "author": "suxi-ms",
+        "timestamp": "2020-04-07T08:50:22Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#942",
+    "metadata": {
+      "title": "Add OnnxTransform for scoring Onnx 1.2 models - integrates Microsoft.ML.Scoring/Sonoma Library",
+      "labels": [],
+      "qualities": [
+        "security",
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-09-26T17:17:37Z",
+      "reviewers": [
+        "Ivanidzo4ka",
+        "abgoswam",
+        "shmoradims"
+      ],
+      "changed_files": 12
+    },
+    "issue_payload": {
+      "body": "Fixes issue #695 \r\nFixes issue #892\r\n\r\nThis adds a new transform  for scoring Onnx v1.2 models, leveraging an updated version of the scoring library at the link below.\r\n\r\nhttps://www.nuget.org/packages/Microsoft.ML.Scoring/\r\n\r\n\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnfclas",
+        "role": "NONE",
+        "body": "[![CLA assistant check](https://cla.dotnetfoundation.org/pull/badge/signed)](https://cla.dotnetfoundation.org/dotnet/machinelearning?pullRequest=942) <br/>All CLA requirements met. #Closed",
+        "timestamp": "2018-09-19T00:00:58Z",
+        "source": "issue"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[pkg/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.nupkgproj] >1.0.4-dev47509 [](start = 62, length = 14)\r\n\r\nplease put it to [https://github.com/dotnet/machinelearning/blob/master/build/Dependencies.props](https://github.com/dotnet/machinelearning/blob/master/build/Dependencies.props) #Closed",
+        "timestamp": "2018-09-21T19:55:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.csproj] Wonder, what this for? #Closed",
+        "timestamp": "2018-09-21T19:56:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] Do you plan to support multiple input /outputs or only one? \r\nIt looks weird, you constantly cast single objects to arrays and back. #Closed",
+        "timestamp": "2018-09-21T20:03:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >Arguments [](start = 28, length = 9)\r\n\r\nSo far we have tendency to use Arguments class for entry points and command line, and to have separate class ColumnInfo with same functionality, but without all attributes.\r\nAnd in our constructors we tend to use ColumnInfo class (except constructor for SignatureLoadDataTransform) #Pending",
+        "timestamp": "2018-09-21T20:05:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >public [](start = 8, length = 6)\r\n\r\ncan make private #Closed",
+        "timestamp": "2018-09-21T20:05:46Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] same for all factory methods\r\n\r\n---\r\nIn reply to: [219613072](https://github.com/dotnet/machinelearning/pull/942#discussion_r219613072) [](ancestors = 219613072)",
+        "timestamp": "2018-09-21T20:06:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >internal [](start = 8, length = 8)\r\n\r\nwhy not private? #Closed",
+        "timestamp": "2018-09-21T20:06:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >IdvToTensorAdapter [](start = 30, length = 18)\r\n\r\nI would move it to OnnxUtils #Closed",
+        "timestamp": "2018-09-21T20:09:22Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] nit:blank line #Resolved",
+        "timestamp": "2018-09-24T16:41:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >ModelFile [](start = 26, length = 9)\r\n\r\nfor ONNX, would you provide a single file or a directory ? #Resolved",
+        "timestamp": "2018-09-24T16:41:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >TBD [](start = 81, length = 3)\r\n\r\nnit: needs to be updated #Resolved",
+        "timestamp": "2018-09-24T16:42:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxUtils.cs] >tempModelDir [](start = 16, length = 12)\r\n\r\nwhen does this tempModelDir get cleaned up ?",
+        "timestamp": "2018-09-24T16:59:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxUtils.cs] >tempModelDir [](start = 38, length = 12)\r\n\r\nmight consider ACL this temp dir . \r\n\r\nTemp directories with models are considered executable code and considered security threat by .NET security team",
+        "timestamp": "2018-09-24T17:03:38Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxUtils.cs] >OnnxModel [](start = 26, length = 9)\r\n\r\nmight consider separate file for OnnxModel.  \r\n\r\nmisnomer to put it in same file as OnnxUtils.cs (which has all static members) #Resolved",
+        "timestamp": "2018-09-24T17:19:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/doc.xml] >Microsoft.ML.TensorFlow [](start = 150, length = 23)\r\n\r\nis this a requirement for the OnnxTransform ? #Resolved",
+        "timestamp": "2018-09-24T17:25:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] >_model [](start = 16, length = 6)\r\n\r\nis there a memory limitation of keeping everything in memory ?  i would presume some Onnx models to be quite large\r\n #Resolved",
+        "timestamp": "2018-09-24T17:28:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/OnnxEstimatorTests.cs] Not related to this one, but I would love to have test which would ran ML.Net-> Onnx conversion and then score that model, and compare results. #WontFix",
+        "timestamp": "2018-09-24T19:55:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.csproj] >Microsoft.ML.TensorFlow [](start = 22, length = 23)\r\n\r\nMicrosoft.ML.OnnxTransform #Closed",
+        "timestamp": "2018-09-24T20:24:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "shmoradims",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] Aren't some of the Create(...) need to be public, b/c they get called from another assembly? #Closed",
+        "timestamp": "2018-09-25T16:17:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "shmoradims",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] For Onnx we only need a model_file.  #Resolved",
+        "timestamp": "2018-09-25T16:23:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "markusweimer",
+        "role": "NONE",
+        "body": "[test/Microsoft.ML.OnnxTransformTest/Microsoft.ML.OnnxTransformTest.csproj] Shouldn't these versions line up with the version of ML.NET? #ByDesign",
+        "timestamp": "2018-09-25T17:09:21Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "markusweimer",
+        "role": "NONE",
+        "body": "Left a nit",
+        "timestamp": "2018-09-25T17:10:06Z",
+        "source": "review"
+      },
+      {
+        "author": "shmoradims",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxTransform.cs] Fixed #Resolved",
+        "timestamp": "2018-09-25T17:12:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "shmoradims",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.OnnxTransform/OnnxUtils.cs] OnnxModel is also a util for deficiencies in sonoma ModelManager api. It should go away once we have proper APIs from lotus. #Resolved",
+        "timestamp": "2018-09-25T17:13:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "shmoradims",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.OnnxTransform/doc.xml] Jignesh, this should be Sonoma nuget, right? Could you please update it. #Resolved",
+        "timestamp": "2018-09-25T17:14:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TomFinley",
+        "role": "CONTRIBUTOR",
+        "body": "[pkg/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.nupkgproj] >Sonoma [](start = 45, length = 6)\r\n\r\nIs Sonoma a public name? #Resolved",
+        "timestamp": "2018-09-25T17:17:50Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TomFinley",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.OnnxTransformTest/Microsoft.ML.OnnxTransformTest.csproj] Not unless we think every version of ML.NET will require a corresponding update to the models, whether they've changed or not.\r\n\r\n---\r\nIn reply to: [220277399](https://github.com/dotnet/machinelearning/pull/942#discussion_r220277399) [](ancestors = 220277399)",
+        "timestamp": "2018-09-25T17:19:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TomFinley",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.csproj] ><!--ProjectReference Include=\"..\\Microsoft.ML.ImageAnalytics\\Microsoft.ML.ImageAnalytics.csproj\" /--> [](start = 4, length = 101)\r\n\r\nIs it possible to just clean things up like this? #Resolved",
+        "timestamp": "2018-09-25T17:22:13Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "TomFinley",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.csproj] Let's remove it.\r\n\r\n---\r\nIn reply to: [219610821](https://github.com/dotnet/machinelearning/pull/942#discussion_r219610821) [](ancestors = 219610821)",
+        "timestamp": "2018-09-25T17:22:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "eerhardt",
+        "role": "MEMBER",
+        "body": "[pkg/Microsoft.ML.OnnxTransform/Microsoft.ML.OnnxTransform.nupkgproj] As discussed in the standup meeting, we want to keep `Microsoft.ML.OnnxTransform` from being a stable package. A way to do that is to add this property here:\r\n\r\n```xml\r\n<VersionSuffix Condition=\"'$(StabilizePackageVersion)' == 'true'\">$(PreReleaseLabel)</VersionSuffix>\r\n```\r\n\r\nWhich will ensure that the `Version` will still have `-preview` in it. #Resolved",
+        "timestamp": "2018-09-25T17:46:18Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "These tests work on Mac?  \r\n\r\n(i thought it was only windows compatible)",
+        "timestamp": "2018-09-25T17:46:58Z",
+        "source": "review"
+      },
+      {
+        "author": "helloguo",
+        "role": "NONE",
+        "body": "Is Microsoft.ML.Scoring going to be a part of ML.NET and open source?",
+        "timestamp": "2018-10-24T21:43:01Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d67eb57",
+        "message": "initial checkin",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-18T23:56:44Z"
+      },
+      {
+        "sha": "1402d19",
+        "message": "added 1 file",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-19T00:17:02Z"
+      },
+      {
+        "sha": "d7aefce",
+        "message": "Added nugets and project so compile successfully",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-19T01:53:34Z"
+      },
+      {
+        "sha": "b5482df",
+        "message": "Added unit tests -- need further debugging",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-21T06:34:29Z"
+      },
+      {
+        "sha": "40f857e",
+        "message": "Merge branch 'master' into jignparm/onnxtransform",
+        "author": "jignparm",
+        "timestamp": "2018-09-21T16:47:11Z"
+      },
+      {
+        "sha": "46d7821",
+        "message": "Fixed schema propagation tests",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-24T08:06:31Z"
+      },
+      {
+        "sha": "4bf00de",
+        "message": "Merge remote-tracking branch 'upstream/master' into jignesh/onnx",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-24T17:08:09Z"
+      },
+      {
+        "sha": "dd956be",
+        "message": "Merge branch 'jignparm/onnxtransform' of https://github.com/jignparm/machinelearning into jignparm/onnxtransform",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-24T18:55:32Z"
+      },
+      {
+        "sha": "e61b730",
+        "message": "Cleaned up inconsistent multiple/single IO code. Now OnnxTransform is single input/output.",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-24T20:50:52Z"
+      },
+      {
+        "sha": "6fdd04e",
+        "message": "Some minor fixes",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-24T22:30:04Z"
+      },
+      {
+        "sha": "e597068",
+        "message": "Merge branch 'jignparm/onnxtransform' of https://github.com/jignparm/machinelearning into jignparm/onnxtransform",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-24T22:36:06Z"
+      },
+      {
+        "sha": "fd27eec",
+        "message": "Updated tests",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-24T22:58:13Z"
+      },
+      {
+        "sha": "2778577",
+        "message": "moved tests to different project to prevent tensorflow.dll from crashing",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-25T01:46:48Z"
+      },
+      {
+        "sha": "27de2b0",
+        "message": "unit tests passing",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-25T02:37:53Z"
+      },
+      {
+        "sha": "4d94c43",
+        "message": "relaxed range differences",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-25T03:03:47Z"
+      },
+      {
+        "sha": "84334ed",
+        "message": "Made factory create() methods private",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-25T16:15:05Z"
+      },
+      {
+        "sha": "4b958b1",
+        "message": "Addressed some PR comments",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-25T18:21:42Z"
+      },
+      {
+        "sha": "7ff3012",
+        "message": "Moved IdvToTensorAdapter to OnnxUtils",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-25T18:25:23Z"
+      },
+      {
+        "sha": "d47516e",
+        "message": "Fixed blanks line",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-25T18:27:29Z"
+      },
+      {
+        "sha": "51b3c42",
+        "message": "Merge branch 'master' into jignparm/onnxtransform",
+        "author": "jignparm",
+        "timestamp": "2018-09-25T19:10:31Z"
+      },
+      {
+        "sha": "b9af85e",
+        "message": "fixed merge conflicts",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-25T20:33:23Z"
+      },
+      {
+        "sha": "8c880f0",
+        "message": "Small clean up",
+        "author": "Shahab Moradi",
+        "timestamp": "2018-09-25T21:22:22Z"
+      },
+      {
+        "sha": "d554822",
+        "message": "added PR comments",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T00:47:46Z"
+      },
+      {
+        "sha": "3069de6",
+        "message": "Fixed PR code reviews",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T01:33:18Z"
+      },
+      {
+        "sha": "ca61e26",
+        "message": "more PR comments",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T01:37:24Z"
+      },
+      {
+        "sha": "d95e323",
+        "message": "Addressed Ivans PR comments",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T04:38:30Z"
+      },
+      {
+        "sha": "24d34b4",
+        "message": "added back onnx proj, removed onnxtransform proj",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T05:18:10Z"
+      },
+      {
+        "sha": "0182ca1",
+        "message": "small edit to kick off build",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T07:45:41Z"
+      },
+      {
+        "sha": "cc14268",
+        "message": "doc changes",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T09:50:57Z"
+      },
+      {
+        "sha": "aa17a35",
+        "message": "fixed gt to gt;",
+        "author": "Jignesh Parmar",
+        "timestamp": "2018-09-26T10:51:55Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#1063",
+    "metadata": {
+      "title": "Making TensorFlowTransform trainable.",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-10-08T23:14:52Z",
+      "reviewers": [
+        "zeahmed",
+        "abgoswam",
+        "Ivanidzo4ka"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "This PR addressed #951 where user can retrain TensorFlow models using TensorFlowTransform in ML.Net.\r\n\r\nThe implemented training functionality is an add-on feature on top of current implementation of TensorFlowTransform where model scoring using TensorFlowTransform is untouched.\r\n\r\nCurrent implementation includes\r\n- Retraining of un-frozen model (saved with simple_save method in python).\r\n- Support for batch training\r\n- Serializing retrained model into ML.Net stream\r\n\r\n#### ToDo\r\n- [SOLVED] ~~Serializing retrained model into ML.Net stream. <b>It seems like a big challenge right now because TensorFlow C-API does not support serialization of `TFSession` objects which contains all the retrained parameter.</b>~~\r\n- Turn TensorFlowEstimator from TrivialEstimator to NonTrivialEstimator. This is because TensorFlowTransform now trains model in one of the constructor call where `TrainingArguments` are passed (Will be done as separate PR #1110).\r\n- Think about how we can get ride of data copying during creation of batches.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >List<T> [](start = 29, length = 7)\r\n\r\nmay be think about making it an array to make it faster. #Resolved",
+        "timestamp": "2018-09-26T23:01:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >@\"E:\\Tensorflow\\LogisticRegression\" [](start = 33, length = 35)\r\n\r\nNeed to fix this harded coded path... #Resolved",
+        "timestamp": "2018-09-26T23:11:51Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >LightGbmMulticlassTrainer [](start = 34, length = 25)\r\n\r\nNote:  a trainer on top is actually not a limitation. In Estimator/Transformer world,prediction ipeline will work without adding a trainer at the end. This is just because it being used in direct instantiation case. #Resolved",
+        "timestamp": "2018-09-27T01:04:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "> Serializing retrained model into ML.Net stream. It seems like a big challenge right now because TensorFlow C-API does not support serialization of TFSession objects which contains all the retrained parameter.\r\n\r\nIs enough of this state exposed so that we can write serialization on top, or are things internal / not exposed to C-API?  At least the Python and JS APIs are able to save so there must be a way, but I can imagine that the exports needed aren't exposed by the TF C-API (or the underlying structure of the objects isn't exposed in the headers). #Closed",
+        "timestamp": "2018-09-27T16:11:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "I found out a standard way of doing this through session. I will update the PR with my changes most probably today.\r\n\r\n---\r\nIn reply to: [425152137](https://github.com/dotnet/machinelearning/pull/1063#issuecomment-425152137) [](ancestors = 425152137)",
+        "timestamp": "2018-09-27T16:34:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": " For that I also included some other features from TF#. Your feedback will be valuable on that.\r\n\r\n---\r\nIn reply to: [425159496](https://github.com/dotnet/machinelearning/pull/1063#issuecomment-425159496) [](ancestors = 425159496,425152137)",
+        "timestamp": "2018-09-27T17:14:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "If we can save the re-trained model in the SavedModel format we will be able to use capabilities for save & restore of SavedModel format that we added in #784\r\n\r\n---\r\nIn reply to: [425171940](https://github.com/dotnet/machinelearning/pull/1063#issuecomment-425171940) [](ancestors = 425171940,425159496,425152137)",
+        "timestamp": "2018-09-27T17:34:55Z",
+        "source": "issue"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >TrainingArguments [](start = 51, length = 17)\r\n\r\nSo in this scenario we are re-training the entire graph. this is good place to start the PoC.\r\n\r\nTwo other patterns for transfer-learning we need to look into : \r\n\r\n(a)  replace last  layer (or last few layers)  with a layer that matches shape of \"Label\"  for the new dataset that we want to re-train on.\r\n\r\ni.e. re-train the \"lr_model\" above but instead of the final layer  what current has shape [-1,10]  I want to re-train  on iris dataset (say)  which has shape [-1, 5]\r\n\r\n(b) support 'freeze_up_to_node=<node_name>'  functionality.  i.e.  freeze weights for *nodes that <node_name> depends on*,   and only fine-tune weights of *nodes that depend on <layer_name>*  \r\n\r\n #ByDesign",
+        "timestamp": "2018-09-27T18:17:30Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] Thanks @Abhishek for pointing out these scenarios. Actually, these are mostly research related scenario and used for experimentation purposes. These can be added on top of what has been implemented so far if required.\r\n\r\nBTW, it is no longer a PoC...:)\r\nI would suggest reviewing it as real PR that will go in master.\r\n\r\n\r\n---\r\nIn reply to: [221026509](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221026509) [](ancestors = 221026509)",
+        "timestamp": "2018-09-27T21:33:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] Need to bit more shape checking here due to missing dimensions... #Resolved",
+        "timestamp": "2018-09-27T21:33:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "Yup, did it the same way.\r\n\r\n---\r\nIn reply to: [425178632](https://github.com/dotnet/machinelearning/pull/1063#issuecomment-425178632) [](ancestors = 425178632,425171940,425159496,425152137)",
+        "timestamp": "2018-09-27T21:36:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >TensorFlowTransformMNISTTemplateTrainingTest [](start = 20, length = 44)\r\n\r\nWrite more tests... #Resolved",
+        "timestamp": "2018-09-27T22:29:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] Few questions:\r\n\r\n1. is this what's serializing the Session to disk ?  \r\n\r\n2. it will save only the parameter weights, not the saved_model.pb graph itself .. am i right ?\r\n\r\n3. Is this a standard technique -- of using nodes with names  \"save/Const\" and \"save/control_dependency\"  to overwrite model weights  #Closed",
+        "timestamp": "2018-09-27T22:41:44Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] Should we track those scenarios above as separate issues ?  \r\n\r\nTo me they seem more relevant -- esp  (a). Otherwise we would have to tell customers  that we can only do transfer learning  if our  label dimension is same as label dimension used  in the pre-trained model.  \r\n\r\n(maybe there might be a simple fix of this -- just want to make sure we keep track of assumptions made in this PR)\r\n\r\n---\r\nIn reply to: [221084395](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221084395) [](ancestors = 221084395,221026509)",
+        "timestamp": "2018-09-27T22:46:58Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >constant [](start = 31, length = 8)\r\n\r\ncan we verify that after the fine-tuning we are actually ending up with different values for the parameters ?\r\n\r\ne.g. verifying the bias term we get after fine-tuning the model is different from the initialization value (0.1)  #Closed",
+        "timestamp": "2018-09-27T22:52:19Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] Changing the label dimension means changing cost function, prediction function, label input dimension and whatnot. Its hard to identify operations in the graph that are using label and adjust them to new dimensions/settings. \r\nIf you have a solution then definitly it would be worth trying...:)\r\n\r\n---\r\nIn reply to: [221099796](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221099796) [](ancestors = 221099796,221084395,221026509)",
+        "timestamp": "2018-09-27T22:59:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] Yes, I will do it.\r\n\r\n---\r\nIn reply to: [221100728](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221100728) [](ancestors = 221100728)",
+        "timestamp": "2018-09-27T23:02:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] Yes to all three question above.\r\nTensorFlow saves/restores models through these operations on graph.\r\n\r\n---\r\nIn reply to: [221098961](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221098961) [](ancestors = 221098961)",
+        "timestamp": "2018-09-27T23:04:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] for #3, does TF document this somewhere in code / other language bindings etc.  \r\n\r\nJust using a combination of strings  \"save/Const\" and and \"save/control_dependency\"  seems so arbitrary  :)  .. \r\n\r\nwonder if this is the same technique used when checkpointing models ?\r\n\r\n---\r\nIn reply to: [221102898](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221102898) [](ancestors = 221102898,221098961)",
+        "timestamp": "2018-09-27T23:11:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "abgoswam",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] Ok. I can take a shot at this as a separate issue.  We need to document the existing behaviour though i.e. we only support transfer learning on models which have same feature/label dimensions as user data\r\n\r\n---\r\nIn reply to: [221102056](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221102056) [](ancestors = 221102056,221099796,221084395,221026509)",
+        "timestamp": "2018-09-27T23:17:05Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] Yes, this is how TensorFlow  saves/restores models to/from disks. Both for checkpointing and simple_save. There is a reason to inject those operation in the graph because TF prefers all operation through graph instead of doing it through python or other language code. I will find a proper documentation for that. \r\n\r\nI have made a parameter in `TrainingArgument` class so that in case user need to change it they can change. However, it is highly unlikely to get changed. \r\n\r\n---\r\nIn reply to: [221104033](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221104033) [](ancestors = 221104033,221102898,221098961)",
+        "timestamp": "2018-10-01T17:55:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >public class Arguments [](start = 8, length = 22)\r\n\r\nCan you make it abstract? Also I would suggest to call it ArgumentsBase rather than Arguments, because it would be confusing to have Arguments class which is actually an class with params and this class. #Closed",
+        "timestamp": "2018-10-01T21:34:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] Did you forgot to add Arguments as base class, or it's intended? #Closed",
+        "timestamp": "2018-10-01T21:35:42Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >IDataTransform [](start = 22, length = 14)\r\n\r\nI think we trying to move away from IDataTransform, and only reason why it still exist is because we not fully switched away from it. Can you make it IDataView? #Closed",
+        "timestamp": "2018-10-01T21:36:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] I would prefer to have link to github issue here. #Closed",
+        "timestamp": "2018-10-01T21:38:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >ch [](start = 24, length = 2)\r\n\r\nYou need to call ch.Done() after you done. #Closed",
+        "timestamp": "2018-10-01T21:41:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >a => true [](start = 55, length = 9)\r\n\r\na=>  (a) in inputColIndices\r\n(you can create hashSet and just call hashSet.Contains function)\r\nBut in general, it doesn't make much sense to ask for all columns, and consume only few of them. #Closed",
+        "timestamp": "2018-10-01T21:43:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >args.Epoch [](start = 40, length = 10)\r\n\r\nIs it ok to have only epochs, or it make sense to also have some stopping criteria. (for example loss function). #Closed",
+        "timestamp": "2018-10-01T21:47:12Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >int [](start = 20, length = 3)\r\n\r\ntechnically we capable to have more than int.MaxValue rows in dataView, so can you use long here? #Closed",
+        "timestamp": "2018-10-01T21:48:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >ch [](start = 31, length = 2)\r\n\r\nI would actually prefer to have progress channel instead of channel. Are you familiar with it? #Closed",
+        "timestamp": "2018-10-01T21:49:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] It can not be made abstract because `Arguments` object is instantiated for scoring scenario and `TrainingArguments` is instantiated for training scenario.\r\n\r\n---\r\nIn reply to: [221764289](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221764289) [](ancestors = 221764289)",
+        "timestamp": "2018-10-01T21:50:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >Directory.Delete(tmpParamDir[0], true); [](start = 16, length = 39)\r\n\r\nCan you use DeleteFolderWithRetries? #Closed",
+        "timestamp": "2018-10-01T21:51:14Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] I was thinking to keep it separate from `Arguments` class initially but I think now it make sense to derive it from `Arguments` class.\r\n\r\n---\r\nIn reply to: [221764623](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221764623) [](ancestors = 221764623)",
+        "timestamp": "2018-10-01T21:51:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "zeahmed",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] I will have to change all `create` method that are producing `IDataTransform` and `LodableClass` calls above, right?\r\n\r\n---\r\nIn reply to: [221764913](https://github.com/dotnet/machinelearning/pull/1063#discussion_r221764913) [](ancestors = 221764913)",
+        "timestamp": "2018-10-01T21:53:08Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "Ivanidzo4ka",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TensorFlow/TensorflowTransform.cs] >DateTime.Now.Ticks.ToString() [](start = 65, length = 29)\r\n\r\nguid maybe? #Closed",
+        "timestamp": "2018-10-01T21:53:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": ">     /// <include file='doc.xml' path='doc/members/member[@name=\"TensorflowTransform\"]/*' />\r\n\r\nPlease add documentation about this new feature. #Resolved\r\n\r\n---\r\nRefers to: src/Microsoft.ML.TensorFlow/TensorflowTransform.cs:39 in 9c07a53. [](commit_id = 9c07a53e1cfd5a1c486fb5a01f182029efa42504, deletion_comment = False)",
+        "timestamp": "2018-10-05T17:39:45Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "22d08d6",
+        "message": "Making TensorflowTransform trainable.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-09-25T22:12:06Z"
+      },
+      {
+        "sha": "1fc443a",
+        "message": "Merge remote-tracking branch 'upstream/master' into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-09-26T21:45:34Z"
+      },
+      {
+        "sha": "ef67dd1",
+        "message": "Added model files and script to create model in python.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-09-26T23:22:01Z"
+      },
+      {
+        "sha": "c1eafa6",
+        "message": "Added functionality to serialized TensorFlow model after retraining.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-09-27T20:29:50Z"
+      },
+      {
+        "sha": "07ae61c",
+        "message": "Added comments. Added checking for parameters and types.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-01T21:18:49Z"
+      },
+      {
+        "sha": "6ec4a5a",
+        "message": "Merge remote-tracking branch 'upstream/master' into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-01T21:18:56Z"
+      },
+      {
+        "sha": "36bf551",
+        "message": "Addressed reviewers' comments.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-01T23:44:54Z"
+      },
+      {
+        "sha": "570bd02",
+        "message": "Addressed reviewers' comments.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-02T00:36:42Z"
+      },
+      {
+        "sha": "3cc20e4",
+        "message": "Added more tests...",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-02T22:55:42Z"
+      },
+      {
+        "sha": "49bdf59",
+        "message": "Merge remote-tracking branch 'upstream/master' into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-02T23:31:28Z"
+      },
+      {
+        "sha": "a9a90ab",
+        "message": "Fixed failing tests.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-03T01:15:58Z"
+      },
+      {
+        "sha": "345c504",
+        "message": "Using progress channel to report metrics.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-03T16:45:35Z"
+      },
+      {
+        "sha": "883f9b4",
+        "message": "Moved models to models repo.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-03T18:47:37Z"
+      },
+      {
+        "sha": "18c70f3",
+        "message": "Removed extra array copy.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-03T19:28:35Z"
+      },
+      {
+        "sha": "8ea8e9d",
+        "message": "Addressed reviewers' comments.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-04T00:24:43Z"
+      },
+      {
+        "sha": "735f7ca",
+        "message": "Addressed reviewers' comments.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-04T17:36:01Z"
+      },
+      {
+        "sha": "9c07a53",
+        "message": "Addressed reviewers' comments.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-04T23:18:37Z"
+      },
+      {
+        "sha": "14ec78b",
+        "message": "Addressed reviewers' comments.",
+        "author": "zeahmed",
+        "timestamp": "2018-10-05T18:27:00Z"
+      },
+      {
+        "sha": "afb3ca1",
+        "message": "Addressed reviewers' comments.",
+        "author": "zeahmed",
+        "timestamp": "2018-10-05T21:41:18Z"
+      },
+      {
+        "sha": "5a6cc08",
+        "message": "Added try-finally in tests so that folders are deleted even when there is error.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-08T20:13:24Z"
+      },
+      {
+        "sha": "4297376",
+        "message": "Merge conflicts.",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-08T20:23:00Z"
+      },
+      {
+        "sha": "c0fe791",
+        "message": "Merge remote-tracking branch 'upstream/master' into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-08T21:13:25Z"
+      },
+      {
+        "sha": "0984b0f",
+        "message": "Merge remote-tracking branch 'upstream/master' into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-08T21:13:25Z"
+      },
+      {
+        "sha": "18040ca",
+        "message": "Merge branch 'tf_training' of https://github.com/zeahmed/machinelearning into tf_training",
+        "author": "Zeeshan Ahmed",
+        "timestamp": "2018-10-08T21:40:21Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#5395",
+    "metadata": {
+      "title": "Perf improvement for TopK Accuracy and return all topK in Classification Evaluator",
+      "labels": [],
+      "qualities": [
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-12-09T01:18:32Z",
+      "reviewers": [
+        "jasallen",
+        "antoniovs1029",
+        "justinormont"
+      ],
+      "changed_files": 9
+    },
+    "issue_payload": {
+      "body": "We are excited to review your PR.\r\n\r\nSo we can do the best job, please check:\r\n\r\n- [x] There's a descriptive title that will make sense to other developers some time from now. \r\n- [x] There's associated issues. All PR's should have issue(s) associated - unless a trivial self-evident change such as fixing a typo. You can use the format `Fixes #nnnn` in your description to cause GitHub to automatically close the issue(s) when your PR is merged.\r\n- [x] Your change description explains what the change does, why you chose your approach, and anything else that reviewers should know.\r\n- [x] You have included any necessary tests in the same PR.\r\n\r\n\r\n- Improved the perf of the Top K calculation in the ClassificationEvaluator\r\n- Added a new benchmark. Improvements are very small but still present with the tiny data set and only 4 classes. \r\n- outputting AllTopK for K=1..ClassCount always, but left Top k parameter and output of the singular TopK metric to not break compatibility.\r\n\r\nFixes #744"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnfadmin",
+        "role": "NONE",
+        "body": "[![CLA assistant check](https://cla.dotnetfoundation.org/pull/badge/signed)](https://cla.dotnetfoundation.org/dotnet/machinelearning?pullRequest=5395) <br/>All CLA requirements met.",
+        "timestamp": "2020-09-12T19:13:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/dotnet/machinelearning/pull/5395?src=pr&el=h1) Report\n> Merging [#5395](https://codecov.io/gh/dotnet/machinelearning/pull/5395?src=pr&el=desc) (98458ba) into [master](https://codecov.io/gh/dotnet/machinelearning/commit/d257b880e5534d34ecf6be4570e538be100dd80c?el=desc) (d257b88) will **decrease** coverage by `2.87%`.\n> The diff coverage is `79.59%`.\n\n```diff\n@@            Coverage Diff             @@\n##           master    #5395      +/-   ##\n==========================================\n- Coverage   74.13%   71.25%   -2.88%     \n==========================================\n  Files        1020     1068      +48     \n  Lines      190583   194616    +4033     \n  Branches    20491    21414     +923     \n==========================================\n- Hits       141292   138680    -2612     \n- Misses      43763    50240    +6477     \n- Partials     5528     5696     +168     \n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| Debug | `71.25% <79.59%> (-2.88%)` | :arrow_down: |\n| production | `67.86% <79.16%> (-2.07%)` | :arrow_down: |\n| test | `83.42% <100.00%> (-4.24%)` | :arrow_down: |\n\nFlags with carried forward coverage won't be shown. [Click here](https://docs.codecov.io/docs/carryforward-flags#carryforward-flags-in-the-pull-request-comment) to find out more.\n\n| [Impacted Files](https://codecov.io/gh/dotnet/machinelearning/pull/5395?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [...AutoML/Experiment/Runners/CrossValSummaryRunner.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5BdXRvTUwvRXhwZXJpbWVudC9SdW5uZXJzL0Nyb3NzVmFsU3VtbWFyeVJ1bm5lci5jcw==) | `61.15% <0.00%> (+0.86%)` | :arrow_up: |\n| [...ansforms/PermutationFeatureImportanceExtensions.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5UcmFuc2Zvcm1zL1Blcm11dGF0aW9uRmVhdHVyZUltcG9ydGFuY2VFeHRlbnNpb25zLmNz) | `95.87% <0.00%> (-2.07%)` | :arrow_down: |\n| [test/Microsoft.ML.AutoML.Tests/MetricsUtil.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuQXV0b01MLlRlc3RzL01ldHJpY3NVdGlsLmNz) | `100.00% <ø> (ø)` | |\n| [...st/Microsoft.ML.Benchmarks.Tests/BenchmarksTest.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuQmVuY2htYXJrcy5UZXN0cy9CZW5jaG1hcmtzVGVzdC5jcw==) | `0.00% <ø> (ø)` | |\n| [...est/Microsoft.ML.PerformanceTests/BenchmarkBase.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9CZW5jaG1hcmtCYXNlLmNz) | `0.00% <ø> (ø)` | |\n| [...icrosoft.ML.PerformanceTests/CacheDataViewBench.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9DYWNoZURhdGFWaWV3QmVuY2guY3M=) | `0.00% <ø> (ø)` | |\n| [...icrosoft.ML.PerformanceTests/FeaturizeTextBench.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9GZWF0dXJpemVUZXh0QmVuY2guY3M=) | `0.00% <ø> (ø)` | |\n| [...t/Microsoft.ML.PerformanceTests/Harness/Configs.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9IYXJuZXNzL0NvbmZpZ3MuY3M=) | `0.00% <ø> (ø)` | |\n| [...t/Microsoft.ML.PerformanceTests/Harness/Metrics.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9IYXJuZXNzL01ldHJpY3MuY3M=) | `0.00% <ø> (ø)` | |\n| [...ft.ML.PerformanceTests/Harness/ProjectGenerator.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuUGVyZm9ybWFuY2VUZXN0cy9IYXJuZXNzL1Byb2plY3RHZW5lcmF0b3IuY3M=) | `0.00% <ø> (ø)` | |\n| ... and [310 more](https://codecov.io/gh/dotnet/machinelearning/pull/5395/diff?src=pr&el=tree-more) | |\n",
+        "timestamp": "2020-09-12T20:20:17Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "@jasallen Thanks for opening this PR! I'm sorry that we didn't answer back to you earlier, but I'm having a look at your PR and overall it seems great. I'll leave a couple of small comments now, but I'll also take a closer look later to see if I can provide more feedback on this.\r\n\r\nMany thanks.",
+        "timestamp": "2020-10-28T05:55:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2020-10-28T05:56:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "azure-pipelines",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2020-10-28T05:56:23Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "Hi, @jasallen . Thanks again for your PR, overall it's very good and I've just left a couple of comments. So I just wonder if you are still planning to work on this PR, or if you would prefer that I push changes myself into your branch in order to address the comments I left?\r\n\r\nMany thanks.",
+        "timestamp": "2020-10-30T17:37:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "jasallen",
+        "role": "CONTRIBUTOR",
+        "body": "I'll check the comments and try to bring it home, thanks!",
+        "timestamp": "2020-10-30T19:53:50Z",
+        "source": "issue"
+      },
+      {
+        "author": "jasallen",
+        "role": "CONTRIBUTOR",
+        "body": "@antoniovs1029 , please take another look",
+        "timestamp": "2020-11-07T01:59:39Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "Hi, @jasallen it seems you're editing comments in order to simply retrigger the CI. Please note that an easier way to trigger the CI without actually having to commit anything is writing \"azp /run\" here on a github comment, and after a couple of seconds the CI triggers again.\r\n\r\nIt also seems that in the past CIs the only test that was failing was `AutoFitMaxExperimentTimeTest`, I've seen this test failing in other PRs too, so I'll discuss with my team if there's a problem with it, and perhaps we'll disable it... as I don't think your PR should affect that test, and so I wouldn't expect your changes to be related to that failure.\r\n\r\nAlso, right on the last CI you've triggered, the build of a Windows machine has just failed because it can't download some assets needed to run the build. This wouldn't be your fault either, it seems a problem on Azure DevOps side, where, for whatever reason, it can't download the files. Typically we'd only need to rerun the CI (using azp /run) to trigger again the CI and get rid from that failure.\r\n\r\nI'm very sorry for all these troubles the CI is causing you. Many thanks.\r\n\r\nEDIT: I'll manually rerun the failing windows CI that failed because of not downloading the assets. Note that \"azp/run\" actually reruns all of the build cnfigurations.",
+        "timestamp": "2020-11-23T19:42:05Z",
+        "source": "issue"
+      },
+      {
+        "author": "jasallen",
+        "role": "CONTRIBUTOR",
+        "body": "> Hi, @jasallen it seems you're editing comments in order to simply retrigger the CI. Please note that an easier way to trigger the CI without actually having to commit anything is writing \"azp /run\" here on a github comment, and after a couple of seconds the CI triggers again.\r\n\r\nThanks, was about to ask you how to manually trigger the CI! I'll leave it alone for awhile though since you mentioned the other issues.",
+        "timestamp": "2020-11-23T19:50:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2020-11-25T02:51:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "azure-pipelines",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2020-11-25T02:51:44Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "Hi, @jasallen . Yesterday we pushed a big commit into ML.NET's master branch, and now your branch is having a merge conflict on a file that was moved around. I'll try to merge those changes into your branch and also add the test we've mentioned [here ](https://github.com/dotnet/machinelearning/pull/5395#discussion_r534203410) to unblock this PR and include it inside our next release (which is happening soon) so that we can benefit from your work. Thanks.",
+        "timestamp": "2020-12-03T23:28:46Z",
+        "source": "issue"
+      },
+      {
+        "author": "jasallen",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks!",
+        "timestamp": "2020-12-04T00:04:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "antoniovs1029",
+        "role": "CONTRIBUTOR",
+        "body": "Many thanks @jasallen for your work on this PR. Its functionality will be included in the next release 1.5.3. Thanks!",
+        "timestamp": "2020-12-09T01:19:07Z",
+        "source": "issue"
+      },
+      {
+        "author": "justinormont",
+        "role": "CONTRIBUTOR",
+        "body": "@jasallen -- To reiterate @antoniovs1029's sentiment -- thanks for your great addition. \r\n\r\nIf you're interested in further performance improvements of metrics, one outstanding task is moving all metrics to be streaming; some like AUC are memory bound. Issue: https://github.com/dotnet/machinelearning/issues/3838 \r\n\r\nAnother route is adding additional metrics. For instance, we could use a multi-class AUC/precision/recall. \r\n* Azure AutoML classification metrics: https://docs.microsoft.com/en-us/azure/machine-learning/how-to-understand-automated-ml#classification-performance-metrics\r\n* scikit-learn classification metrics: https://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics\r\n* TensorFlow metrics: https://tensorflow.org/api_docs/python/tf/keras/metrics\r\n* PyTorch-lightning metrics: https://pytorch-lightning.readthedocs.io/en/stable/metrics.html\r\n* H2O classification metrics: https://github.com/h2oai/h2o-3/blob/4e8b1c321f542dd154f0854454f4a6da5bdee470/h2o-docs/src/product/performance-and-prediction.rst#classification",
+        "timestamp": "2020-12-09T12:00:55Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "5fbf740",
+        "message": "Fix for issue 744",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-09-08T01:51:22Z"
+      },
+      {
+        "sha": "1747d3e",
+        "message": "cleanup",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-09-09T22:26:49Z"
+      },
+      {
+        "sha": "32c244a",
+        "message": "fixing report output",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-09-12T18:01:02Z"
+      },
+      {
+        "sha": "968b58d",
+        "message": "fixedTestReferenceOutputs",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-09-12T18:22:20Z"
+      },
+      {
+        "sha": "b7ded43",
+        "message": "Fixed test reference outputs for NetCore31",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-09-12T20:53:08Z"
+      },
+      {
+        "sha": "685eeb4",
+        "message": "change top k acc output string format",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-05T19:51:08Z"
+      },
+      {
+        "sha": "1eacec7",
+        "message": "Ranking algorithm now uses first appearance in dataset rather than worstCase",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T00:42:06Z"
+      },
+      {
+        "sha": "ea057ff",
+        "message": "fixed benchmark",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T01:05:14Z"
+      },
+      {
+        "sha": "ac08554",
+        "message": "various minor changes from code review",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T03:02:21Z"
+      },
+      {
+        "sha": "f0de3ea",
+        "message": "limit TopK to OutputTopKAcc parameter",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T03:16:26Z"
+      },
+      {
+        "sha": "30fbd6f",
+        "message": "top k output name changes",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T17:01:04Z"
+      },
+      {
+        "sha": "495b4b0",
+        "message": "make old TopK readOnly",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T20:27:39Z"
+      },
+      {
+        "sha": "c3afe15",
+        "message": "restored old baselineOutputs since respecting outputTopK param means no topK in most test output",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T20:31:50Z"
+      },
+      {
+        "sha": "bfcda22",
+        "message": "fix test fails, re-add names parameter",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T21:33:01Z"
+      },
+      {
+        "sha": "563768c",
+        "message": "Clean up commented code",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T22:34:26Z"
+      },
+      {
+        "sha": "4a5597a",
+        "message": "that'll teach me to edit from the github webpage",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-06T22:45:08Z"
+      },
+      {
+        "sha": "71390bd",
+        "message": "use existing method, fix nits",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-19T21:48:35Z"
+      },
+      {
+        "sha": "32ab9fa",
+        "message": "Slight comment change",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-20T00:48:53Z"
+      },
+      {
+        "sha": "db2b6b5",
+        "message": "Comment change / Touch to kick off build pipeline",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-21T15:11:50Z"
+      },
+      {
+        "sha": "0d0493b",
+        "message": "fix whitespace",
+        "author": "Jason DeBoever",
+        "timestamp": "2020-11-23T19:22:20Z"
+      },
+      {
+        "sha": "e6aec98",
+        "message": "Merge branch 'master' into jasallenbranch",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-03T23:23:10Z"
+      },
+      {
+        "sha": "05e7f91",
+        "message": "Added new test",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-04T00:55:12Z"
+      },
+      {
+        "sha": "49786ed",
+        "message": "Code formatting nits",
+        "author": "Justin Ormont",
+        "timestamp": "2020-12-08T12:47:30Z"
+      },
+      {
+        "sha": "9259031",
+        "message": "Code formatting nit",
+        "author": "Justin Ormont",
+        "timestamp": "2020-12-08T13:15:53Z"
+      },
+      {
+        "sha": "98458ba",
+        "message": "Fixed undefined rankofCorrectLabel and trailing whitespace warning",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-08T19:34:47Z"
+      },
+      {
+        "sha": "86f5c3f",
+        "message": "Removed _numUnknownClassInstances and added test for unknown labels",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-08T22:35:03Z"
+      },
+      {
+        "sha": "741e9fb",
+        "message": "Add weight to seenRanks",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-08T22:43:39Z"
+      },
+      {
+        "sha": "dadf793",
+        "message": "Nits",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-09T00:06:46Z"
+      },
+      {
+        "sha": "9e67751",
+        "message": "Removed FastTree import",
+        "author": "Antonio Velazquez",
+        "timestamp": "2020-12-09T00:11:53Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#4242",
+    "metadata": {
+      "title": "Changed Image classification API to accept Image as VBuffer<byte>",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-10-03T10:18:28Z",
+      "reviewers": [
+        "codemzs",
+        "yaeldekel",
+        "harshithapv"
+      ],
+      "changed_files": 8
+    },
+    "issue_payload": {
+      "body": "Changed Image classification API to accept Image as V Buffer<byte>. Also, added a few optimizations to re-use the buffer for performance gains.\r\nSo we can do the best job, please check:\r\n\r\nfixes #4153\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnfclas",
+        "role": "NONE",
+        "body": "[![CLA assistant check](https://cla.dotnetfoundation.org/pull/badge/signed)](https://cla.dotnetfoundation.org/dotnet/machinelearning?pullRequest=4242) <br/>All CLA requirements met.",
+        "timestamp": "2019-09-23T17:41:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] Why is this being commented out? #Resolved",
+        "timestamp": "2019-09-24T08:34:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >imgBuf [](start = 53, length = 6)\r\n\r\n>imgBuf [](start = 53, length = 6)\r\n\r\nCan this be passed either with `in` or with `ref`? #Resolved",
+        "timestamp": "2019-09-24T08:36:57Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >length [](start = 63, length = 6)\r\n\r\nIt seems that this is always called with `buffer.Length`, so this argument is not needed. #Resolved",
+        "timestamp": "2019-09-24T08:38:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] Delete the comment. The `DownloadImageSet` method should also be deleted if it is not used anymore. #Resolved",
+        "timestamp": "2019-09-24T08:52:09Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[docs/samples/Microsoft.ML.Samples/Program.cs] This can be reverted. #Resolved",
+        "timestamp": "2019-09-24T08:55:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harshithapv",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] Thanks for pointing it out. I will make the change. #Resolved",
+        "timestamp": "2019-09-25T20:33:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harshithapv",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] These are checks with input types. I made changes to check for Vector type in my most recent commit.\r\n #Resolved",
+        "timestamp": "2019-09-25T21:51:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harshithapv",
+        "role": "CONTRIBUTOR",
+        "body": "[docs/samples/Microsoft.ML.Samples/Program.cs] Reverted. #Resolved",
+        "timestamp": "2019-09-25T21:53:43Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[docs/samples/Microsoft.ML.Samples/Program.cs] I still see the changes to this file in the current iteration.\r\n\r\n---\r\nIn reply to: [328357298](https://github.com/dotnet/machinelearning/pull/4242#discussion_r328357298) [](ancestors = 328357298)",
+        "timestamp": "2019-09-26T08:43:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] `col.ItemType` is a `PrimitiveDataViewType`, which is the type of the elements in the vector, so you should not compare it to the vector type, but to the item type.\r\nAdditionally, it seems like there is a discrepancy between how `_inputTypes` is defined (it is always an array of length 1), and the fact that the input columns can be passed as an array in the `Options` object. The way I understand it, is there should be exactly two input columns to the estimator: the label column, and the column containing the image bytes. These should be passed as two strings in the `Options` object (as opposed to an array of strings), and these are the columns whose types should be checked in this method.\r\n\r\n(I have also commented about this in PR #4228, just FYI, so you don't make conflicting changes...)\r\n\r\n---\r\nIn reply to: [328356487](https://github.com/dotnet/machinelearning/pull/4242#discussion_r328356487) [](ancestors = 328356487)",
+        "timestamp": "2019-09-26T08:58:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >_inputTypes [](start = 12, length = 11)\r\n\r\nThis field is not needed. In `GetOutputSchema` you can just compare the input column item type directly to `NumberDataViewType.Byte`.\r\nBut I was wondering - should this constructor perhaps perform a check that the input type of the TensorFlow graph node is also byte? And same for the label? Or even that these inputs exist in the graph? #Resolved",
+        "timestamp": "2019-09-26T09:07:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] @yaeld@microsoft.com What will be the advantage? It is not like we are manipulating the VBuffer here, instead we are just reading the contents from the vbuffer and passing to tensorflow to decode and preprocess the image. I understand structs are pass by value but here the memory is allocated on the stack.\r\n\r\n\"Only use ref if the method needs to alter the parameters, and these changes need to be passed onto the calling code. You should only optimize this if you have run it through a profiler and determined that the bottleneck is indeed the CLR copying the method parameters onto the stack. Bear in mind the CLR is heavily optimized for calling methods with parameters, so I shouldn't think this would be the issue.\" https://stackoverflow.com/questions/3395873/pass-by-value-vs-pass-by-reference-performance-c-net\r\n\r\n\r\n---\r\nIn reply to: [327492184](https://github.com/dotnet/machinelearning/pull/4242#discussion_r327492184) [](ancestors = 327492184)",
+        "timestamp": "2019-09-29T01:35:01Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >Encode [](start = 34, length = 6)\r\n\r\nLets give it a more meaningful name like EncodeByteAsString. #Resolved",
+        "timestamp": "2019-09-29T01:36:17Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "> \r\n\r\nPlease revert this file, i.e git checkout upstream master filepath\r\n\r\n\r\n---\r\nRefers to: docs/samples/Microsoft.ML.Samples/Program.cs:32 in ae2ac0d. [](commit_id = ae2ac0de64276252ae76ecfc55e74c82b9e77917, deletion_comment = False)",
+        "timestamp": "2019-09-29T01:47:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] Why do you feel DownloadImageSet is not used anymore? We are using it to download images that we will train on. This change merely changes the input type for images in imageclassification API from string to VBuffer<bytes> so that user can do inferencing on in-memory images. \r\n\r\n---\r\nIn reply to: [327499153](https://github.com/dotnet/machinelearning/pull/4242#discussion_r327499153) [](ancestors = 327499153)",
+        "timestamp": "2019-09-29T01:54:54Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] >ImageVBuf [](start = 21, length = 9)\r\n\r\nPlease rename \"ImageVBuf\" to \"Image\" here and please call \"VBuffer\" as \"VBuffer\" and not \"VBuf\" :-) I don't think we use \"Buf\" for \"buffer\" anywhere in this codebase.  #Resolved",
+        "timestamp": "2019-09-29T01:58:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] >                 [](start = 39, length = 16)\r\n\r\n>                 [](start = 39, length = 16)\r\n\r\nremove trailing whitespaces. #Resolved",
+        "timestamp": "2019-09-29T02:20:07Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] > bufferSize: 1)) [](start = 103, length = 16)\r\n\r\n> bufferSize: 1)) [](start = 103, length = 16)\r\n\r\n1? Can you please check why 1 is recommended? #Resolved",
+        "timestamp": "2019-09-29T02:20:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] >if (Path.GetExtension(file) != \".JPEG\" &&  Path.GetExtension(file) != \".jpg\") [](start = 16, length = 77)\r\n\r\n>if (Path.GetExtension(file) != \".JPEG\" &&  Path.GetExtension(file) != \".jpg\") [](start = 16, length = 77)\r\n\r\nis this really true? The last we read on tensorflow github issues it seemed jpeg_decoder operator could work on all image types, can you please verify this? and if true remove this line. #Resolved",
+        "timestamp": "2019-09-29T02:23:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] >imgSize [](start = 20, length = 7)\r\n\r\n>imgSize [](start = 20, length = 7)\r\n\r\nwhat is imgSize used for?  #Resolved",
+        "timestamp": "2019-09-29T02:24:02Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[docs/samples/Microsoft.ML.Samples/Dynamic/ImageClassification/ResnetV2101TransferLearningTrainTestSplit.cs] >ImageVBuf [](start = 33, length = 9)\r\n\r\n>ImageVBuf [](start = 33, length = 9)\r\n\r\nPlease rename to ImageBuffer. VBuffer is the internal structure used to hold buffers that can be reused. #Resolved",
+        "timestamp": "2019-09-29T02:24:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >ImageVBuf [](start = 17, length = 9)\r\n\r\n>ImageVBuf [](start = 17, length = 9)\r\n\r\nRename to \"Image\" #Resolved",
+        "timestamp": "2019-09-29T02:25:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >imgSize [](start = 20, length = 7)\r\n\r\n>imgSize [](start = 20, length = 7)\r\n\r\nWhere is imgSize used? #Resolved",
+        "timestamp": "2019-09-29T02:25:34Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[test/Microsoft.ML.Tests/ScenariosWithDirectInstantiation/TensorflowTests.cs] >ImageVBuf [](start = 33, length = 9)\r\n\r\n>ImageVBuf [](start = 33, length = 9)\r\n\r\nImageBuffer #Resolved",
+        "timestamp": "2019-09-29T02:25:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >//AllocationType = AllocationType.Tensorflow; [](start = 12, length = 45)\r\n\r\n>//AllocationType = AllocationType.Tensorflow; [](start = 12, length = 45)\r\n\r\nremove and please verify what AllocationType in TF .NET means since we are not setting it to any value. \r\n #Resolved",
+        "timestamp": "2019-09-29T02:35:00Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >status.Check(true); [](start = 12, length = 19)\r\n\r\nalways a new line if closing brace is present on the previous line. #Resolved",
+        "timestamp": "2019-09-29T02:41:24Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >imageBufColumn [](start = 16, length = 14)\r\n\r\nPlease stop referring \"Buffer\" as \"Buf\". In this case just call it as \"ImageColumn\" and be done with it. #Resolved",
+        "timestamp": "2019-09-29T02:48:35Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >imageBufGetter [](start = 20, length = 14)\r\n\r\nrename to imageGetter #Resolved",
+        "timestamp": "2019-09-29T02:49:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >imageBuf [](start = 30, length = 8)\r\n\r\nrename to \"image\" #Resolved",
+        "timestamp": "2019-09-29T02:49:48Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >_imageBufGetter [](start = 51, length = 15)\r\n\r\n>_imageBufGetter [](start = 51, length = 15)\r\n\r\nrename to _imageGetter. #Resolved",
+        "timestamp": "2019-09-29T02:50:16Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "[src/Microsoft.ML.Dnn/ImageClassificationTransform.cs] >_imageBuf [](start = 38, length = 9)\r\n\r\n>_imageBuf [](start = 38, length = 9)\r\n\r\nrename to \"_image\" #Resolved",
+        "timestamp": "2019-09-29T02:50:31Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": "Please remove draft tag and why are the build failing? #Resolved",
+        "timestamp": "2019-10-02T03:45:12Z",
+        "source": "issue"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/dotnet/machinelearning/pull/4242?src=pr&el=h1) Report\n> :exclamation: No coverage uploaded for pull request base (`master@4618fca`). [Click here to learn what that means](https://docs.codecov.io/docs/error-reference#section-missing-base-commit).\n> The diff coverage is `93.51%`.\n\n```diff\n@@            Coverage Diff            @@\n##             master    #4242   +/-   ##\n=========================================\n  Coverage          ?   74.59%           \n=========================================\n  Files             ?      878           \n  Lines             ?   154155           \n  Branches          ?    16863           \n=========================================\n  Hits              ?   114986           \n  Misses            ?    34418           \n  Partials          ?     4751\n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #Debug | `74.59% <93.51%> (?)` | |\n| #production | `70.18% <91.04%> (?)` | |\n| #test | `89.52% <100%> (?)` | |\n\n| [Impacted Files](https://codecov.io/gh/dotnet/machinelearning/pull/4242?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [...c/Microsoft.ML.ImageAnalytics/ExtensionsCatalog.cs](https://codecov.io/gh/dotnet/machinelearning/pull/4242/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5JbWFnZUFuYWx5dGljcy9FeHRlbnNpb25zQ2F0YWxvZy5jcw==) | `21.42% <0%> (ø)` | |\n| [...cenariosWithDirectInstantiation/TensorflowTests.cs](https://codecov.io/gh/dotnet/machinelearning/pull/4242/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuVGVzdHMvU2NlbmFyaW9zV2l0aERpcmVjdEluc3RhbnRpYXRpb24vVGVuc29yZmxvd1Rlc3RzLmNz) | `90.17% <100%> (ø)` | |\n| [src/Microsoft.ML.ImageAnalytics/ImageLoader.cs](https://codecov.io/gh/dotnet/machinelearning/pull/4242/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5JbWFnZUFuYWx5dGljcy9JbWFnZUxvYWRlci5jcw==) | `86.6% <91.26%> (ø)` | |\n| [...c/Microsoft.ML.Dnn/ImageClassificationTransform.cs](https://codecov.io/gh/dotnet/machinelearning/pull/4242/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5Ebm4vSW1hZ2VDbGFzc2lmaWNhdGlvblRyYW5zZm9ybS5jcw==) | `88.34% <96.55%> (ø)` | |\n",
+        "timestamp": "2019-10-02T05:56:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "harshithapv",
+        "role": "CONTRIBUTOR",
+        "body": "> Just use ArrayPool. This exact scenario is what it was made for.\r\n\r\nI did change it in my previous commits but I have failures in some of the NetCoreApp30 machines.",
+        "timestamp": "2019-10-02T23:46:49Z",
+        "source": "issue"
+      },
+      {
+        "author": "codemzs",
+        "role": "MEMBER",
+        "body": ">                 verWeCanReadBack: 0x00010002,\r\n\r\nincrement these versions since you are changing model format and then when deserializing the model check if the model was written with an older version or new version and based on that try to deserialize indicator for image type. #Resolved\r\n\r\n---\r\nRefers to: src/Microsoft.ML.ImageAnalytics/ImageLoader.cs:183 in 20d6660. [](commit_id = 20d66606f46be68b24a76b119fee81fb2975ec66, deletion_comment = False)",
+        "timestamp": "2019-10-03T01:38:30Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "798fee9",
+        "message": "commit b468adbd7d3b625154bc991cb6f0931198303e25\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 21:19:57 2019 -0700\n\n    Fixed a bug in the unit test for image classification\ncommit 30aa4d1d7790a2986bb0986b86cc1cea6b954b4d\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 20:43:17 2019 -0700\n\n    addressed Zeeshan's comments\n\ncommit 3d4f5fe616380dc5190701edc170185f39ab82a1\nMerge: 0fbd3d28 718a238f\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 20:41:21 2019 -0700\n\n    Merge branch 'master' of https://github.com/dotnet/machinelearning into ImageClassificationVBuf\n\ncommit 0fbd3d28758d2fefd7b970a94380f89d0032a355\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 17:10:49 2019 -0700\n\n    Changed type to useImageType in LoadImages(). Changed appropriate variable names in ImageClassificationTransform.cs\n\ncommit 241788892b1f623870d33db1190ac7fdc716ce02\nMerge: 3ad26b4a 4944be7e\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 16:55:25 2019 -0700\n\n    Merge branch 'master' of https://github.com/dotnet/machinelearning into ImageClassificationVBuf\n\ncommit 3ad26b4a1a062f8fd29cdc524df0bf771f6cbdde\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 15:59:06 2019 -0700\n\n    Added buffer re-use while reading the image in netstandard 2.0. Addressed Eric's comments. Changed ImageLoadingTransformer to take a bool type instead of a DataViewType to make it user friendly. (type = true means we are using VBuffer<byte> , type = false means we are using ImageDataViewType)\n\ncommit c67dd08b6d5ff450060fda8538f30d51faad936c\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Tue Oct 1 09:50:52 2019 -0700\n\n    Added functionality to load images as VBuffer<byte> in ImageLoader. If no DataViewType options are provided it defaults to loading images as ImageDataViewType. Made LoadImages a part of the sample in ResnetV2101TransferLearningTrainTestSplit.cs. Addressed some of the comments from Zeeshan and Yael. Added a unit test for testing the API. Added TargetFrameworks to get cross platform functionality for System.IO.Stream.Read(Span<Byte>) which doesn't work for netstandard2.0.\n\ncommit ae2ac0de64276252ae76ecfc55e74c82b9e77917\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Wed Sep 25 14:49:41 2019 -0700\n\n    Added some edits to address Yael's comments\n\ncommit b1e57396bc808b1ba0e5ee27702eedff318438f7\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Wed Sep 25 13:24:03 2019 -0700\n\n    Added unit test for the change\n\ncommit acf985d153766b7a8c2f8684a5ae5f81b6b0f67f\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Mon Sep 23 10:39:07 2019 -0700\n\n    Changed the calling function back to how it was in master\n\ncommit b80f7add1b990f1ba67d465dcb53c90d018345d2\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Mon Sep 23 10:20:31 2019 -0700\n\n    Added a few optimizations to re-use buffers and thereby improving performance.\n\ncommit b106ae06a7867b8ba0be1643ff04e76e61445c7d\nAuthor: Harshitha Parnandi Venkata <havenka@microsoft.com>\nDate:   Thu Sep 19 14:07:15 2019 -0700\n\n    Changed Image Classification API to take in a VBuffer<byte> type instead of ImagePath.",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T16:25:42Z"
+      },
+      {
+        "sha": "62036b7",
+        "message": "fixed merge conflicts",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T17:05:18Z"
+      },
+      {
+        "sha": "18e6922",
+        "message": "Fixed some unit tests that were failing after the merge. Addressed a few comments.",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T18:01:46Z"
+      },
+      {
+        "sha": "49dc4a0",
+        "message": "Fixed TensorFlow unit tests",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T20:20:06Z"
+      },
+      {
+        "sha": "75eaa81",
+        "message": "Changed the buffer re-use logic for ReadToEnd",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T20:50:57Z"
+      },
+      {
+        "sha": "3c82762",
+        "message": "Changed ReadToEnd function to read using span instead of unsafe blocks",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-02T23:29:20Z"
+      },
+      {
+        "sha": "20d6660",
+        "message": "removed unnecessary commits",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T00:40:19Z"
+      },
+      {
+        "sha": "9e68a93",
+        "message": "Added version check with backward compatability. Addressed Zeeshan's comments.",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T03:09:10Z"
+      },
+      {
+        "sha": "c3f8d9d",
+        "message": "Kept my changes. Need those tests.",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T06:15:48Z"
+      },
+      {
+        "sha": "1c0e81c",
+        "message": "Fixed tab and synced to master",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T07:41:40Z"
+      },
+      {
+        "sha": "9ebd4f5",
+        "message": "Addressed comments. Checkpoint commit",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T07:54:53Z"
+      },
+      {
+        "sha": "1b893b3",
+        "message": "Merged Mustafa's changes. Synced with master",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T08:50:20Z"
+      },
+      {
+        "sha": "b30daf5",
+        "message": "changed the solution files and version check in ImageLoader.cs",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T09:20:32Z"
+      },
+      {
+        "sha": "f7d68dd",
+        "message": "Added changes for StableApi.csproj",
+        "author": "Harshitha Parnandi Venkata",
+        "timestamp": "2019-10-03T09:27:28Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#691",
+    "metadata": {
+      "title": "Port all relevant AVX hardware intrinsics C# APIs from SIMD native algorithms",
+      "labels": [],
+      "qualities": [
+        "performance",
+        "modifiability",
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2018-08-29T23:17:11Z",
+      "reviewers": [
+        "eerhardt",
+        "briancylui",
+        "helloguo",
+        "fiigii"
+      ],
+      "changed_files": 14
+    },
+    "issue_payload": {
+      "body": "### What's new:\r\n1. Implemented all relevant AVX intrinsics, sharing the same software fallbacks previously implemented in `CpuMathUtils`\r\n2. Implemented unit tests in a way compatible with both AVX and SSE alignments, and both netcoreapp and netstandard\r\n2. Implemented separate performance tests for AVX and SSE intrinsics, except for those that accept `AlignedArray` as an argument\r\n3. Performance test results for all applicable AVX intrinsics are updated in https://github.com/briancylui/machinelearning/issues/1\r\n4. **Note:** This time, most AVX intrinsics with the `U` suffix are implemented from scratch and do not yet have support from [native code](https://github.com/dotnet/machinelearning/blob/b51d9f9060acfcbe84405ce37f9c045654573ee0/src/Native/CpuMathNative/Avx.cpp), which only contains their counterparts with the `X` suffix.\r\n\r\n\r\n### Description from https://github.com/dotnet/machinelearning/pull/668:\r\n1. Implemented all remaining active SSE intrinsics, including their software fallbacks and passing unit tests\r\n2. Implemented the performance tests of all remaining active SSE intrinsics, except for those that accept `AlignedArray` as an argument\r\n3. Performance test results for all applicable, active SSE intrinsics are updated in https://github.com/briancylui/machinelearning/issues/1\r\n\r\n### Description from https://github.com/dotnet/machinelearning/pull/562:\r\n- with unit tests and performance tests for two target frameworks: .NET Core App 3.0 and .NET Standard 2.0.\r\n- .NET Core App 3.0 gets the new C# hardware intrinsics APIs, while .NET Standard 2.0 gets the original native SIMD algorithms.\r\n- Several things have made this multi-targeting feature possible.\r\n   1. The new CpuMathUtils class that contains the new APIs is implemented as a partial class with method definitions split into two separate files (src\\Microsoft.ML.CpuMath\\CpuMathUtils.[target].cs), only one of which is compiled based on the target framework.\r\n   2. The Microsoft.ML.CpuMath.csproj file makes the switching decision to compile the right files based on the target framework.\r\n\r\n### Structure:\r\n1. All new hardware intrinsics APIs are contained in src\\Microsoft.ML.CpuMath.\r\n2. Unit tests for the two target frameworks live in test\\Microsoft.ML.CpuMath.UnitTests.[target], and contain the same content except for the target framework in .csproj.\r\n3. Performance tests live in test\\Microsoft.ML.CpuMath.PerformanceTests.\r\n\r\n### Changes to users:\r\n1. Originally, users call intrinsics APIs via the SseUtils class in src\\Microsoft.ML.CpuMath\\Sse.cs, but now they call them via the new CpuMathUtils class, which will handle switching between SSE and AVX in the future.\r\n2. CpuMathUtils methods and SseUtils methods share the same signature, but CpuMathUtils methods additionally call a new helper class (SseIntrinsics) for C# implementations of SSE operations.\r\n\r\n### Future follow-up for `CpuMath` enhancement\r\n1. Suggestions on `CpuMath` enhancement in this PR scheduled for future follow-ups have been compiled into an issue page (https://github.com/briancylui/machinelearning/issues/2).\r\n\r\ncc: @eerhardt @safern @tannergooding @danmosemsft "
+    },
+    "discussion_timeline": [
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "All 5 checks have passed, with no merge conflicts.  This PR is now ready for review.",
+        "timestamp": "2018-08-19T02:23:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "eerhardt",
+        "role": "MEMBER",
+        "body": "Looking at your perf results, the following AVX tests appear to be slower than the SSE counterparts:\r\n\r\n```\r\nManagedScaleSrcUPerf\r\nManagedAddScaleSUPerf\r\nManagedAddSUPerf\r\n```\r\n\r\nWe should investigate why this is. Is there something about the AVX implementation that we did incorrectly?  If using AVX in these scenarios doesn't lead to faster execution, maybe we shouldn't use AVX here?\r\n\r\nAll the other perf tests seem to have fairly decent gains by using AVX over SSE.\r\n\r\n/cc @helloguo @sduttac @fiigii - since I know they are interested in AVX performance.",
+        "timestamp": "2018-08-20T15:44:30Z",
+        "source": "issue"
+      },
+      {
+        "author": "helloguo",
+        "role": "NONE",
+        "body": "For operations on sparse arrays, such as DotSU, AddScaleSU, AddSU and so on, `GatherVector256` will help a lot. This instruction will be supported with this PR https://github.com/dotnet/coreclr/pull/19392 \r\n\r\n@eerhardt  I believe the perf of `ManagedScaleSrcUPerf, ManagedAddScaleSUPerf, ManagedAddSUPerf` will become better once we use `GatherVector256` intrinsic. The current implementation without gather instruction generates a lot of memory operations and movs. ",
+        "timestamp": "2018-08-20T16:16:26Z",
+        "source": "issue"
+      },
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "Responded to all PR comments today in the most recent set of commits, except for using `GatherVector256` to improve perf for sparse methods - we should wait until https://github.com/dotnet/coreclr/pull/19392 is merged.\r\n\r\nThis PR is now ready for a second round of review.",
+        "timestamp": "2018-08-21T01:13:35Z",
+        "source": "issue"
+      },
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "Given that the commented issue (attached below) has been closed, I tried to remove the package reference `System.Runtime.Intrinsics.Experimental`, but then building `src\\*CpuMath` failed.  How should I proceed?\r\nhttps://github.com/dotnet/machinelearning/blob/aa1809ba0b60dee7451d0e7ee600f168ff8cd135/src/Microsoft.ML.CpuMath/Microsoft.ML.CpuMath.csproj#L20-L24",
+        "timestamp": "2018-08-21T21:35:16Z",
+        "source": "issue"
+      },
+      {
+        "author": "eerhardt",
+        "role": "MEMBER",
+        "body": "@briancylui -\r\n\r\n>Given that the commented issue (attached below) has been closed, I tried to remove the package reference System.Runtime.Intrinsics.Experimental, but then building src\\*CpuMath failed. How should I proceed?\r\n\r\nDon't make any changes in this PR regarding that.  This PR should strictly only be concerned with enabling AVX.  That can be handled in a separate PR.\r\n\r\nBTW - in order to remove that, you need to move both your 3.0 SDK and runtime up to a newer build.",
+        "timestamp": "2018-08-22T16:52:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "Responded to PR comments today in the latest wave of commits (mostly on refactoring code).  Also made two intrinsics helper functions about `AlignedArray` inline in hopes of improving perf.\r\n\r\nThis PR is now ready for a third of review if any.",
+        "timestamp": "2018-08-23T19:47:11Z",
+        "source": "issue"
+      },
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "This PR is now ready for a third round of review if any.  \r\n\r\nAll previous PR comments have been responded to.  Looking forward to optimize perf in a separate PR.",
+        "timestamp": "2018-08-24T18:22:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "danmoseley",
+        "role": "NONE",
+        "body": "@eerhardt @tannergooding @fiigii @helloguo do you have more feedback on this PR? I would love to get this merged soon because Brian's internship will soon be ending.",
+        "timestamp": "2018-08-29T17:15:08Z",
+        "source": "issue"
+      },
+      {
+        "author": "briancylui",
+        "role": "NONE",
+        "body": "Responded to all PR feedback so far with two reviewer approvals.  IMO, this PR is ready to be merged.\r\n",
+        "timestamp": "2018-08-29T22:26:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "safern",
+        "role": "MEMBER",
+        "body": "Merged since @briancylui doesn't have write permissions. ",
+        "timestamp": "2018-08-29T23:17:24Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "0dab6d1",
+        "message": "Implemented AVX intrinsics",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-10T21:27:04Z"
+      },
+      {
+        "sha": "3d76fb1",
+        "message": "Implemented performance tests for AVX intrinsics, with some fixes to the intrinsics\nNote: Building perf tests succeed, but running perf tests for AVX intrinsics ends without results.",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-15T23:24:50Z"
+      },
+      {
+        "sha": "6a51bd8",
+        "message": "Changes to perf tests in response to feedback",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-16T18:15:56Z"
+      },
+      {
+        "sha": "1b2cea9",
+        "message": "Fixes across multiple files to make unit tests and perf tests work for all used AVX intrinsics\nNote: Except matrix operations",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T03:44:03Z"
+      },
+      {
+        "sha": "f471726",
+        "message": "Implemented new AVX intrinsics that do not involve matrix operations, passing basic unit tests",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T06:28:33Z"
+      },
+      {
+        "sha": "41d65f5",
+        "message": "Implemented perf tests for AVX via CpuMathUtils class",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T06:35:25Z"
+      },
+      {
+        "sha": "8c34e87",
+        "message": "Implemented switching logic for Vector128/256Alignment between SSE and AVX support",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T17:57:37Z"
+      },
+      {
+        "sha": "ddeb655",
+        "message": "Changed perf tests to reveal SSE and AVX intrinsics perf separately",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T18:37:12Z"
+      },
+      {
+        "sha": "c776fb0",
+        "message": "Fixed access modifiers of private fields",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T18:40:30Z"
+      },
+      {
+        "sha": "df09fe3",
+        "message": "Implemented all unit tests for AVX intrinsics that do not involve matrix operations with longer input arrays",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-17T22:18:47Z"
+      },
+      {
+        "sha": "a9c481f",
+        "message": "Implemented unit tests for AVX intrinsics",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-18T01:02:50Z"
+      },
+      {
+        "sha": "c692a6f",
+        "message": "Fixed errors on the RffTransform.CfltAlign const-expression requirement",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-18T01:26:50Z"
+      },
+      {
+        "sha": "40528e4",
+        "message": "Fixed Debug errors by making RffTransform.CfltAlign read-only",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-18T01:52:53Z"
+      },
+      {
+        "sha": "4d7d8ef",
+        "message": "Fixed errors by making CfltAlign static (and read-only)",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-18T02:05:03Z"
+      },
+      {
+        "sha": "75e4cde",
+        "message": "Developed two unit tests for netcoreapp and netstandard to deal with different alignments separately, with some style changes to readonly variables",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-19T01:54:29Z"
+      },
+      {
+        "sha": "a763059",
+        "message": "Kept only the most recent unit tests which are sufficient for both netcoreapp and netstandard",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-19T02:03:00Z"
+      },
+      {
+        "sha": "8bc8cc8",
+        "message": "Respond to PR feedback: Style changes",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-20T20:28:50Z"
+      },
+      {
+        "sha": "f1664fa",
+        "message": "Respond to PR feedback: More style changes",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-20T23:52:26Z"
+      },
+      {
+        "sha": "26ed884",
+        "message": "Implemented class inheritance in perf tests to reduce overlapping code",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-20T23:53:02Z"
+      },
+      {
+        "sha": "31de895",
+        "message": "Respond to PR feedback: Changed Sse/AvxIntrinsics from public to interal, adding InternalsVisibleTo attributes",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-21T00:21:57Z"
+      },
+      {
+        "sha": "f07afb2",
+        "message": "Respond to PR feedback: Used env vars to determine whether to use AVX/SSE",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-21T00:37:23Z"
+      },
+      {
+        "sha": "9a9d272",
+        "message": "Respond to PR feedback: Included 0 into consideration for parsing env vars",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-21T01:09:48Z"
+      },
+      {
+        "sha": "c249d88",
+        "message": "Respond to PR feedback: env vars, InternalsVisibleTo, and abstract",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-21T17:47:29Z"
+      },
+      {
+        "sha": "f606432",
+        "message": "Respond to PR feedback: Added new comparer class specifically for MatMul",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-21T21:06:29Z"
+      },
+      {
+        "sha": "27ad829",
+        "message": "Respond to PR feedback: Changes to intrinsics",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-23T00:35:54Z"
+      },
+      {
+        "sha": "0fd78a6",
+        "message": "Respond to PR comment: Makes alignment checking consistent in external and internal calls",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-23T19:11:15Z"
+      },
+      {
+        "sha": "3380ded",
+        "message": "Respond to PR feedback: Refactored Sse/AvxIntrinsics helper functions",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-23T19:42:07Z"
+      },
+      {
+        "sha": "b8d63cc",
+        "message": "Made two Sse/AvxIntrinsics helper functions about AlignedArray inline in hopes of improving perf",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-23T19:44:53Z"
+      },
+      {
+        "sha": "32a3704",
+        "message": "Respond to PR feedback: styles for Vector256Alignment and Avx.GetLowerHalf",
+        "author": "Brian Lui",
+        "timestamp": "2018-08-29T21:41:37Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#7625",
+    "metadata": {
+      "title": "Add public SentencePieceTokenizer factory methods for Unigram from vocab list and tokenizer.json",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-07-16T17:45:53Z",
+      "reviewers": [
+        "ericstj",
+        "copilot-pull-request-reviewer",
+        "copilot-swe-agent"
+      ],
+      "changed_files": 6
+    },
+    "issue_payload": {
+      "body": "`SentencePieceTokenizer` only exposed `Create(Stream)` requiring a SentencePiece protobuf (`.model`), making it impossible to load Hugging Face JSON-only Unigram tokenizers that have no `.model` file.\n\n## New public APIs\n\n**From in-memory vocab:**\n```csharp\nSentencePieceTokenizer.Create(\n    IEnumerable<(string Piece, float Score)> vocab,\n    int unkId,\n    bool addBeginningOfSentence = true,\n    bool addEndOfSentence = false,\n    ReadOnlySpan<byte> precompiledCharsMap = default,\n    bool addDummyPrefix = true,\n    bool escapeWhiteSpaces = true,\n    bool treatWhitespaceAsSuffix = false,\n    IReadOnlyDictionary<string, int>? specialTokens = null)\n```\n\n**From `tokenizer.json`:**\n```csharp\nSentencePieceTokenizer.CreateFromTokenizerJson(\n    Stream tokenizerJsonStream,\n    bool addBeginningOfSentence = true,\n    bool addEndOfSentence = false,\n    IReadOnlyDictionary<string, int>? specialTokens = null)\n```\n\n`CreateFromTokenizerJson` reads `model.vocab`, `model.unk_id`, extracts `precompiled_charsmap` from a `Precompiled` or `Sequence` normalizer, and reads Metaspace pre-tokenizer settings (`add_prefix_space`, `replacement`, `prepend_scheme`). It validates `model.type == \"Unigram\"`.\n\n## Internal changes\n\n- `SentencePieceBaseModel`: new constructor taking individual config parameters instead of `ModelProto`\n- `SentencePieceUnigramModel`: new constructors building vocab from `IReadOnlyList<(string, float)>`; BOS/EOS/PAD IDs auto-detected by piece name (`<s>`, `</s>`, `<pad>`) with SentencePiece-conventional positional fallbacks\n\n## Note on token IDs\n\nHF `tokenizer.json` typically uses a different special-token ordering than the SentencePiece protobuf (e.g. `<s>=0, <pad>=1, </s>=2, <unk>=3` vs. `<unk>=0, <s>=1, </s>=2`). Piece strings produced are identical; numeric IDs will differ by the vocab offset introduced by the extra special tokens."
+    },
+    "discussion_timeline": [
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "@copilot please address feedback",
+        "timestamp": "2026-06-11T00:41:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "@copilot address feedback",
+        "timestamp": "2026-06-11T01:10:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "## [Codecov](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?dropdown=coverage&src=pr&el=h1&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) Report\n:x: Patch coverage is `86.69898%` with `247 lines` in your changes missing coverage. Please review.\n:white_check_mark: Project coverage is 69.74%. Comparing base ([`548d4d0`](https://app.codecov.io/gh/dotnet/machinelearning/commit/548d4d09b81548089b4fbbc84fb907c746a4c8ed?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet)) to head ([`e1ff3c5`](https://app.codecov.io/gh/dotnet/machinelearning/commit/e1ff3c5c626bd189aa0f8f766d7967c2250bdccd?dropdown=coverage&el=desc&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet)).\n:warning: Report is 3 commits behind head on main.\n\n| [Files with missing lines](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?dropdown=coverage&src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | Patch % | Lines |\n|---|---|---|\n| [...soft.ML.Tokenizers/Model/SentencePieceTokenizer.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FModel%2FSentencePieceTokenizer.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL01vZGVsL1NlbnRlbmNlUGllY2VUb2tlbml6ZXIuY3M=) | 70.82% | [81 Missing and 43 partials :warning: ](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) |\n| [...izers/Normalizer/SentencePieceNormalizationStep.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FNormalizer%2FSentencePieceNormalizationStep.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL05vcm1hbGl6ZXIvU2VudGVuY2VQaWVjZU5vcm1hbGl6YXRpb25TdGVwLmNz) | 73.91% | [39 Missing and 27 partials :warning: ](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) |\n| [...t.ML.Tokenizers/Model/SentencePieceUnigramModel.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FModel%2FSentencePieceUnigramModel.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL01vZGVsL1NlbnRlbmNlUGllY2VVbmlncmFtTW9kZWwuY3M=) | 77.55% | [37 Missing and 7 partials :warning: ](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) |\n| [...L.Tokenizers/Normalizer/SentencePieceNormalizer.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FNormalizer%2FSentencePieceNormalizer.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL05vcm1hbGl6ZXIvU2VudGVuY2VQaWVjZU5vcm1hbGl6ZXIuY3M=) | 71.11% | [8 Missing and 5 partials :warning: ](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) |\n\n<details><summary>Additional details and impacted files</summary>\n\n\n\n```diff\n@@            Coverage Diff             @@\n##             main    #7625      +/-   ##\n==========================================\n+ Coverage   69.59%   69.74%   +0.14%     \n==========================================\n  Files        1484     1485       +1     \n  Lines      273606   275443    +1837     \n  Branches    27949    28161     +212     \n==========================================\n+ Hits       190410   192096    +1686     \n- Misses      75832    75916      +84     \n- Partials     7364     7431      +67     \n```\n\n| [Flag](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625/flags?src=pr&el=flags&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | Coverage Δ | |\n|---|---|---|\n| [Debug](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625/flags?src=pr&el=flag&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | `69.74% <86.69%> (+0.14%)` | :arrow_up: |\n| [production](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625/flags?src=pr&el=flag&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | `63.93% <74.21%> (+0.08%)` | :arrow_up: |\n| [test](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625/flags?src=pr&el=flag&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | `89.78% <100.00%> (+0.15%)` | :arrow_up: |\n\nFlags with carried forward coverage won't be shown. [Click here](https://docs.codecov.io/docs/carryforward-flags?utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#carryforward-flags-in-the-pull-request-comment) to find out more.\n\n| [Files with missing lines](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?dropdown=coverage&src=pr&el=tree&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet) | Coverage Δ | |\n|---|---|---|\n| [...soft.ML.Tokenizers/Model/SentencePieceBaseModel.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FModel%2FSentencePieceBaseModel.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL01vZGVsL1NlbnRlbmNlUGllY2VCYXNlTW9kZWwuY3M=) | `82.77% <100.00%> (+2.33%)` | :arrow_up: |\n| [test/Microsoft.ML.Tokenizers.Tests/UnigramTests.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=test%2FMicrosoft.ML.Tokenizers.Tests%2FUnigramTests.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-dGVzdC9NaWNyb3NvZnQuTUwuVG9rZW5pemVycy5UZXN0cy9VbmlncmFtVGVzdHMuY3M=) | `97.63% <100.00%> (+4.66%)` | :arrow_up: |\n| [...L.Tokenizers/Normalizer/SentencePieceNormalizer.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FNormalizer%2FSentencePieceNormalizer.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL05vcm1hbGl6ZXIvU2VudGVuY2VQaWVjZU5vcm1hbGl6ZXIuY3M=) | `75.13% <71.11%> (+4.80%)` | :arrow_up: |\n| [...t.ML.Tokenizers/Model/SentencePieceUnigramModel.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FModel%2FSentencePieceUnigramModel.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL01vZGVsL1NlbnRlbmNlUGllY2VVbmlncmFtTW9kZWwuY3M=) | `67.23% <77.55%> (+6.84%)` | :arrow_up: |\n| [...izers/Normalizer/SentencePieceNormalizationStep.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FNormalizer%2FSentencePieceNormalizationStep.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL05vcm1hbGl6ZXIvU2VudGVuY2VQaWVjZU5vcm1hbGl6YXRpb25TdGVwLmNz) | `73.91% <73.91%> (ø)` | |\n| [...soft.ML.Tokenizers/Model/SentencePieceTokenizer.cs](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625?src=pr&el=tree&filepath=src%2FMicrosoft.ML.Tokenizers%2FModel%2FSentencePieceTokenizer.cs&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet#diff-c3JjL01pY3Jvc29mdC5NTC5Ub2tlbml6ZXJzL01vZGVsL1NlbnRlbmNlUGllY2VUb2tlbml6ZXIuY3M=) | `74.45% <70.82%> (-18.05%)` | :arrow_down: |\n\n... and [7 files with indirect coverage changes](https://app.codecov.io/gh/dotnet/machinelearning/pull/7625/indirect-changes?src=pr&el=tree-more&utm_medium=referral&utm_source=github&utm_content=comment&utm_campaign=pr+comments&utm_term=dotnet)\n</details>\n<details><summary> :rocket: New features to boost your workflow: </summary>\n\n- :snowflake: [Test Analytics](https://docs.codecov.com/docs/test-analytics): Detect flaky tests, report on failures, and find test suite problems.\n</details>",
+        "timestamp": "2026-06-11T02:54:38Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "**`CreateFromTokenizerJson` ignores `model.byte_fallback`**\n\nThe new JSON parser never reads the `byte_fallback` flag from the model section. In the protobuf path, `SentencePieceBaseModel` sets `ByteFallback = modelProto.TrainerSpec.ByteFallback` (SentencePieceBaseModel.cs:36), but the new Unigram constructor passes `byteFallback: false` as a hardcoded literal:\n\n```csharp\n: base(addBos, addEos,\n       ...,\n       addDummyPrefix, escapeWhiteSpaces, treatWhitespaceAsSuffix, byteFallback: false,\n       precompiledCharsmap, removeExtraWhitespaces, specialTokens)\n```\n\nHugging Face Unigram tokenizers serialize this as a top-level `model.byte_fallback` boolean, for example:\n\n```json\n\"model\": {\n  \"type\": \"Unigram\",\n  \"unk_id\": 0,\n  \"byte_fallback\": true,\n  \"vocab\": [ ... ]\n}\n```\n\nFor any model that enables byte fallback, hardcoding `false` means unknown characters will be emitted as the unknown token instead of being decomposed into `<0x00>`..`<0xFF>` byte pieces, which changes both the produced token IDs and the decoded output.\n\nSuggested fix: read the flag in `CreateFromTokenizerJson` and thread it through to the model constructor:\n\n```csharp\nbool byteFallback = modelElement.TryGetProperty(\"byte_fallback\", out JsonElement bf) && bf.GetBoolean();\n```\n\ndefaulting to `false` when the property is absent, then pass `byteFallback` instead of the literal.\r\n",
+        "timestamp": "2026-06-11T18:52:47Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "**`CreateFromTokenizerJson` ignores the top-level `added_tokens` array**\n\nThe parser determines special tokens in two ways: it auto-detects only the literal strings `<s>`, `</s>`, and `<pad>` via `FindSpecialTokenId`, and otherwise relies on the caller passing a `specialTokens` dictionary by hand. The `added_tokens` array in `tokenizer.json`, which is the authoritative source for special tokens and their IDs, is never read.\n\nA typical `tokenizer.json` declares them like this:\n\n```json\n\"added_tokens\": [\n  { \"id\": 0, \"content\": \"<s>\",    \"special\": true },\n  { \"id\": 1, \"content\": \"<pad>\",  \"special\": true },\n  { \"id\": 2, \"content\": \"</s>\",   \"special\": true },\n  { \"id\": 3, \"content\": \"<unk>\",  \"special\": true },\n  { \"id\": 250001, \"content\": \"<mask>\", \"special\": true }\n]\n```\n\nTwo consequences:\n\n1. Models that do not use the exact `<s>`/`</s>`/`<pad>` strings (for example `[CLS]`, `[SEP]`, `[MASK]`, `[PAD]`, `[UNK]`, or `<bos>`) get none of their special tokens recognized. These are exactly the JSON-only Unigram layouts this PR targets (the issue mentions `[PAD]=0`, `[UNK]=1`). Such tokens stay classified as `Normal` pieces, so they are not treated as special during encoding and `considerSpecialTokens` has nothing to act on.\n2. Callers are forced to re-supply information that already exists in the file, and to keep those IDs in sync manually.\n\nSuggested direction: read `added_tokens` (content plus id, optionally filtered by `\"special\": true`) and use it to populate the special-token map and to reclassify those pieces as `Control`, falling back to the explicit `specialTokens` parameter only as an override. This also makes BOS/EOS/PAD detection robust instead of depending on hardcoded literal names.\r\n",
+        "timestamp": "2026-06-11T18:56:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "**`ExtractPrecompiledCharsMap` throws on legitimate normalizer steps inside a `Sequence`**\r\n\r\nThe normalizer walk handles only `Precompiled` and `Sequence`; every other type hits the `else` branch and throws:\r\n\r\n```csharp\r\nelse\r\n{\r\n    throw new NotSupportedException($\"Normalizer type '{type}' is not supported. Only 'Precompiled' and 'Sequence' normalizers are supported.\");\r\n}\r\n```\r\n\r\nBecause the `Sequence` branch calls `ExtractPrecompiledCharsMap` on each inner normalizer, any sibling step that is not `Precompiled` triggers the throw. Real Unigram tokenizers commonly nest the precompiled map alongside other steps, for example:\r\n\r\n```json\r\n\"normalizer\": {\r\n  \"type\": \"Sequence\",\r\n  \"normalizers\": [\r\n    { \"type\": \"Nmt\" },\r\n    { \"type\": \"Precompiled\", \"precompiled_charsmap\": \"...\" },\r\n    { \"type\": \"Replace\", \"pattern\": { \"Regex\": \" {2,}\" }, \"content\": \" \" }\r\n  ]\r\n}\r\n```\r\n\r\nWith this input the method throws on the `Nmt` (or `Replace`) entry and the whole load fails, even though the `precompiled_charsmap` it needs is present and extractable. This rejects many valid `tokenizer.json` files.\r\n\r\nThe correct behavior here is to not throw: when walking a `Sequence`, skip inner steps that are not `Precompiled` rather than aborting, and only extract the precompiled map.\r\n\r\nShould we have a tracking issue to support the normalizers that we currently not supporting yet?\r\n",
+        "timestamp": "2026-06-11T19:05:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "**`removeExtraWhitespaces` is hardcoded to `true`**\n\n`CreateFromTokenizerJson` always passes `removeExtraWhitespaces: true` to the model constructor. The protobuf path instead reads it from the model (`SentencePieceBaseModel.cs:56`, `modelProto.NormalizerSpec.RemoveExtraWhitespaces`), so the two entry points can disagree for the same underlying model.\n\nHugging Face `tokenizer.json` has no single field that maps directly to SentencePiece's `remove_extra_whitespaces`; the behavior is usually expressed through normalizer steps (for example a `Strip` or a `Replace` collapsing runs of spaces) and through the `Metaspace` pre-tokenizer. So unconditionally forcing `true` is an assumption rather than a value taken from the file.\n\nFor models where extra whitespace should be preserved, this changes normalization and therefore the resulting tokens. Two reasonable options:\n\n1. Keep `true` as the default but document it explicitly as an assumption of this loader, and consider exposing it as a parameter so callers can override.\n2. Infer it from the normalizer steps present in the JSON (for example, presence/absence of a whitespace-collapsing `Replace`/`Strip`).\r\n",
+        "timestamp": "2026-06-11T19:10:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "- https://github.com/dotnet/machinelearning/issues/7624#issuecomment-4675583580",
+        "timestamp": "2026-06-11T20:00:32Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "**`post_processor` (TemplateProcessing) is not consulted for BOS/EOS behavior**\n\n`CreateFromTokenizerJson` decides BOS/EOS purely from the `addBeginningOfSentence`/`addEndOfSentence` parameters and locates the tokens by guessing the names `<s>`/`</s>`. The `tokenizer.json` already declares this authoritatively in `post_processor`:\n\n```json\n\"post_processor\": {\n  \"type\": \"TemplateProcessing\",\n  \"single\": [\n    { \"SpecialToken\": { \"id\": \"<s>\",  \"type_id\": 0 } },\n    { \"Sequence\":     { \"id\": \"A\",    \"type_id\": 0 } },\n    { \"SpecialToken\": { \"id\": \"</s>\", \"type_id\": 0 } }\n  ],\n  \"special_tokens\": {\n    \"<s>\":  { \"id\": \"<s>\",  \"ids\": [0], \"tokens\": [\"<s>\"] },\n    \"</s>\": { \"id\": \"</s>\", \"ids\": [2], \"tokens\": [\"</s>\"] }\n  }\n}\n```\n\nThis template is the source of truth for which special tokens wrap the input, in what order, and with which IDs. By ignoring it, the loader cannot tell whether a model wraps with BOS/EOS by default, and for models whose BOS/EOS are not literally `<s>`/`</s>` (or that use only one of them) the name guessing will pick the wrong token or none at all.\n\nSuggested direction: when present, read `post_processor.special_tokens` (and the `single` template) to resolve the BOS/EOS token strings and IDs, using the `addBeginningOfSentence`/`addEndOfSentence` parameters as the on/off override rather than as the sole source.\r\n",
+        "timestamp": "2026-06-11T21:08:51Z",
+        "source": "issue"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "@tarekgh So I did some investigation and post_processor is actually a bit more involved, but we need it in order to have a complete story here.  \r\n\r\nPulling 57 popular models from HuggingFace that use SentencePiece, 51 use post_processor.  37 of them are simple with just 1 or less prefix and suffix, but 14 have multiple tokens. \r\n\r\nI'm spiking out a proper `post_processor` implementation, but would need your review and guidance before doing major changes.  As such I'll move this back to draft.",
+        "timestamp": "2026-06-12T15:24:09Z",
+        "source": "issue"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": " **Design:** https://gist.github.com/ericstj/648348b68b28622b90071dfdae6fe932\r\n \r\n ### What changed\r\n \r\n Generalized SentencePiece's single BOS/EOS handling into ordered **prefix/suffix special-token lists**, applied consistently across the encode/count/index paths. This lets `CreateFromTokenizerJson` represent Hugging Face `post_processor` templates that wrap a sequence with multiple special tokens (XLNet `</s>`+`<cls>`, mBART/NLLB styles), which the prior single-token model couldn't express. From a survey of 57 resolved HF Unigram models, ~25% need more than a single BOS/EOS.\r\n \r\n The JSON loader now:\r\n \r\n - Parses `post_processor` (`TemplateProcessing`, `RobertaProcessing`, `BertProcessing`, `Sequence`), resolving ids via `special_tokens` → `added_tokens` → vocab.\r\n - Reads `model.byte_fallback` (exposed on `Create`) instead of hardcoding `false`.\r\n - Treats `added_tokens` (special) as the authoritative special-token source.\r\n - Tolerates unmodeled sibling steps inside a `Sequence` normalizer.\r\n - Deduces `remove_extra_whitespaces` from the normalizer's `Strip` / `Replace(\" {2,}\" → ▁)` steps (defaulting `false`), matching HF's fast-tokenizer runtime, rather than hardcoding `true`.\r\n \r\n ### Addressing @tarekgh's feedback\r\n \r\n All six comments are resolved: `byte_fallback`, `added_tokens`, the `Sequence`-normalizer throw, `post_processor` / `TemplateProcessing` BOS/EOS, and `removeExtraWhitespaces` (now inferred from the normalizer steps per option 2 — HF encodes it as `Strip` + `Replace(\" {2,}\")`).\r\n \r\n ### Performance\r\n \r\n No regression — the prefix/suffix-list refactor is **allocation-neutral** on every existing path (byte-for-byte identical allocations vs the pre-change baseline across encode/count/index × affix × size). Timing deltas are within run-to-run noise on a dev laptop.  https://gist.github.com/ericstj/c2c80feddab1a9cd122f34de07b9df28#file-perf-report-md\r\n \r\n ### Out of scope (follow-ups)\r\n \r\n Pair-sequence encoding + `type_id`s; dynamic language tokens (mBART/NLLB); a general `Tokenizer`-level post-processor abstraction; `ByteLevel` `trim_offsets`.\r\n",
+        "timestamp": "2026-06-12T19:25:41Z",
+        "source": "issue"
+      },
+      {
+        "author": "tarekgh",
+        "role": "MEMBER",
+        "body": "Overall the changes look good.\n\nA few gaps, since a full `tokenizer.json` is broader than the Unigram `model` block:\n\n1. **`unk_id` is required** — HF allows `\"unk_id\": null` (spec-legal), which we reject.\n2. **Non-Metaspace splitting pre-tokenizers are silently ignored** (`Punctuation`, `Split`, `Digits`, `ByteLevel`, `BertPreTokenizer`). Riskiest one since it fails silently; consider throwing `NotSupportedException` on unrecognized pre-tokenizer types, like the normalizer chain already does.\n3. **The `decoder` section is not read** — fine for standard configs, ignores non-standard decoder chains.\n\nIt would be good to address 1 and 2 in this PR. None block merging for the standard HF Unigram/Metaspace scenario the tests cover. Suggest opening a tracking issue to support the remaining parts (e.g. `decoder`) when a real model needs them.\r\n",
+        "timestamp": "2026-06-18T23:21:33Z",
+        "source": "issue"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "Thanks @tarekgh! Addressed items 1 and 2 in 512eb130:\n\n1. **`unk_id`** — a null `unk_id` (no unknown token) is now accepted and represented internally as -1. Because OOV can then only be represented via byte fallback, a null `unk_id` **without** `byte_fallback` throws `NotSupportedException` rather than emitting an invalid id at encode time; with `byte_fallback` it round-trips through byte pieces. A numeric out-of-range `unk_id` is still rejected as `InvalidDataException`.\n2. **Pre-tokenizers** — unrecognized `pre_tokenizer` types (`Punctuation`, `Split`, `Digits`, `ByteLevel`, `BertPreTokenizer`, ...) now throw `NotSupportedException` (recursing into a `Sequence`) instead of being silently ignored, mirroring the normalizer chain.\n\nAdded tests for the null-`unk_id` byte-fallback round-trip, the null-without-byte-fallback and numeric-out-of-range rejections, and the unsupported-pre-tokenizer cases (flat and nested).\n\n3. **`decoder` section** — filed #7660 to track reading it when a real model needs a non-standard decoder chain.",
+        "timestamp": "2026-07-16T04:22:13Z",
+        "source": "issue"
+      },
+      {
+        "author": "ericstj",
+        "role": "MEMBER",
+        "body": "/ba-g https://github.com/dotnet/machinelearning/issues/7662",
+        "timestamp": "2026-07-16T17:45:46Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "ff40b11",
+        "message": "Initial plan",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-06-10T23:15:43Z"
+      },
+      {
+        "sha": "862be32",
+        "message": "Add public SentencePieceTokenizer.Create(vocab) and CreateFromTokenizerJson APIs\n\nCo-authored-by: ericstj <8918108+ericstj@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-06-10T23:41:51Z"
+      },
+      {
+        "sha": "112ee2b",
+        "message": "Fix BOS/EOS positional fallback, normalizer type validation, and prepend_scheme handling\n\nCo-authored-by: ericstj <8918108+ericstj@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-06-11T00:50:01Z"
+      },
+      {
+        "sha": "7e32c05",
+        "message": "Fix null normalizer guard, recursive Sequence support, BOS/EOS validation, and add tests\n\nCo-authored-by: ericstj <8918108+ericstj@users.noreply.github.com>",
+        "author": "copilot-swe-agent[bot]",
+        "timestamp": "2026-06-11T01:22:50Z"
+      },
+      {
+        "sha": "057cd46",
+        "message": "Generalize SentencePiece special tokens to prefix/suffix lists with post-processor support\n\nSupport Hugging Face tokenizer.json post-processor templates that wrap a sequence with\nmultiple special tokens (XLNet/mBART/NLLB styles) by generalizing the single BOS/EOS\nhandling into ordered prefix/suffix special-token lists, applied consistently across the\nencode/count/index paths.\n\nCreateFromTokenizerJson now:\n- parses post_processor (TemplateProcessing, RobertaProcessing, BertProcessing, Sequence)\n  to resolve the prefix/suffix wrapping, resolving ids via special_tokens -> added_tokens -> vocab.\n- reads model.byte_fallback and exposes byteFallback on Create.\n- treats added_tokens (special) as the authoritative special-token source.\n- tolerates unmodeled sibling steps inside a Sequence normalizer.\n- deduces remove_extra_whitespaces from the normalizer Strip/Replace(\" {2,}\") steps instead\n  of hardcoding it, matching the Hugging Face fast-tokenizer runtime.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-12T19:06:01Z"
+      },
+      {
+        "sha": "0725072",
+        "message": "Support JSON-only Unigram normalizer chains and broaden tokenizer.json coverage\n\nApply the Hugging Face tokenizer.json normalizer chain when loading JSON-only\nSentencePiece Unigram tokenizers whose normalizer has content-modifying steps\n(per-character Replace, Lowercase, StripAccents, NFC/NFD/NFKC/NFKD, Nmt, Prepend),\nrunning it before the Metaspace pass to match the reference order. Bare-charsmap\nmodels keep their existing fast path; only chain-mode models run the chain, which\nis a simple string pipeline (the boundary decode/encode use pooled buffers).\n\nAlso broadens coverage of real models:\n- Infer Unigram when model.type is absent (older xlm-roberta-base/albert files)\n  unless BPE merges are present.\n- Treat a WhitespaceSplit pre-tokenizer as remove_extra_whitespaces.\n\nValidated against a Hugging Face oracle: 41 JSON-only Unigram models load with no\nfailures and tokenize identically to the reference except two documented cases\n(per-character vs merged unk for out-of-vocabulary runs, and trailing/leading\nwhitespace exactness on whitespace-collapsing Replace models).\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T05:11:18Z"
+      },
+      {
+        "sha": "96961f8",
+        "message": "Address Copilot review: byte_fallback init, Metaspace replacement, doc\n\n- Set MaxByteId in the vocab-based Unigram constructor (and validate a contiguous\n  <0x00>..<0xFF> block) so byte_fallback decode works instead of being inert, and\n  fix a Debug.Assert that wrongly forbade unknown tokens on the byte-fallback path.\n- Reject a Metaspace \"replacement\" other than U+2581 with NotSupportedException\n  rather than silently disabling whitespace escaping.\n- Correct the CreateFromTokenizerJson remarks: remove_extra_whitespaces is deduced\n  (defaulting false), not assumed true.\n\nAdds byte-fallback round-trip and validation tests.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T05:50:45Z"
+      },
+      {
+        "sha": "4de649c",
+        "message": "Address Copilot review round 2: Nmt, processor affix validation, cleanup\n\n- Apply Nmt even when it is the only normalizer step (HasRichSteps no longer\n  treats Nmt as non-rich), so format/control characters are normalized and the\n  behavior matches the documented step list.\n- Validate the RobertaProcessing/BertProcessing cls/sep [token, id] pairs against\n  the vocabulary and added tokens, rejecting inconsistent files.\n- Drop the unused ref treatWhitespaceAsSuffix parameter from ExtractMetaspaceSettings.\n\nAdds standalone-Nmt and inconsistent-processor-affix tests.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T06:21:15Z"
+      },
+      {
+        "sha": "bc46cb8",
+        "message": "Address Copilot review round 3: clarify charsmap comment, label missing normalizer type\n\n- Reword the ExtractPrecompiledCharsMap Sequence comment: it is reached only for\n  non-rich Sequences (rich steps such as Nmt route through the managed chain), so\n  it no longer implies those steps are silently ignored.\n- Render a missing/null normalizer type as <missing> in the NotSupportedException\n  message instead of an empty string.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T06:29:39Z"
+      },
+      {
+        "sha": "eadbf7d",
+        "message": "Address Copilot review round 4: byte-offset gating, base64 + unk_id validation\n\n- Only initialize the byte-piece offsets (ByteCodeToIdOffset and the derived\n  OneByteUtf8EncodingMaxId/MaxIdByteFallbackId) when byte_fallback is enabled, so a\n  vocab that merely contains <0xNN> pieces with byte_fallback:false decodes normal\n  low ids instead of dropping them as byte-fallback pieces.\n- Decode a malformed base64 precompiled_charsmap into InvalidDataException via a\n  shared DecodePrecompiledCharsMap helper used by both the chain and charsmap paths.\n- Validate model.unk_id against the parsed vocab length and throw InvalidDataException\n  for an out-of-range value.\n\nAdds byte-fallback-disabled, malformed-charsmap, and out-of-range-unk_id tests.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T06:42:05Z"
+      },
+      {
+        "sha": "1b3e19a",
+        "message": "Address Copilot review round 5: validate unk_id and vocab entry value kinds\n\n- Require model.unk_id to be a JSON number, throwing InvalidDataException with a\n  targeted message instead of letting GetInt32 raise InvalidOperationException.\n- Require each model.vocab entry to be a [string piece, number score] pair so a\n  missing/non-numeric score fails diagnostically rather than via a cast error.\n\nAdds non-numeric unk_id and non-numeric vocab-score tests.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T06:49:27Z"
+      },
+      {
+        "sha": "be2f36c",
+        "message": "Address Copilot review round 6: validate JSON value kinds across the loader\n\nHarden the tokenizer.json parser so malformed inputs fail with a diagnostic\nInvalidDataException instead of an InvalidOperationException/ArgumentException\nescaping from CreateFromTokenizerJson:\n\n- added_tokens: require string content and numeric id.\n- post_processor TemplateProcessing: require a string SpecialToken.id and a numeric\n  special_tokens ids[0].\n- RobertaProcessing/BertProcessing cls/sep: check the [token, id] value kinds before\n  reading.\n- Metaspace pre_tokenizer: require a boolean add_prefix_space and a string replacement.\n- Replace normalizer: require an object pattern with a string String/Regex, and wrap\n  invalid Regex construction as InvalidDataException.\n- Read all normalizer/pre_tokenizer/post_processor 'type' fields through a shared\n  GetStringOrNull helper so a non-string type is handled in a controlled way rather\n  than throwing.\n\nAdds tests covering the new validation paths.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T08:55:36Z"
+      },
+      {
+        "sha": "6f361d6",
+        "message": "Address Copilot review round 7: validate template special-token id consistency\n\nResolveTemplateTokenId now verifies that a post_processor special_tokens id maps\nback to the referenced token (via added tokens or the vocabulary), mirroring the\nRobertaProcessing/BertProcessing affix validation, so an inconsistent tokenizer.json\nfails with InvalidDataException instead of emitting an id whose decoded token differs\nfrom the template's token name.\n\nAdds an inconsistent-template-special-token test.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T12:24:08Z"
+      },
+      {
+        "sha": "45f5fd2",
+        "message": "Address Copilot review round 8: remove redundant casts in tests\n\nCreateFromTokenizerJson returns SentencePieceTokenizer, so the explicit casts in the\nnew tests were unnecessary.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T12:32:23Z"
+      },
+      {
+        "sha": "e1ff3c5",
+        "message": "Address Copilot review round 9: guard normalizer Build value kinds\n\n- Require a normalizer entry to be a JSON object at the start of Build, so a non-object\n  entry in a Sequence array fails with InvalidDataException instead of InvalidOperationException.\n- Validate the Precompiled 'precompiled_charsmap' is a string before reading it.\n- Validate the Prepend 'prepend' is a string before reading it.\n\nAdds tests for the non-object Sequence entry, non-string Precompiled charsmap, and\nnon-string Prepend cases.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-06-18T12:42:34Z"
+      },
+      {
+        "sha": "512eb13",
+        "message": "Address Tarek review: support null unk_id and reject unknown pre-tokenizers\n\nTwo gaps flagged in review, since a full tokenizer.json is broader than the\nUnigram model block:\n\n- unk_id: accept a null unk_id (a Unigram model with no unknown token), which HF\n  permits and the loader previously rejected. It is represented internally as -1,\n  and the model constructor tolerates that (guards the unk re-insertion and\n  GetPieceAtIndex). Because out-of-vocabulary input can then only be represented by\n  byte fallback, a null unk_id without byte_fallback throws NotSupportedException\n  rather than emitting an invalid id at encode time. A numeric out-of-range unk_id\n  is still rejected as InvalidDataException.\n- pre_tokenizer: reject pre-tokenizer types the loader does not model (Punctuation,\n  Split, Digits, ByteLevel, BertPreTokenizer, ...) with NotSupportedException,\n  recursing into a Sequence, instead of silently ignoring and mis-tokenizing,\n  mirroring the normalizer chain.\n\nThe decoder section is still not read; documented and tracked separately.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+        "author": "Eric StJohn",
+        "timestamp": "2026-07-16T04:21:35Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#3263",
+    "metadata": {
+      "title": "Add DataView Type Register (supporting loading in-memory image and other in-memory custom types)",
+      "labels": [
+        "bug"
+      ],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-05-28T23:13:59Z",
+      "reviewers": [
+        "glebuk",
+        "TomFinley",
+        "eerhardt",
+        "wschin",
+        "Ivanidzo4ka"
+      ],
+      "changed_files": 14
+    },
+    "issue_payload": {
+      "body": "Fix #3162 by considering image type in our bridge code. Also fix #3723, fix #3369, fix #3274, fix #445, fix #3460, fix #2121, fix #2495, fix #3784.\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/dotnet/machinelearning/pull/3263?src=pr&el=h1) Report\n> :exclamation: No coverage uploaded for pull request base (`master@51b10fc`). [Click here to learn what that means](https://docs.codecov.io/docs/error-reference#section-missing-base-commit).\n> The diff coverage is `84.84%`.\n\n```diff\n@@            Coverage Diff            @@\n##             master    #3263   +/-   ##\n=========================================\n  Coverage          ?   72.64%           \n=========================================\n  Files             ?      807           \n  Lines             ?   145126           \n  Branches          ?    16220           \n=========================================\n  Hits              ?   105424           \n  Misses            ?    35281           \n  Partials          ?     4421\n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #Debug | `72.64% <84.84%> (?)` | |\n| #production | `68.19% <72.72%> (?)` | |\n| #test | `88.93% <96.96%> (?)` | |\n\n| [Impacted Files](https://codecov.io/gh/dotnet/machinelearning/pull/3263?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [src/Microsoft.ML.DataView/ImageDataViewType.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhVmlldy9JbWFnZURhdGFWaWV3VHlwZS5jcw==) | `70.96% <ø> (ø)` | |\n| [...osoft.ML.Data/DataView/InternalSchemaDefinition.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGFWaWV3L0ludGVybmFsU2NoZW1hRGVmaW5pdGlvbi5jcw==) | `57.53% <100%> (ø)` | |\n| [src/Microsoft.ML.Data/Utils/ApiUtils.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL1V0aWxzL0FwaVV0aWxzLmNz) | `91.74% <100%> (ø)` | |\n| [src/Microsoft.ML.Data/Data/SchemaDefinition.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGEvU2NoZW1hRGVmaW5pdGlvbi5jcw==) | `70.93% <68%> (ø)` | |\n| [src/Microsoft.ML.Data/DataView/TypedCursor.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGFWaWV3L1R5cGVkQ3Vyc29yLmNz) | `83.38% <75%> (ø)` | |\n| [test/Microsoft.ML.Tests/ImagesTests.cs](https://codecov.io/gh/dotnet/machinelearning/pull/3263/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuVGVzdHMvSW1hZ2VzVGVzdHMuY3M=) | `98.6% <96.96%> (ø)` | |\n",
+        "timestamp": "2019-04-09T22:07:02Z",
+        "source": "issue"
+      },
+      {
+        "author": "glebuk",
+        "role": "CONTRIBUTOR",
+        "body": "> using System;\r\n\r\nAdd copyright header. #Resolved\r\n\r\n---\r\nRefers to: src/Microsoft.ML.DataView/TypeManager.cs:1 in 8aface6. [](commit_id = 8aface60208fc1b92486380e4839443c16d95477, deletion_comment = False)",
+        "timestamp": "2019-05-17T00:30:56Z",
+        "source": "issue"
+      },
+      {
+        "author": "artidoro",
+        "role": "CONTRIBUTOR",
+        "body": "The PR looks great, but we will need a sample for this work. It's fine if it comes in another PR. Could you adapt a test and make it a sample? #Resolved",
+        "timestamp": "2019-05-28T18:40:29Z",
+        "source": "issue"
+      },
+      {
+        "author": "artidoro",
+        "role": "CONTRIBUTOR",
+        "body": "Also would it be useful to surface the `DataViewTypeManager` in `MLContext`? Or some of it's methods? #Pending",
+        "timestamp": "2019-05-28T18:44:27Z",
+        "source": "issue"
+      },
+      {
+        "author": "wschin",
+        "role": "CONTRIBUTOR",
+        "body": "For this advanced functionality, I'd keep it as is for now. If we add an alias for it, we will have to support it for years.\r\n\r\n---\r\nIn reply to: [496640481](https://github.com/dotnet/machinelearning/pull/3263#issuecomment-496640481) [](ancestors = 496640481)",
+        "timestamp": "2019-05-28T20:21:54Z",
+        "source": "issue"
+      },
+      {
+        "author": "wschin",
+        "role": "CONTRIBUTOR",
+        "body": "Added two samples.\r\n\r\n---\r\nIn reply to: [496639086](https://github.com/dotnet/machinelearning/pull/3263#issuecomment-496639086) [](ancestors = 496639086)",
+        "timestamp": "2019-05-28T21:24:10Z",
+        "source": "issue"
+      },
+      {
+        "author": "ADD-eNavarro",
+        "role": "NONE",
+        "body": "Hi! \r\nIs there a date for this to make it into ML.NET? I really could use this feature, but it seems a little stuck.\r\nThanks!\r\n",
+        "timestamp": "2020-10-21T15:01:19Z",
+        "source": "issue"
+      },
+      {
+        "author": "johncalvowtg",
+        "role": "NONE",
+        "body": "Hello!\r\nWe have actually the same problem here at Wisetech. I am trying to consume a TensorFlow model with multiple multi-dimensional inputs . Same message and no workaround on this.\r\n\r\nI've tried some of your examples, but none of them worked for me.\r\n\r\nPlease let us know if you manage to fully support TensorFlow integration with ML.NET.\r\n\r\nRegards,\r\nJohn Calvo-Martinez Ph.D.",
+        "timestamp": "2021-02-24T00:17:18Z",
+        "source": "issue"
+      },
+      {
+        "author": "jamsoft",
+        "role": "NONE",
+        "body": "Phew, it's not just me going mad. I've been trying to use in memory images all day and have so far failed to get any of this to work. I have  [SO question](https://stackoverflow.com/questions/66515905/loading-existing-ml-net-image-classification-model-and-adapting-predict-using-in) open as well in case anyone wants to follow.",
+        "timestamp": "2021-03-07T14:26:52Z",
+        "source": "issue"
+      },
+      {
+        "author": "Webreaper",
+        "role": "NONE",
+        "body": "@jamsoft Did you remove the SO question? I'm also looking for an ML.Net sample for image classification that takes a bitmap directly rather than a folder of images. Seems sad that so many people are asking for this and MSFT's ML.Net team still haven't put together a useful sample.",
+        "timestamp": "2021-10-15T10:14:25Z",
+        "source": "issue"
+      },
+      {
+        "author": "michaelgsharp",
+        "role": "CONTRIBUTOR",
+        "body": "@Webreaper I thought we had a sample or documentation about it, but I just went and looked and couldn't find anything myself. I'll make sure we have something. The basic idea is that you have 2 pipelines. 1 pipeline loads the images and stops when it has the images loaded as bytes, and the second pipeline starts from where you would use these image bytes already.\r\n\r\nI can' upload a zip file here since its not a github issue, but I do have a sample interactive notebook that shows it. If you can create a new issue I can get attach it for you there.",
+        "timestamp": "2021-10-15T20:09:21Z",
+        "source": "issue"
+      },
+      {
+        "author": "Webreaper",
+        "role": "NONE",
+        "body": "Thanks @michaelgsharp. Hopefully this should be sufficient? https://github.com/dotnet/machinelearning/issues/5980",
+        "timestamp": "2021-10-19T09:02:47Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "034c81c",
+        "message": "Make type registration framework\n\nRegister image type",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-04-11T17:15:43Z"
+      },
+      {
+        "sha": "8aface6",
+        "message": "Add Bitmap to IDataView",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-16T23:05:35Z"
+      },
+      {
+        "sha": "e915cf8",
+        "message": "Address some comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-17T23:56:47Z"
+      },
+      {
+        "sha": "01f69da",
+        "message": "One more test\n\nAdd missing file",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-18T01:05:30Z"
+      },
+      {
+        "sha": "369839e",
+        "message": "Address more comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T00:10:17Z"
+      },
+      {
+        "sha": "10ead85",
+        "message": "Register type with attributes",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T17:15:36Z"
+      },
+      {
+        "sha": "d8bff2c",
+        "message": "Remove a conceptually duplicate test",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T18:02:13Z"
+      },
+      {
+        "sha": "09210a2",
+        "message": "Polish test",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T18:23:52Z"
+      },
+      {
+        "sha": "3fff64c",
+        "message": "Polish a test which uses in-memory Bitmap",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T20:27:53Z"
+      },
+      {
+        "sha": "cce425a",
+        "message": "Test prediction engine using in-memory images",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T20:40:37Z"
+      },
+      {
+        "sha": "2a4977c",
+        "message": "Add more tests",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T21:11:47Z"
+      },
+      {
+        "sha": "2851aa5",
+        "message": "Address comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-22T23:13:46Z"
+      },
+      {
+        "sha": "4b7ec09",
+        "message": "Address comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-23T00:14:58Z"
+      },
+      {
+        "sha": "264f60f",
+        "message": "Allow auto-register",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-23T16:11:17Z"
+      },
+      {
+        "sha": "7370a47",
+        "message": "Make key unique",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-23T20:00:51Z"
+      },
+      {
+        "sha": "977c422",
+        "message": "Address comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-23T22:51:35Z"
+      },
+      {
+        "sha": "c020196",
+        "message": "Address some comments",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-23T23:20:40Z"
+      },
+      {
+        "sha": "5ab21f3",
+        "message": "Remove redundant dictionaries\n\nPolish",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-24T00:12:33Z"
+      },
+      {
+        "sha": "55b9489",
+        "message": "Polish a bit",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-24T01:14:40Z"
+      },
+      {
+        "sha": "b4e5a61",
+        "message": "Address one comment and polish code",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-24T16:24:59Z"
+      },
+      {
+        "sha": "ef61151",
+        "message": "Update src/Microsoft.ML.DataView/DataViewTypeManager.cs",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-28T18:18:38Z"
+      },
+      {
+        "sha": "18bf87a",
+        "message": "Update src/Microsoft.ML.DataView/DataViewTypeManager.cs",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-28T18:19:36Z"
+      },
+      {
+        "sha": "fb0440a",
+        "message": "Add samples",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-28T21:23:41Z"
+      },
+      {
+        "sha": "0a23702",
+        "message": "Merge branch 'support-image' of github.com:wschin/machinelearning into support-image",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-28T21:23:53Z"
+      },
+      {
+        "sha": "164908f",
+        "message": "Internalize some methods",
+        "author": "Wei-Sheng Chin",
+        "timestamp": "2019-05-28T21:58:36Z"
+      }
+    ]
+  },
+  {
+    "story_id": "dotnet/machinelearning#5135",
+    "metadata": {
+      "title": "Add SrCnn entire API by implementing function",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2020-05-21T19:44:55Z",
+      "reviewers": [
+        "harishsk",
+        "mengaims",
+        "yaeldekel",
+        "klausmh"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "We are excited to review your PR.\r\n\r\nSo we can do the best job, please check:\r\n\r\n- [ ] There's a descriptive title that will make sense to other developers some time from now. \r\n- [ ] There's associated issues. All PR's should have issue(s) associated - unless a trivial self-evident change such as fixing a typo. You can use the format `Fixes #nnnn` in your description to cause GitHub to automatically close the issue(s) when your PR is merged.\r\n- [ ] Your change description explains what the change does, why you chose your approach, and anything else that reviewers should know.\r\n- [ ] You have included any necessary tests in the same PR.\r\n\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "mengaims",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] In the transformer version, we allow batchSize to be -1, means using the whole data set as one batch. Here I try to get row count from input when batchSize=-1 and set an actual positive batchSize. But I found that if we load dataview by text file loader, we could not get this count by this way. Is there any other way to achieve this? #Resolved",
+        "timestamp": "2020-05-15T13:31:52Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] Shouldn't this be in the TimeSeries catalog? #Resolved",
+        "timestamp": "2020-05-15T19:25:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] typo: _modeler #Resolved",
+        "timestamp": "2020-05-15T20:02:55Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] ML.NET does lazy evaluation of most things. So the textloader may not know the number of rows ahead of time. When batchSize is -1, you will be computing the anomaly on the whole file and so you are going to read the whole file before doing your computation. You will need to pass the -1 value of _batchSize further and calculate the actual row count after you have read all the data and before computation begins.\r\n\r\n---\r\nIn reply to: [425803839](https://github.com/dotnet/machinelearning/pull/5135#discussion_r425803839) [](ancestors = 425803839)",
+        "timestamp": "2020-05-15T20:23:49Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] suggestion: This line is common to all the if blocks and can be moved out of the if blocks.  #Resolved",
+        "timestamp": "2020-05-15T20:28:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] suggestion: You can put this in an array to match the index of SrCnnDetectMode and reference the array when initializing the value of _outputLength in the constructor #Resolved",
+        "timestamp": "2020-05-15T20:29:32Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "klausmh",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] It was the suggestion from @yaeldekel to put it here #Resolved",
+        "timestamp": "2020-05-15T21:58:36Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] @yaeldekel, Can you please elaborate? We already have a TimeSeries catalog. Shouldn't it belong there?\r\n\r\n---\r\nIn reply to: [426065077](https://github.com/dotnet/machinelearning/pull/5135#discussion_r426065077) [](ancestors = 426065077)",
+        "timestamp": "2020-05-15T22:47:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >SrCnnBatchAnomalyDetector [](start = 25, length = 25)\r\n\r\nPlease use `nameof(SrCnnBatchAnomalyDetector)`. #Resolved",
+        "timestamp": "2020-05-18T06:36:03Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.Data/DataView/BatchDataViewMapperBase.cs] >_host [](start = 31, length = 5)\r\n\r\nMake this protected, and use in the deriving class. #Resolved",
+        "timestamp": "2020-05-18T06:37:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >CheckValue [](start = 22, length = 10)\r\n\r\nThis check should be done in the base class. #Resolved",
+        "timestamp": "2020-05-18T06:37:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >Contracts [](start = 12, length = 9)\r\n\r\nThe `IHost` in the base class should be protected, and it should be used here. #Resolved",
+        "timestamp": "2020-05-18T06:38:10Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >env [](start = 12, length = 3)\r\n\r\nUse `IHost` from base class. #Resolved",
+        "timestamp": "2020-05-18T06:38:40Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >GetRowCount [](start = 40, length = 11)\r\n\r\nThat will most likely not work, since most implementations of `IDataView` return `null` for this method. #Resolved",
+        "timestamp": "2020-05-18T06:41:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] Correct. I commented the same thing above before I noticed your comment. \r\nIf you need the number of rows in the data, you can compute it here in the ctor, by getting a row cursor with no active columns and counting how many times `MoveNext()` returns true. So you can do something like this:\r\n```\r\nvar rowCount = input.GetRowCount();\r\nif (rowCount!=null)\r\n    _batchSize = rowCount;\r\nelse\r\n{\r\n    _batchSize = 0;\r\n    using (var cursor = input.GetRowCursor())\r\n    {\r\n        while (cursor.MoveNext())\r\n            _batchSize++;\r\n    }\r\n}\r\n```\r\n\r\n---\r\nIn reply to: [426029554](https://github.com/dotnet/machinelearning/pull/5135#discussion_r426029554) [](ancestors = 426029554,425803839)",
+        "timestamp": "2020-05-18T07:01:41Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] By the way, you would need to check for overflow in this case, since the row count can be greater than `int.MaxValue`.\r\n\r\n---\r\nIn reply to: [426407146](https://github.com/dotnet/machinelearning/pull/5135#discussion_r426407146) [](ancestors = 426407146,426029554,425803839)",
+        "timestamp": "2020-05-18T07:03:06Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >AnomalyOnly [](start = 50, length = 11)\r\n\r\nSince this is an enum, this can be done using a `switch` statement. #Resolved",
+        "timestamp": "2020-05-18T07:04:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >GetIsNewBatchDelegate [](start = 38, length = 21)\r\n\r\nI think this method and `GetLastInBatchDelegate` can be implemented in the base class, I can't imagine a future implementation of the base class that would use a different way of computing this. @harishsk, what do you think? #Resolved",
+        "timestamp": "2020-05-18T07:07:59Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >SchemaBindings [](start = 20, length = 14)\r\n\r\nSuggestion: Add a private field of type `Bindings`:\r\n```\r\nprivate readonly Bindings _bindings;\r\n```\r\nand then the override of `SchemaBindings` would be:\r\n```\r\npublic override ColumnBindingsBase SchemaBindings => _bindings;\r\n```\r\nand this method would return `_bindings.GetDependencies(predicate)`. #Resolved",
+        "timestamp": "2020-05-18T07:10:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >_results [](start = 31, length = 8)\r\n\r\nWhy not make this readonly? That way you don't have to allocate a new array for every batch. #Resolved",
+        "timestamp": "2020-05-18T07:12:23Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >public [](start = 8, length = 6)\r\n\r\nCan this be private? #Resolved",
+        "timestamp": "2020-05-18T07:15:39Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >_outputLength [](start = 16, length = 13)\r\n\r\n`_outputLength` is determined by `_detectMode`, so you can either use the array in the wrapping class like Harish suggested, or check that `_outputLength` and `_detectMode` are consistent. (actually, if you make this a private class, then an assert instead of a check would be enough). #Resolved",
+        "timestamp": "2020-05-18T07:26:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >results [](start = 27, length = 7)\r\n\r\nPass in an array so you don't have to allocate a new one on every call. #Resolved",
+        "timestamp": "2020-05-18T07:27:33Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >SpecturalResidual [](start = 32, length = 17)\r\n\r\nShould this be `SpectralResidual`? #Resolved",
+        "timestamp": "2020-05-18T07:28:29Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >fftRe [](start = 25, length = 5)\r\n\r\nIs there a way to make these fields of the class so they are only allocated once?  #Resolved",
+        "timestamp": "2020-05-18T07:30:15Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] I would make this class contain buffers for all these computations to avoid multiple allocations of arrays. This would mean that the `SrCnnBatchAnomalyDetector` cannot have an `SrcEntireModeler` as a field, and the `InitializeBatch` method would have to instantiate it (`IDataVew`s should be thread safe, since it should be possible to create multiple row cursors on multiple threads from an `IDataView` object).\r\n\r\n---\r\nIn reply to: [426420411](https://github.com/dotnet/machinelearning/pull/5135#discussion_r426420411) [](ancestors = 426420411)",
+        "timestamp": "2020-05-18T07:51:53Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >Soc [](start = 43, length = 3)\r\n\r\nTypo. #Resolved",
+        "timestamp": "2020-05-18T07:58:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/SrCnnBatchAnomalyDetection.cs] >Numeric [](start = 19, length = 7)\r\n\r\nIs this used? #Resolved",
+        "timestamp": "2020-05-18T08:00:26Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] >BatchDetectAnomalyBySrCnn [](start = 32, length = 25)\r\n\r\nCan this be renamed `DetectAnomaliesBy...`? #Resolved",
+        "timestamp": "2020-05-18T08:03:27Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "yaeldekel",
+        "role": "NONE",
+        "body": "[src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs] In previous iterations it was in the `TransformsCatalog` which is why I suggested moving it. `TimeSeriesCatalog` would also work.\r\n\r\n---\r\nIn reply to: [426078156](https://github.com/dotnet/machinelearning/pull/5135#discussion_r426078156) [](ancestors = 426078156,426065077)",
+        "timestamp": "2020-05-18T08:04:37Z",
+        "source": "review_inline"
+      },
+      {
+        "author": "codecov",
+        "role": "NONE",
+        "body": "# [Codecov](https://codecov.io/gh/dotnet/machinelearning/pull/5135?src=pr&el=h1) Report\n> Merging [#5135](https://codecov.io/gh/dotnet/machinelearning/pull/5135?src=pr&el=desc) into [master](https://codecov.io/gh/dotnet/machinelearning/commit/3da9e1e7a64f3485b811b99eaab05276a310192c&el=desc) will **increase** coverage by `0.16%`.\n> The diff coverage is `89.00%`.\n\n```diff\n@@            Coverage Diff             @@\n##           master    #5135      +/-   ##\n==========================================\n+ Coverage   75.59%   75.76%   +0.16%     \n==========================================\n  Files         990      992       +2     \n  Lines      179204   180506    +1302     \n  Branches    19287    19434     +147     \n==========================================\n+ Hits       135473   136760    +1287     \n+ Misses      38465    38458       -7     \n- Partials     5266     5288      +22     \n```\n\n| Flag | Coverage Δ | |\n|---|---|---|\n| #Debug | `75.76% <89.00%> (+0.16%)` | :arrow_up: |\n| #production | `71.69% <87.99%> (+0.19%)` | :arrow_up: |\n| #test | `88.93% <100.00%> (+0.08%)` | :arrow_up: |\n\n| [Impacted Files](https://codecov.io/gh/dotnet/machinelearning/pull/5135?src=pr&el=tree) | Coverage Δ | |\n|---|---|---|\n| [...rosoft.ML.Data/DataView/BatchDataViewMapperBase.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGFWaWV3L0JhdGNoRGF0YVZpZXdNYXBwZXJCYXNlLmNz) | `69.51% <69.51%> (ø)` | |\n| [...rosoft.ML.TimeSeries/SrCnnEntireAnomalyDetector.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5UaW1lU2VyaWVzL1NyQ25uRW50aXJlQW5vbWFseURldGVjdG9yLmNz) | `90.72% <90.72%> (ø)` | |\n| [src/Microsoft.ML.TimeSeries/ExtensionsCatalog.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5UaW1lU2VyaWVzL0V4dGVuc2lvbnNDYXRhbG9nLmNz) | `95.00% <100.00%> (+0.12%)` | :arrow_up: |\n| [...crosoft.ML.TimeSeries.Tests/TimeSeriesDirectApi.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-dGVzdC9NaWNyb3NvZnQuTUwuVGltZVNlcmllcy5UZXN0cy9UaW1lU2VyaWVzRGlyZWN0QXBpLmNz) | `99.53% <100.00%> (+0.07%)` | :arrow_up: |\n| [src/Microsoft.ML.EntryPoints/TrainTestSplit.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5FbnRyeVBvaW50cy9UcmFpblRlc3RTcGxpdC5jcw==) | `76.92% <0.00%> (-16.11%)` | :arrow_down: |\n| [...L.Data/DataLoadSave/Text/TextLoaderSaverCatalog.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGFMb2FkU2F2ZS9UZXh0L1RleHRMb2FkZXJTYXZlckNhdGFsb2cuY3M=) | `86.56% <0.00%> (-3.09%)` | :arrow_down: |\n| [...ft.ML.AutoML/ColumnInference/ColumnInferenceApi.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5BdXRvTUwvQ29sdW1uSW5mZXJlbmNlL0NvbHVtbkluZmVyZW5jZUFwaS5jcw==) | `83.00% <0.00%> (-2.57%)` | :arrow_down: |\n| [...rc/Microsoft.ML.Transforms/HashJoiningTransform.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5UcmFuc2Zvcm1zL0hhc2hKb2luaW5nVHJhbnNmb3JtLmNz) | `83.73% <0.00%> (-1.63%)` | :arrow_down: |\n| [...ML.Data/Transforms/ConversionsExtensionsCatalog.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL1RyYW5zZm9ybXMvQ29udmVyc2lvbnNFeHRlbnNpb25zQ2F0YWxvZy5jcw==) | `71.84% <0.00%> (-0.54%)` | :arrow_down: |\n| [...soft.ML.Data/DataLoadSave/Text/TextLoaderCursor.cs](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree#diff-c3JjL01pY3Jvc29mdC5NTC5EYXRhL0RhdGFMb2FkU2F2ZS9UZXh0L1RleHRMb2FkZXJDdXJzb3IuY3M=) | `88.83% <0.00%> (-0.31%)` | :arrow_down: |\n| ... and [26 more](https://codecov.io/gh/dotnet/machinelearning/pull/5135/diff?src=pr&el=tree-more) | |\n #Resolved",
+        "timestamp": "2020-05-19T09:57:06Z",
+        "source": "issue"
+      },
+      {
+        "author": "harishsk",
+        "role": "CONTRIBUTOR",
+        "body": "> {\r\n\r\nIt looks like there are no changes anymore in this file. If so, can you please revert it? #Resolved\r\n\r\n---\r\nRefers to: docs/samples/Microsoft.ML.Samples/Dynamic/Transforms/TimeSeries/DetectAnomalyBySrCnnBatchPrediction.cs:7 in 9de4250. [](commit_id = 9de4250e7403d71a6e649c31fbbbc7d31185f01a, deletion_comment = False)",
+        "timestamp": "2020-05-19T17:33:14Z",
+        "source": "issue"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "7ea51d8",
+        "message": "Draft PR for SrCnn batch detection API interface (#1)\n\n* POC Batch transform\r\n\r\n* SrCnn batch interface\r\n\r\n* Removed comment\r\n\r\n* Handled some APIreview comments.\r\n\r\n* Handled other review comments.\r\n\r\n* Resolved review comments. Added sample.\r\n\r\nCo-authored-by: Yael Dekel <yaeld@microsoft.com>",
+        "author": "klausmh",
+        "timestamp": "2020-05-15T03:57:30Z"
+      },
+      {
+        "sha": "8951997",
+        "message": "Merge remote-tracking branch 'upstream/master' into timeseries/sr_entire_function",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-15T05:19:33Z"
+      },
+      {
+        "sha": "1f8e1e0",
+        "message": "Implement SrCnn entire API by function",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-15T12:14:32Z"
+      },
+      {
+        "sha": "b8351ad",
+        "message": "Fix bugs and add test",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-15T13:23:42Z"
+      },
+      {
+        "sha": "0f22a33",
+        "message": "Resolve comments",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-19T08:46:34Z"
+      },
+      {
+        "sha": "9de4250",
+        "message": "Change names and add documentation",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-19T12:26:49Z"
+      },
+      {
+        "sha": "372dec2",
+        "message": "Handling review comments",
+        "author": "Klaus Marius Hansen",
+        "timestamp": "2020-05-19T19:26:24Z"
+      },
+      {
+        "sha": "116a1fa",
+        "message": "Resolve the array allocating issue",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-20T08:38:31Z"
+      },
+      {
+        "sha": "ab99eea",
+        "message": "Move modeler initializing to CreateBatch and other minor fix.",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-20T13:05:21Z"
+      },
+      {
+        "sha": "df08f45",
+        "message": "Fix 3 remaining comments",
+        "author": "Meng Ai",
+        "timestamp": "2020-05-21T13:22:19Z"
+      },
+      {
+        "sha": "81ae699",
+        "message": "Fixed code analysis issue.",
+        "author": "Klaus Marius Hansen",
+        "timestamp": "2020-05-21T15:53:14Z"
+      },
+      {
+        "sha": "3355c4a",
+        "message": "Fixed minor comments",
+        "author": "Klaus Marius Hansen",
+        "timestamp": "2020-05-21T18:02:29Z"
+      }
+    ]
+  }
+]

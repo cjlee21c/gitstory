@@ -14,11 +14,15 @@ _QUALITY_DEFINITIONS_TEXT = "\n".join(
 
 GATE_PROMPT_TEMPLATE = (
     "You are screening an open-source issue discussion.\n\n"
-    "Answer two things:\n"
+    "Answer these two questions independently. A routine discussion with no "
+    "real argument in it is still *about* something, so answer the second "
+    "question even when your answer to the first is false.\n\n"
     "1. is_story: does the discussion contain technical friction, architectural "
     "trade-offs, or design conflicts worth studying?\n"
-    "2. qualities: which software quality attributes are central to the discussion "
-    "(empty list if none clearly apply):\n"
+    "2. qualities: which software quality attributes is the discussion about? "
+    "Judge by what is being built, changed, or argued over — not by how "
+    "heated the exchange is. Return an empty list only when none of these "
+    "genuinely apply:\n"
     f"{_QUALITY_DEFINITIONS_TEXT}\n\n"
     "Context:\n{context}"
 )
@@ -102,9 +106,15 @@ def _gate_candidate(candidate):
         if response.usage.output_tokens >= GATE_MAX_TOKENS:
             print(f"  [Truncation warning] #{issue['number']} hit max_tokens={GATE_MAX_TOKENS}")
         decision = _parse_gate_response(response.content[0].text)
+        # Labels are attached before the is_story check so they survive on the
+        # candidate even when it's screened out. The pipeline drops rejected
+        # candidates and never reads them, but the relabel script hands in its
+        # own dict and needs the verdict's labels regardless of screening —
+        # otherwise re-labeling an already-mined story loses them whenever the
+        # gate's story judgement happens to land differently this time.
+        qualities = [q for q in decision.get("qualities", []) if q in QUALITY_ATTRIBUTES]
+        candidate["qualities"] = qualities
         if decision.get("is_story"):
-            qualities = [q for q in decision.get("qualities", []) if q in QUALITY_ATTRIBUTES]
-            candidate["qualities"] = qualities
             print(f"  [Elite] #{issue['number']} {qualities}: {issue['title'][:50]}")
             return candidate, usage
         print(f"  [Skip] #{issue['number']} lacks technical drama")

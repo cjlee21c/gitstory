@@ -1,0 +1,135 @@
+[
+  {
+    "story_id": "BepInEx/BepInEx#562",
+    "metadata": {
+      "title": "Fix argument count when launched with Steam on Linux",
+      "labels": [],
+      "qualities": [
+        "deployability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-08-29T19:58:07Z",
+      "reviewers": [
+        "astiob",
+        "ManlyMarco"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "## Description\r\nResolves a recent change (I think) with how Steam on Linux launches applications. I believe the extra `--` arguments are messing up the argument counts for the relaunch. Using the following change I was able to get the game working. Basically added 2 extra arguments and shifted the last argument by 2.\r\n\r\n```\r\nif [ \"$2\" = \"SteamLaunch\" ]; then\r\n    \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\" \"$0\" \"$7\"\r\n    exit\r\nfi\r\n```\r\n\r\n## Motivation and Context\r\nI had to resolve this issue locally in order to even launch the game on Steam. The changes I made to the game properties in Steam were following [this](https://docs.bepinex.dev/articles/advanced/steam_interop.html) link. This PR resolves issue #559.\r\n\r\n## How Has This Been Tested?\r\nI tested this change using the game Ultimate Chicken Horse on Steam on a laptop running Fedora 37.\r\n\r\n## Types of changes\r\n- [x] Bug fix (non-breaking change which fixes an issue)\r\n- [ ] New feature (non-breaking change which adds functionality)\r\n- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)\r\n\r\n## Checklist:\r\n- [x] My code follows the code style of this project.\r\n- [ ] My change requires a change to the documentation.\r\n- [ ] I have updated the documentation accordingly.\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "zeroepoch",
+        "role": "CONTRIBUTOR",
+        "body": "Any update on this? Is anyone else seeing the same issue with Steam games?",
+        "timestamp": "2023-03-13T21:57:04Z"
+      },
+      {
+        "author": "Ecconia",
+        "role": "NONE",
+        "body": "Yeah I also had this issue on Linux when launching the BepInEx via Steam.\r\nAnd your suggested fix works!\r\nIt also only makes sense given the current arguments that Steams provides via `%command%`.\r\nThanks for it.\r\n\r\nFor completeness sake, arguments in `./run_bepinex.sh %command%` are:\r\n0: `./run_bepinex.sh` 1: `[...]/reaper` 2: `SteamLaunch` 3: `AppId=1234` 4: `--` 5: `[..]/steam-launch-wrapper` 6: `--` 7: `[..]/Game_Executable_By_Steam`",
+        "timestamp": "2023-06-11T20:52:01Z"
+      },
+      {
+        "author": "zeroepoch",
+        "role": "CONTRIBUTOR",
+        "body": "> What happens if the user has an old version of Steam for whatever reason? Can it be made to work on both old and new version of the arguments? Also a comment explaining the arguments would be nice.\r\n\r\nI don't think it will work with an older version of Steam. Since Steam is constantly being updated I don't know if you can go back to an older version.",
+        "timestamp": "2023-07-27T01:00:24Z"
+      },
+      {
+        "author": "ManlyMarco",
+        "role": "MEMBER",
+        "body": "> I don't think it will work with an older version of Steam. Since Steam is constantly being updated I don't know if you can go back to an older version.\r\n\r\nYou can stay without updating in offline mode indefinitely as long as the game doesn't have network features or secondary DRM. Since you can also use BepInEx fully offline I think breaking backwards compatibility is not ideal.\r\n\r\nIf you have an old physical release with the full game files if I recall correctly you can install the Steam build from the disc and the game and it will work fine until you connect to the internet. This is not really relevant in this case though since I don't think there's any Unity games released in this format that we could support.\r\n\r\nIt looks like you could detect how many arguments you have gotten and branch based on that?",
+        "timestamp": "2023-07-27T19:07:30Z"
+      },
+      {
+        "author": "zeroepoch",
+        "role": "CONTRIBUTOR",
+        "body": "> It looks like you could detect how many arguments you have gotten and branch based on that?\r\n\r\nI think that should be the case since the last argument `$7` should be non-empty in the newer case. TBH I don't have this setup anymore to test. Some friends and I were trying to get a game working together and since I spent an hour debugging this issue, and I didn't see anyone else report it, I didn't want the fix to be lost or the effort repeated by others.\r\n\r\n",
+        "timestamp": "2023-07-28T07:19:54Z"
+      },
+      {
+        "author": "Mantas-2155X",
+        "role": "NONE",
+        "body": "Can confirm this PR allows native Linux games to start again",
+        "timestamp": "2023-08-29T18:11:28Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "1c7c3b3",
+        "message": "Fix argument count when launched with Steam on Linux",
+        "author": "Eric Work",
+        "timestamp": "2023-03-03T18:56:43Z"
+      }
+    ]
+  },
+  {
+    "story_id": "BepInEx/BepInEx#1337",
+    "metadata": {
+      "title": "Set the console codepage to ensure correct text display regardless of encoding",
+      "labels": [],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-09T15:07:44Z",
+      "reviewers": [
+        "ManlyMarco"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "# Beginning with Fix Chinese Character Encoding (Mojibake) in Console Output\r\n\r\n## Description\r\nThis PR fixes an issue where Chinese (and other non-ASCII) characters appear as garbled text in the BepInEx log console. The fix addresses two encoding bugs in the Windows console driver and encoding layer.\r\n\r\n- Bug 1 [Critical] — Console output codepage not set on IL2CPP/.NET runtimes\r\nIn WindowsConsoleDriver.CreateConsole(), the Windows console output codepage was only set when useManagedEncoder  false (the Unity Mono path). On IL2CPP, .NET Framework, and .NET CoreCLR (useManagedEncoder == true), the console\r\ncodepage was never changed from the system default. On Chinese Windows (default codepage 936/GBK), the StreamWriter would write UTF-8 bytes to CONOUT$, but the console would interpret those bytes as GBK, producing garbled output instead of Chinese characters.\r\n\r\nThe fix removes the if (!useManagedEncoder) guard so SetConsoleOutputCP(codepage) is always called, ensuring the\r\nWindows console interprets bytes with the same encoding the StreamWriter uses to produce them.\r\n\r\n- Bug 2 [Correctness] — ConsoleEncoding ignored char/index offsets in Win32 API calls\r\n\r\nIn ConsoleEncoding.cs, all four override methods (GetByteCount, GetBytes, GetCharCount, GetChars) correctly copied\r\ninput data from the specified offset into internal _charBuffer/_byteBuffer arrays via WriteCharBuffer/WriteByteBuffer,\r\nbut then passed the original input arrays (always from index 0) to WideCharToMultiByte/MultiByteToWideChar instead of\r\nthe offset-corrected internal buffers. This meant whenever StreamWriter called these methods with a non-zero\r\ncharacter index, wrong data was encoded/decoded.\r\n\r\nThe fix changes the Win32 API calls to use _charBuffer/_byteBuffer instead of the original arrays, so the correct\r\noffset is always respected.\r\n\r\n## Motivation and Context\r\nUsers on Chinese (and other non-Latin) Windows systems were unable to read Chinese log output in the BepInEx console —all non-ASCII characters displayed as garbled symbols. This made debugging plugins on Chinese systems extremely\r\ndifficult.\r\n\r\nAdditionally, the ConsoleEncoding offset bug was a latent correctness issue that could cause encoding errors whenever\r\nthe .NET StreamWriter or Encoder infrastructure called these methods with a non-zero index.\r\n\r\n## How Has This Been Tested?\r\n- Built BepInEx.Core with both .NET Standard 2.0 and .NET 3.5 targets — compiles successfully with 0 errors\r\n- Ran the full Cake build pipeline (dotnet run --project build -- --target MakeDist) — all 13 distribution targets\r\nbuilt successfully, including Unity.IL2CPP-win-x86 (I am an Among Us moderator lol)\r\n- The console codepage fix has been verified on the Unity Mono path, where it was already in use; this change extends\r\nthe same behavior to IL2CPP and .NET runtimes\r\n- The ConsoleEncoding buffer fix is self-evidently correct — the internal buffers were always intended to be consumed\r\nby the API calls but were never wired up\r\n\r\n## Screenshots (if appropriate):\r\nBefore:\r\n<img width=\"1470\" height=\"767\" alt=\"b1c26282-bc36-4389-a599-0ff43359c52c\" src=\"https://github.com/user-attachments/assets/25806c2c-3e31-4466-b206-8f5550337540\" />\r\n\r\nNow:\r\n<img width=\"1470\" height=\"767\" alt=\"af171dcb9e04d6382ecd426272f1de8f\" src=\"https://github.com/user-attachments/assets/2655f99c-b707-43a0-b5a8-354fd4fde375\" />\r\n\r\n## Types of changes\r\n- [x] Bug fix (non-breaking change which fixes an issue)\r\n- [ ] New feature (non-breaking change which adds functionality)\r\n- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)\r\n\r\n## Checklist:\r\n- [x] My code follows the code style of this project.\r\n- [ ] My change requires a change to the documentation.\r\n- [ ] I have updated the documentation accordingly."
+    },
+    "discussion_timeline": [
+      {
+        "author": "ManlyMarco",
+        "role": "MEMBER",
+        "body": "Can you send a build of this for IL2CPP x64? The CI seems to be building the wrong commit.",
+        "timestamp": "2026-06-06T22:09:04Z"
+      },
+      {
+        "author": "HayashiUme",
+        "role": "CONTRIBUTOR",
+        "body": "> Can you send a build of this for IL2CPP x64? The CI seems to be building the wrong commit.\n\nSince GitHub does not allow files larger than 25 MB to be uploaded, please use https://dl.hayashiume.top/files/BepInEx-IL2CPP-x64-chinese-fix.zip to download the file.",
+        "timestamp": "2026-06-06T23:58:05Z"
+      },
+      {
+        "author": "ManlyMarco",
+        "role": "MEMBER",
+        "body": "Thanks, so it turns out it was the correct commit after all.\r\n\r\nAfter testing this PR I can say that it doesn't fix the issue fully but it also doesn't seem to break it any harder either.\r\n\r\nLatest nightly release:\r\n\r\n<img width=\"451\" height=\"33\" alt=\"image\" src=\"https://github.com/user-attachments/assets/d256e512-b816-4573-89e5-458280d89034\" />\r\n\r\nThis PR:\r\n\r\n<img width=\"445\" height=\"41\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e710f386-7553-424a-9b98-d4dc4fe7c5a9\" />\r\n\r\nThe text is `マウス操作=Mouse manipulation`. The game is forced to run in ja-JP culture while system is in en-GB, but it doesn't seem to change anything what the cultures are set to.\r\n\r\n",
+        "timestamp": "2026-06-08T05:21:56Z"
+      },
+      {
+        "author": "HayashiUme",
+        "role": "CONTRIBUTOR",
+        "body": "> Thanks, so it turns out it was the correct commit after all.\n> \n> After testing this PR I can say that it doesn't fix the issue fully but it also doesn't seem to break it any harder either.\n> \n> Latest nightly release:\n> \n> <img width=\"451\" height=\"33\" alt=\"image\" src=\"https://github.com/user-attachments/assets/d256e512-b816-4573-89e5-458280d89034\" />\n> \n> This PR:\n> \n> <img width=\"445\" height=\"41\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e710f386-7553-424a-9b98-d4dc4fe7c5a9\" />\n> \n> The text is `マウス操作=Mouse manipulation`. The game is forced to run in ja-JP culture while system is in en-GB, but it doesn't seem to change anything what the cultures are set to.\n> \n> \n\nOkay, I understand. I’ll try to fix it. Could you send me the garbled Japanese text and the characters displayed by this build? I think that might help me troubleshoot the issue.",
+        "timestamp": "2026-06-09T14:15:43Z"
+      },
+      {
+        "author": "ManlyMarco",
+        "role": "MEMBER",
+        "body": "Latest nightly: `[Message:Runtime Unity Editor] Òâ×ÒéªÒé╣µôìõ¢£=Mouse manipulation`\r\n\r\nThis PR: `[Message:Runtime Unity Editor] マウス操作=Mouse manipulation`\r\n\r\nI tried changing the console font and some of the fonts are able to display it correctly\r\n<img width=\"470\" height=\"66\" alt=\"image\" src=\"https://github.com/user-attachments/assets/27fa8b86-0e8b-4a79-8809-4cf475c0f00f\" />\r\n\r\nTurns out the default console font I had set was unable to show the characters, the PR works correctly. Thank you for the fix!",
+        "timestamp": "2026-06-09T15:03:48Z"
+      },
+      {
+        "author": "HayashiUme",
+        "role": "CONTRIBUTOR",
+        "body": "> Latest nightly: `[Message:Runtime Unity Editor] Òâ×ÒéªÒé╣µôìõ¢£=Mouse manipulation`\n> \n> This PR: `[Message:Runtime Unity Editor] マウス操作=Mouse manipulation`\n> \n> I tried changing the console font and some of the fonts are able to display it correctly\n> <img width=\"470\" height=\"66\" alt=\"image\" src=\"https://github.com/user-attachments/assets/27fa8b86-0e8b-4a79-8809-4cf475c0f00f\" />\n> \n> Turns out the default console font I had set was unable to show the characters, the PR works correctly. Thank you for the fix!\n\nIt's my pleasure.",
+        "timestamp": "2026-06-09T15:21:11Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "26ce053",
+        "message": "Set the console codepage to ensure correct text display regardless of encoding",
+        "author": "linmeideli",
+        "timestamp": "2026-06-05T13:36:38Z"
+      }
+    ]
+  }
+]

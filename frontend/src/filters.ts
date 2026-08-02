@@ -49,9 +49,22 @@ export const CONTRIBUTORS: FilterOption[] = [
   { id: "gt200", label: "> 200" },
 ];
 
+// Mirrors backend/app/filters.py QUALITY_DEFINITIONS — same ids, same order.
+// A mismatched id fails request validation, so change both together.
 export const QUALITIES: FilterOption[] = [
+  { id: "availability", label: "Availability" },
   { id: "security", label: "Security" },
+  { id: "modifiability", label: "Modifiability" },
   { id: "performance", label: "Performance" },
+  { id: "testability", label: "Testability" },
   { id: "usability", label: "Usability" },
-  { id: "maintainability", label: "Maintainability" },
+  { id: "deployability", label: "Deployability" },
+  { id: "energy_efficiency", label: "Energy Efficiency" },
 ];
+
+// Fixed semantic tone per quality; anything unrecognised (an old cached label,
+// say) falls back to neutral. Shared by the story card, the catalog, and the
+// library so a quality reads the same colour everywhere.
+export const QUALITY_TONE: Record<string, string> = Object.fromEntries(
+  QUALITIES.map((q) => [q.id, `tag-${q.id.replace("_", "-")}`]),
+);

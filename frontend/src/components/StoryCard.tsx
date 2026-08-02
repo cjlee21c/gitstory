@@ -1,18 +1,11 @@
 import type { StorySummary } from "../api/types";
+import { QUALITY_TONE } from "../filters";
 
 interface Props {
   story: StorySummary;
   onOpen: () => void;
   repoBadge?: string;
 }
-
-// Fixed semantic tones for the 4 controlled qualities; anything else is neutral.
-const QUALITY_TONE: Record<string, string> = {
-  security: "tag-security",
-  performance: "tag-performance",
-  usability: "tag-usability",
-  maintainability: "tag-maintainability",
-};
 
 export function StoryCard({ story, onOpen, repoBadge }: Props) {
   function handleKeyDown(e: React.KeyboardEvent) {

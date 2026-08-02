@@ -3,15 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getLibrary } from "../api/client";
 import type { LibraryEntry } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
-import { DOMAIN_ICONS, DOMAINS } from "../filters";
-
-// Fixed semantic tones for the 4 controlled qualities (shared with the catalog).
-const QUALITY_TONE: Record<string, string> = {
-  security: "tag-security",
-  performance: "tag-performance",
-  usability: "tag-usability",
-  maintainability: "tag-maintainability",
-};
+import { DOMAIN_ICONS, DOMAINS, QUALITY_TONE } from "../filters";
 
 const OTHER = "_other";
 

@@ -11,6 +11,16 @@ export interface DiscoverFilters {
   stars: string | null;
   contributors: string | null;
   keyword: string | null;
+  // Rotates which slice of the result pool this student sees, so returning to
+  // the same filters doesn't surface the same repos again.
+  student_id?: string | null;
+}
+
+export interface DiscoverResponse {
+  repos: RepoRecommendation[];
+  // Present when the filters matched too little on GitHub and were widened.
+  notice: string | null;
+  relaxed: string[];
 }
 
 export interface StorySummary {
@@ -23,6 +33,9 @@ export interface StorySummary {
 export interface StoryListResponse {
   stories: StorySummary[];
   quality_counts: Record<string, number>;
+  // Set when the selected focus matched nothing and `stories` is the
+  // unfiltered fallback instead.
+  notice: string | null;
 }
 
 export interface PipelineRunResponse {

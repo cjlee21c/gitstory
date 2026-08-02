@@ -17,7 +17,7 @@ ENRICH_CEILING = 20
 # this, loosening a threshold is invisible until someone passes force=true —
 # repos screened under the old 8-comment / 5-file cuts stayed at 0 stories
 # forever. Mirrors the `discover:v3:` convention in discovery/orchestrator.py.
-PIPELINE_VERSION = "v2"
+PIPELINE_VERSION = "v3"
 
 
 def pass2_cache_key(repo: str) -> str:

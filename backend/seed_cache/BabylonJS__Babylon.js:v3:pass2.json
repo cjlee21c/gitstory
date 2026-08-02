@@ -1,0 +1,1335 @@
+[
+  {
+    "story_id": "BabylonJS/Babylon.js#11710",
+    "metadata": {
+      "title": "Creation of InputTextArea component",
+      "labels": [],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2022-06-21T09:49:57Z",
+      "reviewers": [
+        "Valerian-Perez-Wanadev",
+        "RaananW"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "Based on fneitzel prototype ([Added prototype of InputTextArea](https://github.com/BabylonJS/Babylon.js/pull/8275)), I improved the component to support the margin, the deletion (backspace/del.), the highlighting, deadkeys and copy/paste/cut shortcuts.\r\n\r\nA lot of things remained to do :\r\n- fix the CR on last line\r\n- find why the text clip on single line during autostreching\r\n- resolve todos\r\n- clean/fix/update the code\r\n\r\nMy approach was highly naïve, so maybe a cleaner architecture will be necessery."
+    },
+    "discussion_timeline": [
+      {
+        "author": "fneitzel",
+        "role": "CONTRIBUTOR",
+        "body": "Cool that you are finishing it, let me know if you need help.",
+        "timestamp": "2022-01-05T23:11:06Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "I also wait for @DarraghBurkeMS's review to test the actual functionality.",
+        "timestamp": "2022-01-10T12:20:57Z"
+      },
+      {
+        "author": "Popov72",
+        "role": "CONTRIBUTOR",
+        "body": "> Why not use a textarea as the backend of this component and allow the browser to do the heavy-lifting of text editing?\r\n\r\nWhat about Native if using a textarea HTML element under the hood?",
+        "timestamp": "2022-01-10T12:35:48Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "> What about Native if using a textarea HTML element under the hood?\r\n\r\nThat's a good point. @bghgary , is there some corresponding element to be used, or does the functionality needs to be (re) implemented?",
+        "timestamp": "2022-01-10T12:37:52Z"
+      },
+      {
+        "author": "darraghjburke",
+        "role": "CONTRIBUTOR",
+        "body": "I'm not Gary, but: I don't think we can depend on any external text area implementation in Babylon Native. One of the critical design choices is that it's \"bring your own UI\", so we can't rely on any particular one of the many cross-platform UI solutions out there. The goal AFAIK is to implement enough of the canvas API that we can support Babylon GUI, but Babylon Native has no plans to support any DOM features (at that point we'd be making a browser.)\r\n\r\nFrom my POV, having a Babylon GUI text area brings a lot of value, but it's also worth keeping in mind that it will probably be significantly harder to maintain than our existing controls. That being said, I love that you've taken a stab at it, and I'll definitely give it a try later this week :)",
+        "timestamp": "2022-01-10T20:53:56Z"
+      },
+      {
+        "author": "deltakosh",
+        "role": "CONTRIBUTOR",
+        "body": "Totally aligned with @darraghjburke : no external dependencies beside just canvas API",
+        "timestamp": "2022-01-10T21:43:03Z"
+      },
+      {
+        "author": "bghgary",
+        "role": "CONTRIBUTOR",
+        "body": "> What about Native if using a textarea HTML element under the hood?\r\n\r\nMaybe @CedricGuillemet can answer this part.\r\n\r\nIn general, I'm also curious if there are any localization concerns with this change.",
+        "timestamp": "2022-01-10T23:23:10Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks a lot for all your feedbacks, I'll fix that later in the week!",
+        "timestamp": "2022-01-11T09:07:30Z"
+      },
+      {
+        "author": "CedricGuillemet",
+        "role": "CONTRIBUTOR",
+        "body": "> > What about Native if using a textarea HTML element under the hood?\r\n> \r\n> Maybe @CedricGuillemet can answer this part.\r\n> \r\n\r\nHard to tell without testing. At the current state, (basic) text and shape rendering will work. Idk if any unimplemented method is needed here.\r\n",
+        "timestamp": "2022-01-11T10:49:32Z"
+      },
+      {
+        "author": "deltakosh",
+        "role": "CONTRIBUTOR",
+        "body": "@Valerian-Perez-Wanadev : @fneitzel is interested to contribute to your PR. Do you mind opening your branch for his PR?\r\n\r\nAnyway I recommend the 2 of you to chat as your code is based on @fneitzel one",
+        "timestamp": "2022-01-12T17:25:54Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "I've made some good improvments during the sart of the year but I'm in a dilemma...\r\n\r\nThe component inherits from InputText, but it acts like a TextBlock. So for the textWrapping behaviour, I must follow the implementation of only Clip/WordWrap or Clip/WordWrap/Ellipsis/WordWrapEllipsis?\r\n\r\nFurthermore, the ellipsis mode it's not very useful in InputTextArea... I choose to discard it for the moment. But I want to known your thoughts about this before merging my code.\r\n\r\n",
+        "timestamp": "2022-03-03T14:33:08Z"
+      },
+      {
+        "author": "deltakosh",
+        "role": "CONTRIBUTOR",
+        "body": "For things in common we can think about having a common ancestor?",
+        "timestamp": "2022-03-03T16:53:56Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "> For things in common we can think about having a common ancestor?\r\n\r\nOf course I will do thatif needed but actually my choice is on which behaviour to adopt. \r\n\r\nAfter seeing implementation of TextArea of Firefox and the InputText of BJS, I will keep their philosophy and let the user decides whether their add a line or let the component breaks the text alone. It's more natural to do it that way.",
+        "timestamp": "2022-03-04T08:56:56Z"
+      },
+      {
+        "author": "deltakosh",
+        "role": "CONTRIBUTOR",
+        "body": "> It's more natural to do it that way.\r\n\r\nAgreed",
+        "timestamp": "2022-03-08T14:04:22Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "I have a question about the Enter key.\r\n\r\nHow can I override the blur by hitting Enter ? \r\n\r\nI want to add a new line with Enter but I can't figure how to do without blurring the input... ",
+        "timestamp": "2022-03-09T15:54:45Z"
+      },
+      {
+        "author": "deltakosh",
+        "role": "CONTRIBUTOR",
+        "body": "the onkeydown can be cancelled if you detect Enter (preventDefault)",
+        "timestamp": "2022-03-09T16:08:01Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nTo test the snapshot in the playground itself use (for example):\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-03-29T13:50:55Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "We have noticed you haven't changes the \"what's new.md\" file. If your update is important (a bug fix, a new feature), please make sure to update the what's new file in the base directory and commit the changes.",
+        "timestamp": "2022-03-29T13:50:56Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nTo test the snapshot in the playground itself use (for example):\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-03-29T14:18:31Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "We have noticed you haven't changes the \"what's new.md\" file. If your update is important (a bug fix, a new feature), please make sure to update the what's new file in the base directory and commit the changes.",
+        "timestamp": "2022-03-29T14:18:32Z"
+      },
+      {
+        "author": "dad72",
+        "role": "CONTRIBUTOR",
+        "body": "This a very useful feature. Thank you. I can't wait to use it to replace what I did in HTML",
+        "timestamp": "2022-04-13T15:15:07Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "It's almost done. Some bugs are complicated to fix but I'm always working on it :)",
+        "timestamp": "2022-04-14T07:14:06Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-04-28T08:19:43Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-04-28T15:19:08Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-03T14:18:29Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "There is no need to update the \"what's new.md\" file. A changelog will be generated using the PR and its tags.",
+        "timestamp": "2022-05-03T14:18:30Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-04T07:33:28Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "There is no need to update the \"what's new.md\" file. A changelog will be generated using the PR and its tags.",
+        "timestamp": "2022-05-04T07:33:29Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Reviewer - this PR has made changes to one or more package.json files.",
+        "timestamp": "2022-05-04T07:33:30Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-04T09:19:53Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-04T09:38:01Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-04T10:04:15Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-04T10:20:11Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-04T12:11:05Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-04T12:31:04Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to tag your PR with \"bug\", \"new feature\" or \"breaking change\" tags.",
+        "timestamp": "2022-05-09T14:44:52Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-09T15:06:31Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-05-13T13:22:35Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-13T13:44:56Z"
+      },
+      {
+        "author": "jonathanandrewsuk",
+        "role": "NONE",
+        "body": "@darraghjburke @RaananW just bumping this to register my appreciation for this PR! I think it would be a welcome addition to the GUI",
+        "timestamp": "2022-05-18T19:43:32Z"
+      },
+      {
+        "author": "matthewpflueger",
+        "role": "NONE",
+        "body": "Would love to see this merged! This is a perfect fit for our project...",
+        "timestamp": "2022-05-19T17:45:01Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-05-24T08:54:00Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-24T09:20:30Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-05-24T12:18:02Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-24T12:41:47Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-05-30T12:59:49Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-05-30T13:22:46Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-06-14T12:25:15Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-06-14T12:59:28Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2022-06-16T12:36:15Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "Snapshot stored with reference name:\nrefs/pull/11710/merge\n\nTest environment: \nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://babylonsnapshots.z22.web.core.windows.net/refs/pull/11710/merge/index.html#WGZLGJ#4600\n\nLinks to test babylon tools with this snapshot:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/11710/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/11710/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/11710/merge#BCU1XR#0",
+        "timestamp": "2022-06-16T12:54:59Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "@RaananW  Just one more thing before merging. It's possible to assign @fneitzel as co-author on the changelog please? Originally it was his code and we work sometimes together on this final version.",
+        "timestamp": "2022-06-21T07:08:58Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "> @RaananW Just one more thing before merging. It's possible to assign @fneitzel as co-author on the changelog please? Originally it was his code and we work sometimes together on this final version.\r\n\r\nI will have to edit the changelog afterwards, as it is generated automatically, but i'd be happy to do that. Please remind me after the next version is merged :-)\r\n\r\n\r\nAlso a request regarding this PR - we will need to update the documentation with this new feature. Adding one or two working examples will also be wonderful. Will you be able to do that?",
+        "timestamp": "2022-06-21T09:51:08Z"
+      },
+      {
+        "author": "Valerian-Perez-Wanadev",
+        "role": "CONTRIBUTOR",
+        "body": "> > @RaananW Just one more thing before merging. It's possible to assign @fneitzel as co-author on the changelog please? Originally it was his code and we work sometimes together on this final version.\r\n> \r\n> I will have to edit the changelog afterwards, as it is generated automatically, but i'd be happy to do that. Please remind me after the next version is merged :-)\r\n> \r\n> Also a request regarding this PR - we will need to update the documentation with this new feature. Adding one or two working examples will also be wonderful. Will you be able to do that?\r\n\r\nI'll do that 👍 \r\n\r\nAnd my local PG has some beautiful examples!",
+        "timestamp": "2022-06-24T13:27:51Z"
+      },
+      {
+        "author": "jonathanandrewsuk",
+        "role": "NONE",
+        "body": "@Valerian-Perez-Wanadev I'd be happy to help out with the docs (I've been using the component for a few weeks already)",
+        "timestamp": "2022-06-28T01:05:54Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "4af4fb7",
+        "message": "Add Multiline text input",
+        "author": "Valérian Perez",
+        "timestamp": "2021-12-29T16:16:29Z"
+      },
+      {
+        "sha": "f643c20",
+        "message": "Fix the cut",
+        "author": "Valérian Perez",
+        "timestamp": "2021-12-30T08:35:07Z"
+      },
+      {
+        "sha": "497ef20",
+        "message": "Deadkey managment",
+        "author": "Valérian Perez",
+        "timestamp": "2021-12-30T10:08:54Z"
+      },
+      {
+        "sha": "1305129",
+        "message": "Remove useless code",
+        "author": "Valérian Perez",
+        "timestamp": "2021-12-30T15:51:31Z"
+      },
+      {
+        "sha": "37b7781",
+        "message": "Add margin support",
+        "author": "Valérian Perez",
+        "timestamp": "2021-12-30T15:51:41Z"
+      },
+      {
+        "sha": "bd6bd5f",
+        "message": "Merge branch 'BabylonJS:master' into master",
+        "author": "Valerian-Perez-Wanadev",
+        "timestamp": "2022-01-13T08:57:41Z"
+      },
+      {
+        "sha": "6b429a3",
+        "message": "Remove useless code",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-13T14:42:50Z"
+      },
+      {
+        "sha": "05b6f8b",
+        "message": "Correctly import TextWrapping",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-13T14:43:47Z"
+      },
+      {
+        "sha": "9048405",
+        "message": "Remove unused attribute",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-13T14:45:41Z"
+      },
+      {
+        "sha": "aeb4d89",
+        "message": "Move select all in correct place",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-13T14:46:02Z"
+      },
+      {
+        "sha": "fd57a87",
+        "message": "Missing break",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-21T09:49:04Z"
+      },
+      {
+        "sha": "f6e3ed0",
+        "message": "Remove unused import",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-21T14:14:38Z"
+      },
+      {
+        "sha": "0649efb",
+        "message": "Chnage path of import",
+        "author": "Valérian Perez",
+        "timestamp": "2022-01-21T14:15:02Z"
+      },
+      {
+        "sha": "64d7f93",
+        "message": "tslinted",
+        "author": "Frederic Neitzel",
+        "timestamp": "2022-01-05T21:44:55Z"
+      },
+      {
+        "sha": "0115e29",
+        "message": "Merge remote-tracking branch 'upstream/master'",
+        "author": "Valérian Perez",
+        "timestamp": "2022-02-22T09:42:36Z"
+      },
+      {
+        "sha": "a725c6c",
+        "message": "_breakLines takes care of height",
+        "author": "Valérian Perez",
+        "timestamp": "2022-02-28T10:50:05Z"
+      },
+      {
+        "sha": "2d49761",
+        "message": "Add WordWrapEllipsis mode",
+        "author": "Valérian Perez",
+        "timestamp": "2022-02-28T10:50:49Z"
+      },
+      {
+        "sha": "eb4883a",
+        "message": "Fix bug on _parseLineWordWrapEllipsis",
+        "author": "Valérian Perez",
+        "timestamp": "2022-02-28T14:07:38Z"
+      },
+      {
+        "sha": "4f76e9c",
+        "message": "Correct display of Clip mode",
+        "author": "Valérian Perez",
+        "timestamp": "2022-02-28T15:55:59Z"
+      },
+      {
+        "sha": "53b7dbb",
+        "message": "Correct clip of displayed text",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-03T10:48:30Z"
+      },
+      {
+        "sha": "aff6d04",
+        "message": "Correct managment of cursor along height of text",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-03T10:49:51Z"
+      },
+      {
+        "sha": "eb67951",
+        "message": "Use InpuText displaying inheritance",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-04T15:50:25Z"
+      },
+      {
+        "sha": "1b18bda",
+        "message": "DraxText after caret moving",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-04T15:51:16Z"
+      },
+      {
+        "sha": "de86414",
+        "message": "Correct text displaying",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-08T10:54:43Z"
+      },
+      {
+        "sha": "7dfb5d1",
+        "message": "Correct cursor moves in input height",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-08T11:07:32Z"
+      },
+      {
+        "sha": "7c06181",
+        "message": "Merge remote-tracking branch 'upstream/master'",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-08T13:25:07Z"
+      },
+      {
+        "sha": "a65ae28",
+        "message": "Merge pull request #6 from Valerian-Perez-Wanadev/3-wrapping-mode\n\nwrapping modes",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-08T13:25:51Z"
+      },
+      {
+        "sha": "4500844",
+        "message": "lint",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-08T15:13:17Z"
+      },
+      {
+        "sha": "0420b75",
+        "message": "remove unused code",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-10T10:53:05Z"
+      },
+      {
+        "sha": "ed979fb",
+        "message": "Add new attributes",
+        "author": "Valérian Perez",
+        "timestamp": "2022-03-18T15:46:12Z"
+      }
+    ]
+  },
+  {
+    "story_id": "BabylonJS/Babylon.js#18063",
+    "metadata": {
+      "title": "stringTools: ES2026 proposal-arraybuffer-base64 support",
+      "labels": [],
+      "qualities": [
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-03-27T13:41:54Z",
+      "reviewers": [
+        "copilot-pull-request-reviewer[bot]",
+        "ryantrem",
+        "RaananW",
+        "kzhsw"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "This commit adds support of native base64 encoding/decoding api support, which is benchmarked to be faster then the js impl. It checks native support of the native api excluding polyfills by core-js and es-shims on module load, and fallback to the original js impl for backward compatibility.\r\nSee this forum post for discussion and benchmark result: <https://forum.babylonjs.com/t/es2026-proposal-arraybuffer-base64-support/62715>"
+    },
+    "discussion_timeline": [
+      {
+        "author": "sebavan",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-10T17:46:48Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-10T17:46:59Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2026-03-10T18:27:25Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Reviewer - this PR has made changes to one or more package.json files.",
+        "timestamp": "2026-03-10T18:27:26Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Reviewer - this PR has made changes to the build configuration file.\n\n*This build will release a new package on npm*\n\nIf that was unintentional please make sure to revert those changes or close this PR.",
+        "timestamp": "2026-03-10T18:27:27Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Snapshot stored with reference name:\nrefs/pull/18063/merge\n\nTest environment: \nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/index.html#WGZLGJ#4600\n\nLinks to test your changes to core in the published versions of the Babylon tools (does not contain changes you made to the tools themselves):\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/18063/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18063/merge#BCU1XR#0\n\n*If you made changes to the sandbox or playground in this PR, additional comments will be generated soon containing links to the dev versions of those tools.*",
+        "timestamp": "2026-03-10T18:42:34Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-10T19:04:43Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-10T19:11:57Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-10T19:13:19Z"
+      },
+      {
+        "author": "kzhsw",
+        "role": "CONTRIBUTOR",
+        "body": "Here is the benchmark playground targeting this PR:\r\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18063/merge#BASE64#1",
+        "timestamp": "2026-03-11T01:10:17Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "> Here is the benchmark playground targeting this PR: https://playground.babylonjs.com/?snapshot=refs/pull/18063/merge#BASE64#1\r\n\r\nam i right to understand that for : 1MB we are faster already?\r\n\r\n<img width=\"579\" height=\"639\" alt=\"image\" src=\"https://github.com/user-attachments/assets/e9d5eead-c85a-42c7-826e-1f18e3c8cd60\" />\r\n",
+        "timestamp": "2026-03-11T11:01:45Z"
+      },
+      {
+        "author": "sebavan",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-11T18:11:41Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-11T18:11:52Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Reviewer - this PR has made changes to one or more package.json files.",
+        "timestamp": "2026-03-11T18:14:05Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-11T18:32:48Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-11T18:48:34Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-11T18:48:38Z"
+      },
+      {
+        "author": "kzhsw",
+        "role": "CONTRIBUTOR",
+        "body": "> am i right to understand that for : 1MB we are faster already?\r\n\r\n@RaananW Nope, this benchmark uses playground targeting this PR, which benchmarks base64 after this PR against pure native api.\r\nTo compare before/after PR, you'll need to compare the [playground targeting last release](https://playground.babylonjs.com/#BASE64#1) against [playground targeting this PR](https://playground.babylonjs.com/?snapshot=refs/pull/18063/merge#BASE64#1)",
+        "timestamp": "2026-03-12T00:36:57Z"
+      },
+      {
+        "author": "sebavan",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-13T21:42:41Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-13T21:42:51Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-13T22:04:25Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-13T22:15:34Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-13T22:18:10Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-18T12:12:29Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-18T12:12:41Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-18T12:34:47Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-18T12:36:21Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-18T12:36:52Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-18T12:58:48Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-18T13:00:48Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-18T13:07:03Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-18T13:23:28Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-18T13:23:39Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2026-03-18T13:35:58Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Snapshot stored with reference name:\nrefs/pull/18063/merge\n\nTest environment: \nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/index.html#WGZLGJ#4600\n\nLinks to test your changes to core in the published versions of the Babylon tools (does not contain changes you made to the tools themselves):\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/18063/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/18063/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18063/merge#BCU1XR#0\n\n*If you made changes to the sandbox or playground in this PR, additional comments will be generated soon containing links to the dev versions of those tools.*",
+        "timestamp": "2026-03-18T13:51:45Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-18T13:56:09Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-18T14:13:28Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-18T14:13:48Z"
+      },
+      {
+        "author": "ryantrem",
+        "role": "MEMBER",
+        "body": "@kzhsw, I created a PR to fix the build issue with the global type declarations here: https://github.com/kzhsw/Babylon.js/pull/1\r\n\r\n@RaananW can you take a look and see if this is the right way to handle this?",
+        "timestamp": "2026-03-18T21:36:11Z"
+      },
+      {
+        "author": "RaananW",
+        "role": "MEMBER",
+        "body": "> @kzhsw, I created a PR to fix the build issue with the global type declarations here: [kzhsw#1](https://github.com/kzhsw/Babylon.js/pull/1)\r\n> \r\n> @RaananW can you take a look and see if this is the right way to handle this?\r\n\r\nI believe putting it in the declaration directory would be better, as this is the way we have configured all of our build tools to work. I prefer avoiding reference types. Linting will also fail. Try putting it in the browser.d.ts in the LibDeclaration directory instead.",
+        "timestamp": "2026-03-19T11:00:55Z"
+      },
+      {
+        "author": "ryantrem",
+        "role": "MEMBER",
+        "body": "> > @kzhsw, I created a PR to fix the build issue with the global type declarations here: [kzhsw#1](https://github.com/kzhsw/Babylon.js/pull/1)\r\n> > @RaananW can you take a look and see if this is the right way to handle this?\r\n> \r\n> I believe putting it in the declaration directory would be better, as this is the way we have configured all of our build tools to work. I prefer avoiding reference types. Linting will also fail. Try putting it in the browser.d.ts in the LibDeclaration directory instead.\r\n\r\nSounds good, my PR into this PR has been updated with these changes. Tested locally and it seems ok to me!",
+        "timestamp": "2026-03-19T16:09:30Z"
+      },
+      {
+        "author": "ryantrem",
+        "role": "MEMBER",
+        "body": "We're very close to the 9.0 release now. Let's wait until after the release to merge this change.",
+        "timestamp": "2026-03-20T18:44:17Z"
+      },
+      {
+        "author": "ryantrem",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-26T20:56:08Z"
+      },
+      {
+        "author": "sebavan",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-03-27T11:34:55Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 1 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-03-27T11:35:04Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Reviewer - this PR has made changes to one or more package.json files.",
+        "timestamp": "2026-03-27T11:44:05Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-03-27T12:19:48Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-03-27T13:09:03Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-27T13:15:51Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18063/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-03-27T13:41:39Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "772dea1",
+        "message": "stringTools: ES2026 proposal-arraybuffer-base64 support\n\nThis commit adds support of native base64 encoding/decoding api support, which is benchmarked to be faster then the js impl.\r\nIt checks native support of the native api excluding polyfills by core-js and es-shims on module load, and fallback to the original js impl for backward compatibility.\r\nSee this forum post for discussion and benchmark result: <https://forum.babylonjs.com/t/es2026-proposal-arraybuffer-base64-support/62715>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-10T00:59:00Z"
+      },
+      {
+        "sha": "b0d0104",
+        "message": "stringTools: use type cast instead of declare global\n\nRequested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2909338041>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-10T09:00:57Z"
+      },
+      {
+        "sha": "e35d68f",
+        "message": "stringTools: update uint8array typedef\n\nThis comit reverts 772dea11040a654b045f429fd0942955513e8fa9 as requested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2912931646>\r\nAnd adds a TODO as requested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2910931984>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-11T00:45:10Z"
+      },
+      {
+        "sha": "0eb46b6",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-11T00:45:25Z"
+      },
+      {
+        "sha": "13d4cad",
+        "message": "Revert \"stringTools: update uint8array typedef\"\n\nThis commit reverts e35d68f983770ff6d1fbe635e4a52619ae756402 as `declare global` breaks building `inspector-v2`: <https://dev.azure.com/babylonjs/ContinousIntegration/_build/results?buildId=50164&view=logs&j=8c3f0989-617d-5669-63ad-dc4309b25f44&t=1f7a1b4b-d9c8-5792-a01a-a4c2a11af4fd&l=2256>\r\nAlso, the TODO is kept for both interfaces.",
+        "author": "kzhsw",
+        "timestamp": "2026-03-12T00:44:58Z"
+      },
+      {
+        "sha": "3db6188",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-12T00:45:14Z"
+      },
+      {
+        "sha": "8b07306",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-13T09:43:58Z"
+      },
+      {
+        "sha": "d7a7a61",
+        "message": "stringTools: remove the polyfill detect code\n\nAs requested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2945968214> and here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2948096317>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-18T00:17:39Z"
+      },
+      {
+        "sha": "a88883c",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-18T00:17:47Z"
+      },
+      {
+        "sha": "b98f845",
+        "message": "Move global declarations to a d.ts file",
+        "author": "Ryan Tremblay",
+        "timestamp": "2026-03-18T21:33:08Z"
+      },
+      {
+        "sha": "84667e8",
+        "message": "PR feedback",
+        "author": "Ryan Tremblay",
+        "timestamp": "2026-03-19T16:08:06Z"
+      },
+      {
+        "sha": "706929b",
+        "message": "Merge pull request #1 from ryantrem/patch-2\n\nMove global declarations to a d.ts file",
+        "author": "kzhsw",
+        "timestamp": "2026-03-20T00:47:25Z"
+      },
+      {
+        "sha": "d3c28c7",
+        "message": "stringTools: use runtime branch instead of side effects\n\nThis should improve tree-shaking compatibility of this file as requested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2955517215>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-20T00:55:08Z"
+      },
+      {
+        "sha": "e70a1db",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-20T00:59:37Z"
+      },
+      {
+        "sha": "9478607",
+        "message": "Use DecodeBase64ToString in JsDecodeBase64ToBinary\n\nRequested here: <https://github.com/BabylonJS/Babylon.js/pull/18063#discussion_r2967394199>",
+        "author": "kzhsw",
+        "timestamp": "2026-03-23T00:59:51Z"
+      },
+      {
+        "sha": "b2811ca",
+        "message": "Merge branch 'BabylonJS:master' into patch-2",
+        "author": "kzhsw",
+        "timestamp": "2026-03-23T01:06:00Z"
+      },
+      {
+        "sha": "8d9a54e",
+        "message": "trigger CI",
+        "author": "Ryan Tremblay",
+        "timestamp": "2026-03-26T21:01:04Z"
+      },
+      {
+        "sha": "9d84b18",
+        "message": "Merge remote-tracking branch 'origin/master' into patch-2",
+        "author": "Ryan Tremblay",
+        "timestamp": "2026-03-26T21:06:37Z"
+      }
+    ]
+  },
+  {
+    "story_id": "BabylonJS/Babylon.js#18495",
+    "metadata": {
+      "title": "Viewer NRG Support",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "availability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-01T17:10:27Z",
+      "reviewers": [
+        "MiiBond",
+        "copilot-pull-request-reviewer[bot]",
+        "ryantrem"
+      ],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "I want to be able to load a custom NRG in the viewer. To do this, I've made some changes to `viewer.ts`:\r\n * A new protected method, `_setActiveFrameGraph` gives derived classes a way to activate a custom FrameGraph and keep its mesh lists in sync with the scene as models load and unload.\r\n\r\nI also made some changes to `TransmissionHelper.ts` to support unbinding things when needed. In my test viewer, I was loading a frame graph after already potentially loading a scene with transmission and needed these fixes."
+    },
+    "discussion_timeline": [
+      {
+        "author": "Popov72",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2026-05-22T10:00:35Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-05-22T10:00:51Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Please make sure to label your PR with \"bug\", \"new feature\" or \"breaking change\" label(s).\nTo prevent this PR from going to the changelog marked it with the \"skip changelog\" label.",
+        "timestamp": "2026-05-22T10:02:08Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Reviewer - this PR has made changes to one or more package.json files.",
+        "timestamp": "2026-05-22T10:02:09Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Snapshot stored with reference name:\nrefs/pull/18495/merge\n\nTest environment:\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/index.html\n\nTo test a playground add it to the URL, for example:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/index.html#WGZLGJ#4600\n\nLinks to test your changes to core in the published versions of the Babylon tools (does not contain changes you made to the tools themselves):\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18495/merge\nhttps://sandbox.babylonjs.com/?snapshot=refs/pull/18495/merge\nhttps://gui.babylonjs.com/?snapshot=refs/pull/18495/merge\nhttps://nme.babylonjs.com/?snapshot=refs/pull/18495/merge\n\nTo test the snapshot in the playground with a playground ID add it after the snapshot query string:\n\nhttps://playground.babylonjs.com/?snapshot=refs/pull/18495/merge#BCU1XR#0\n\n*If you made changes to the sandbox or playground in this PR, additional comments will be generated soon containing links to the dev versions of those tools.*",
+        "timestamp": "2026-05-22T10:21:31Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-05-22T10:24:41Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## 🟢 Memory Leak Test Results\n\n**13** passed, **0** leaked out of **13** scenarios\n\n🟢 All memory leak tests passed — no leaks detected.\n\n<details>\n<summary>Passed Scenarios (13)</summary>\n\n| Scenario | Package |\n|----------|---------|\n| Core Feature Stack | @babylonjs/core |\n| Core Rendering Materials Shadows Stack | @babylonjs/core |\n| Core Textures Render Targets PostProcess Stack | @babylonjs/core |\n| GUI Fullscreen UI Controls | @babylonjs/gui |\n| GUI Mesh ADT Controls | @babylonjs/gui |\n| Loaders Boombox Import | @babylonjs/loaders |\n| Loaders OBJ Direct Load | @babylonjs/loaders |\n| Loaders STL Direct Load | @babylonjs/loaders |\n| Materials Library Stack | @babylonjs/materials |\n| Serializers glTF Export | @babylonjs/serializers |\n| Serializers GLB Export | @babylonjs/serializers |\n| PostProcesses Digital Rain Stack | @babylonjs/post-processes |\n| Procedural Textures Stack | @babylonjs/procedural-textures |\n\n</details>",
+        "timestamp": "2026-05-22T10:43:26Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-05-22T10:46:21Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-05-22T10:52:22Z"
+      },
+      {
+        "author": "Popov72",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2026-05-26T18:40:06Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-05-26T18:40:22Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-05-26T19:03:45Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-05-26T19:10:19Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-05-26T19:10:22Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## ⚡ Performance Test Results\n\n🟢 All performance tests passed — no regressions detected.",
+        "timestamp": "2026-05-26T19:13:26Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## 🟢 Memory Leak Test Results\n\n**13** passed, **0** leaked out of **13** scenarios\n\n🟢 All memory leak tests passed — no leaks detected.\n\n<details>\n<summary>Passed Scenarios (13)</summary>\n\n| Scenario | Package |\n|----------|---------|\n| Core Feature Stack | @babylonjs/core |\n| Core Rendering Materials Shadows Stack | @babylonjs/core |\n| Core Textures Render Targets PostProcess Stack | @babylonjs/core |\n| GUI Fullscreen UI Controls | @babylonjs/gui |\n| GUI Mesh ADT Controls | @babylonjs/gui |\n| Loaders Boombox Import | @babylonjs/loaders |\n| Loaders OBJ Direct Load | @babylonjs/loaders |\n| Loaders STL Direct Load | @babylonjs/loaders |\n| Materials Library Stack | @babylonjs/materials |\n| Serializers glTF Export | @babylonjs/serializers |\n| Serializers GLB Export | @babylonjs/serializers |\n| PostProcesses Digital Rain Stack | @babylonjs/post-processes |\n| Procedural Textures Stack | @babylonjs/procedural-textures |\n\n</details>",
+        "timestamp": "2026-05-26T19:19:10Z"
+      },
+      {
+        "author": "Popov72",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2026-05-27T08:23:10Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-05-27T08:23:28Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-05-27T08:50:12Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-05-27T08:56:22Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-05-27T08:56:51Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## 🟢 Memory Leak Test Results\n\n**13** passed, **0** leaked out of **13** scenarios\n\n🟢 All memory leak tests passed — no leaks detected.\n\n<details>\n<summary>Passed Scenarios (13)</summary>\n\n| Scenario | Package |\n|----------|---------|\n| Core Feature Stack | @babylonjs/core |\n| Core Rendering Materials Shadows Stack | @babylonjs/core |\n| Core Textures Render Targets PostProcess Stack | @babylonjs/core |\n| GUI Fullscreen UI Controls | @babylonjs/gui |\n| GUI Mesh ADT Controls | @babylonjs/gui |\n| Loaders Boombox Import | @babylonjs/loaders |\n| Loaders OBJ Direct Load | @babylonjs/loaders |\n| Loaders STL Direct Load | @babylonjs/loaders |\n| Materials Library Stack | @babylonjs/materials |\n| Serializers glTF Export | @babylonjs/serializers |\n| Serializers GLB Export | @babylonjs/serializers |\n| PostProcesses Digital Rain Stack | @babylonjs/post-processes |\n| Procedural Textures Stack | @babylonjs/procedural-textures |\n\n</details>",
+        "timestamp": "2026-05-27T09:06:09Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## ⚡ Performance Test Results\n\n🟢 All performance tests passed — no regressions detected.",
+        "timestamp": "2026-05-27T09:11:49Z"
+      },
+      {
+        "author": "Popov72",
+        "role": "CONTRIBUTOR",
+        "body": "/azp run",
+        "timestamp": "2026-05-28T20:44:24Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-05-28T20:44:38Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-05-28T21:09:18Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-05-28T21:18:41Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-05-28T21:24:47Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## 🟢 Memory Leak Test Results\n\n**13** passed, **0** leaked out of **13** scenarios\n\n🟢 All memory leak tests passed — no leaks detected.\n\n<details>\n<summary>Passed Scenarios (13)</summary>\n\n| Scenario | Package |\n|----------|---------|\n| Core Feature Stack | @babylonjs/core |\n| Core Rendering Materials Shadows Stack | @babylonjs/core |\n| Core Textures Render Targets PostProcess Stack | @babylonjs/core |\n| GUI Fullscreen UI Controls | @babylonjs/gui |\n| GUI Mesh ADT Controls | @babylonjs/gui |\n| Loaders Boombox Import | @babylonjs/loaders |\n| Loaders OBJ Direct Load | @babylonjs/loaders |\n| Loaders STL Direct Load | @babylonjs/loaders |\n| Materials Library Stack | @babylonjs/materials |\n| Serializers glTF Export | @babylonjs/serializers |\n| Serializers GLB Export | @babylonjs/serializers |\n| PostProcesses Digital Rain Stack | @babylonjs/post-processes |\n| Procedural Textures Stack | @babylonjs/procedural-textures |\n\n</details>",
+        "timestamp": "2026-05-28T21:25:11Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## ⚡ Performance Test Results\n\n🟢 All performance tests passed — no regressions detected.",
+        "timestamp": "2026-05-28T21:49:05Z"
+      },
+      {
+        "author": "ryantrem",
+        "role": "MEMBER",
+        "body": "/azp run",
+        "timestamp": "2026-06-01T16:33:30Z"
+      },
+      {
+        "author": "azure-pipelines[bot]",
+        "role": "NONE",
+        "body": "<samp>\nAzure Pipelines successfully started running 2 pipeline(s).<br>\r\n\n</samp>",
+        "timestamp": "2026-06-01T16:33:45Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Interaction tests\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/interactionplaywright/index.html",
+        "timestamp": "2026-06-01T16:58:20Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "Visualization tests for WebGPU\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgpuplaywright/index.html",
+        "timestamp": "2026-06-01T17:08:16Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "WebGL2 visualization test reporter:\n\nhttps://snapshots-cvgtc2eugrd3cgfd.z01.azurefd.net/refs/pull/18495/merge/testResults/webgl2playwright/index.html",
+        "timestamp": "2026-06-01T17:10:16Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## 🟢 Memory Leak Test Results\n\n**13** passed, **0** leaked out of **13** scenarios\n\n🟢 All memory leak tests passed — no leaks detected.\n\n<details>\n<summary>Passed Scenarios (13)</summary>\n\n| Scenario | Package |\n|----------|---------|\n| Core Feature Stack | @babylonjs/core |\n| Core Rendering Materials Shadows Stack | @babylonjs/core |\n| Core Textures Render Targets PostProcess Stack | @babylonjs/core |\n| GUI Fullscreen UI Controls | @babylonjs/gui |\n| GUI Mesh ADT Controls | @babylonjs/gui |\n| Loaders Boombox Import | @babylonjs/loaders |\n| Loaders OBJ Direct Load | @babylonjs/loaders |\n| Loaders STL Direct Load | @babylonjs/loaders |\n| Materials Library Stack | @babylonjs/materials |\n| Serializers glTF Export | @babylonjs/serializers |\n| Serializers GLB Export | @babylonjs/serializers |\n| PostProcesses Digital Rain Stack | @babylonjs/post-processes |\n| Procedural Textures Stack | @babylonjs/procedural-textures |\n\n</details>",
+        "timestamp": "2026-06-01T17:15:50Z"
+      },
+      {
+        "author": "bjsplat",
+        "role": "COLLABORATOR",
+        "body": "## ⚡ Performance Test Results\n\n🟢 All performance tests passed — no regressions detected.",
+        "timestamp": "2026-06-01T17:19:51Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "cbbac81",
+        "message": "WIP NRG viewer",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-20T13:35:46Z"
+      },
+      {
+        "sha": "9e0b95b",
+        "message": "WIP",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-20T19:25:58Z"
+      },
+      {
+        "sha": "f08ff84",
+        "message": "Merge branch 'master' of github.com:BabylonJS/Babylon.js into mbond/viewer-nrg-support",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-21T23:06:58Z"
+      },
+      {
+        "sha": "48472ec",
+        "message": "WIP viewer support for NRG",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-21T23:25:16Z"
+      },
+      {
+        "sha": "6a4f1f8",
+        "message": "Fix some comments",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-21T23:58:19Z"
+      },
+      {
+        "sha": "e81c24a",
+        "message": "Remove uneeded changes",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-22T00:01:14Z"
+      },
+      {
+        "sha": "fad8e34",
+        "message": "Merge branch 'master' of github.com:BabylonJS/Babylon.js into mbond/viewer-nrg-support",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-26T15:04:16Z"
+      },
+      {
+        "sha": "527421d",
+        "message": "Address PR comments",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-26T20:24:21Z"
+      },
+      {
+        "sha": "51b1103",
+        "message": "Apply suggestion from @ryantrem\n\nCo-authored-by: Ryan Tremblay <ryantrem@msn.com>",
+        "author": "MiiBond",
+        "timestamp": "2026-05-26T22:47:16Z"
+      },
+      {
+        "sha": "ad21cee",
+        "message": "Simplify frame graph setting",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-27T00:44:54Z"
+      },
+      {
+        "sha": "c7b1aad",
+        "message": "Merge branch 'mbond/viewer-nrg-support' of github.com-personal:MiiBond/Babylon.js into mbond/viewer-nrg-support",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-27T02:07:22Z"
+      },
+      {
+        "sha": "0343bae",
+        "message": "Potential fix for pull request finding\n\nCo-authored-by: Copilot Autofix powered by AI <175728472+Copilot@users.noreply.github.com>",
+        "author": "MiiBond",
+        "timestamp": "2026-05-28T19:45:16Z"
+      },
+      {
+        "sha": "0c3d003",
+        "message": "Update packages/dev/loaders/src/glTF/2.0/Extensions/transmissionHelper.ts\n\nCo-authored-by: Ryan Tremblay <ryantrem@msn.com>",
+        "author": "MiiBond",
+        "timestamp": "2026-05-28T19:45:44Z"
+      },
+      {
+        "sha": "0113421",
+        "message": "PR comments",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-28T20:11:59Z"
+      },
+      {
+        "sha": "cadf0d9",
+        "message": "Merge branch 'mbond/viewer-nrg-support' of github.com-personal:MiiBond/Babylon.js into mbond/viewer-nrg-support",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-28T20:12:17Z"
+      },
+      {
+        "sha": "f54b503",
+        "message": "Address PR comments",
+        "author": "Michael Bond",
+        "timestamp": "2026-05-28T20:27:48Z"
+      },
+      {
+        "sha": "be87d4c",
+        "message": "Update packages/dev/loaders/src/glTF/2.0/Extensions/transmissionHelper.ts\n\nCo-authored-by: Ryan Tremblay <ryantrem@msn.com>",
+        "author": "MiiBond",
+        "timestamp": "2026-06-01T16:16:54Z"
+      },
+      {
+        "sha": "5750c85",
+        "message": "Fix ssao logic",
+        "author": "Michael Bond",
+        "timestamp": "2026-06-01T16:20:17Z"
+      },
+      {
+        "sha": "482eabd",
+        "message": "Merge branch 'mbond/viewer-nrg-support' of github.com-personal:MiiBond/Babylon.js into mbond/viewer-nrg-support",
+        "author": "Michael Bond",
+        "timestamp": "2026-06-01T16:20:35Z"
+      }
+    ]
+  }
+]

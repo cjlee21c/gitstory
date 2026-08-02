@@ -1,0 +1,479 @@
+[
+  {
+    "story_id": "Aleph-One-Marathon/alephone#135",
+    "metadata": {
+      "title": "Blockier static",
+      "labels": [],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2019-01-26T16:53:51Z",
+      "reviewers": [],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "The static effect is looking more like a grey haze. What do folks think about this adjustment?\r\n\r\n<img width=\"1735\" alt=\"static\" src=\"https://user-images.githubusercontent.com/25617921/50812626-1d486e00-12d9-11e9-83e6-b2db75ea1d38.png\">\r\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "I really like the look. Does it work well at lower resolutions?\r\n\r\nI think static effects should glow (bloom), but we couldn't get it working with the authentic static shader (it would just blur the whole thing). Blockier static might be able to glow :)\r\n\r\nIf we don't include this as the default, I encourage you to release it as a plugin!\r\n\r\nAn aside: I appreciate that you use spaces instead of tabs, so you're not a monster. But you use three spaces to indent!? So you're sort of a monster. Of course, the current code base is wildly inconsistent. Maybe we should draft a style guide :)",
+        "timestamp": "2019-01-08T13:33:52Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Here’s two screenshots; one at 640x480 and the other at my native res (both high ppi). Obviously the first is much chunkier, but still pretty good in my opinion. I could try to scale the effect based on the color attachment size, but I would probably need to add another uniform for that. My inclination is to just consider it good enough. If necessary, I could add in a little high frequency noise to break it up.\r\n\r\nAlso, it looks pretty good with bloom using nearly duplicated code from the main shader.\r\n\r\n<img width=\"1680\" alt=\"640x480\" src=\"https://user-images.githubusercontent.com/25617921/50864656-5380fe80-1368-11e9-89a1-fd5d75d14668.png\">\r\n<img width=\"1680\" alt=\"3360 x 2100\" src=\"https://user-images.githubusercontent.com/25617921/50864664-5ed42a00-1368-11e9-9f41-abfd1d8e1272.png\">\r\n",
+        "timestamp": "2019-01-08T23:11:29Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "The blockiness definitely helps with high-PPI monitors, and the bloom effect is terrific. Great job!",
+        "timestamp": "2019-01-26T16:53:43Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "This is good looking but wayyy to blocky at 1080p, and wayyy wayyy too blocky at 640x480 (there's like 6 blocks total when a BoB teleports out). Additionally, this leaves no way to get the original effect for purists...could we move this to a plugin that we include with the default data files?",
+        "timestamp": "2019-03-11T00:43:48Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "It looks fine for me at 1200p... usually.  But, sometimes it just goes completely white, and that looks really bad; other times, the pattern is much too obvious; and all the time, there's just too much white.  And while I enjoy having it, I agree that being unable to turn it off is a problem, as it looks more like Star Trek than the original static effect.",
+        "timestamp": "2019-03-11T16:09:49Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "I'll move it to a plugin.",
+        "timestamp": "2019-03-11T16:20:36Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Can anyone provide a screenshot of when it goes completely white? It should definitely not do that.\r\n\r\nI think moving this to a plug-in is fine, but would you be open to adding another uniform that provides the screen resolution and/or scale? The whole point of this change was to make the effect look more like the original game.  I just picked an arbitrary scale, but obviously one size does not fit all in this case. ",
+        "timestamp": "2019-03-11T17:13:08Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "I think passing in a screen resolution/scale uniform would be fine. The closer it looks to the original (with bloom disabled, 640x480 as a reference) the less I think this would need to be a plugin. I didn't realize that was the intent when I suggested moving it :)",
+        "timestamp": "2019-03-11T17:23:51Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "I don't see it go completely white, but there are bands of colors that pulse up and down. This is only when bloom is on, so IMO it's not a big deal.\r\n\r\n![WhatAboutBob_0002](https://user-images.githubusercontent.com/3276879/54168096-5325e200-4443-11e9-96b5-77a218b2a549.png)\r\n\r\nThe colors look different to me than the original:\r\n\r\n![WhatAboutBob_0004](https://user-images.githubusercontent.com/3276879/54168109-5caf4a00-4443-11e9-8774-9064d55f44dd.png)\r\n\r\nBut that could just be the size of the blocks.\r\n\r\nFor what it's worth, the software renderer supports high resolution, and continues to render static at single pixel resolution.\r\n\r\n![WhatAboutBob_0005](https://user-images.githubusercontent.com/3276879/54168244-f70f8d80-4443-11e9-9759-f96492c75965.png)\r\n\r\nI don't think we have to match that, since those higher resolutions were added later by Aleph One developers, not by Bungie. But it also looks OK to me (from having played with the classic OpenGL renderer all those years), so maybe we just need a HiDPI uniform? This is a judgement call--input (as well as all your hard work hitherto) is very appreciated.\r\n\r\n",
+        "timestamp": "2019-03-12T01:26:14Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "For teleporting monsters and dying S'pht, it's mostly okay, if a bit bright and overly patterned.  It's when you have something that isn't transient that it really goes wrong, like an invincibility powerup, your weapon after having picked up an invincibility powerup, the obscure case where a third-party scenario uses a texture with the static transfer mode, and when a Lua script such as Vasara uses static to highlight something.\r\n\r\nHere we have a SPNKR gone completely white in proper Marathon 1.  It stayed like that for a good 10 seconds, before slowly lightening with a very noticeable and unchanging banding pattern:\r\n\r\n![Tryagain_0003](https://user-images.githubusercontent.com/31712538/54178975-7fd5fb80-443b-11e9-9906-2311ed498387.jpeg)\r\n\r\nWhile looking for screenshots, I also noticed that the bloom doesn't stay constant - it might start out with bloom, and then after a while the bloom goes away for a minute or so, and comes back later.  Such is the case here, by the time I cleared out the Deprivation Chamber the powerup stopped blooming:\r\n\r\n![NeverBurnMoney_0001](https://user-images.githubusercontent.com/31712538/54178371-aabf5000-4439-11e9-9f31-1ad375d1fe00.jpeg)\r\n\r\nAfter a few seconds, the static breaks down and goes white:\r\n\r\n![NeverBurnMoney_0002](https://user-images.githubusercontent.com/31712538/54178404-c4f92e00-4439-11e9-891d-8b3e4f9ae248.jpeg)\r\n\r\nThen it starts glowing again, still mostly white:\r\n\r\n![NeverBurnMoney_0004](https://user-images.githubusercontent.com/31712538/54178419-d3dfe080-4439-11e9-867f-2167d6a5a1d1.jpeg)\r\n\r\nHere's a case of banding pattern in painful evidence, as well as a partial whiteout and failure to bloom:\r\n\r\n![CoolFusion_0006](https://user-images.githubusercontent.com/31712538/54178466-fffb6180-4439-11e9-8566-9cb76099cdee.jpeg)\r\n\r\nGranted that is on a wall in a 3rd party map, but the wall helps to to illustrate how the banding pattern stays in the same spot on the screen when you look around:\r\n\r\n![CoolFusion_0007](https://user-images.githubusercontent.com/31712538/54178484-11dd0480-443a-11e9-99d9-14a0072e2357.jpeg)\r\n\r\n",
+        "timestamp": "2019-03-12T06:27:34Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Thanks for the example TL. That’s actually what I expect bloom to look like, but as you say the static is way too blocky. I am working on a change that will scale that effect better based on the resolution. Also, I think the static colors will be pretty true to the original.\r\n\r\nWhen bloom is turned on, it’s obviously going to brighten things somewhat. To compensate, the bloom shader randomly adds horizontal slices of black to the output. I did that in order to let more of the static colors come through without being blown out so much. If you want, I can turn off the horizontal bias; it was just a design choice on my part, but I’m not super attached to it.",
+        "timestamp": "2019-03-12T12:23:57Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Wow; those are some great glitches! While I’m not totally sure what’s going on there, it looks like the GLSL randomizer is not working on your setup.\r\n\r\nI actually replaced the randomizer in these new shaders with one that seem to be getting me better random numbers, but if it’s causing problems I can just revert that.\r\n",
+        "timestamp": "2019-03-12T12:24:47Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "I don't really know what that means, but from some Yandexing it seems that some GPUs use different math for functions like this? I guess maybe my Quadro FX 1600 M, being a 12 year old business laptop GPU, might do things differently than a modern desktop gaming GPU.  Maybe that makes my machine a good thing to test stuff on for compatibility :-)",
+        "timestamp": "2019-03-12T22:16:47Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "With the uniforms added in cd59d4f, create blocks of fixed visual size with:\r\n\r\n```\r\nvec2(gl_FragCoord.x * (logicalWidth / pixelWidth) / blockSize,\r\n     gl_FragCoord.y * (logicalHeight / pixelHeight) / blockSize)\r\n```\r\n\r\nTo create blocks which scale like the weapons in hand, use something like:\r\n```\r\nvec2(gl_FragCoord.x * (320.0 * (logicalWidth / logicalHeight) / pixelWidth) / blockSize,\r\n     gl_FragCoord.y * (320.0 / pixelHeight) / blockSize)\r\n```\r\n\r\nNote that in the bloom shader, the pixel ratio may not match the logical ratio.",
+        "timestamp": "2019-03-19T03:59:40Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Thanks, Hopper! That's more than I have in my branch, but it should do the job.\r\n\r\nMy greater concern is the problem ravenshining reported. I've pored over the Khronos docs, and every new function I've added has support back to GLSL 1.1 (with the exception of sign(), which was easy to replace anyway). My fear is that gl_FragCoord (which is essential to this effect) is not properly supported on some hardware. I'll try to submit another patch in the next couple of days... If It doesn't fix ravenshining's issue (which very likely would affect others too), this change will probably have to become a plugin anyway.",
+        "timestamp": "2019-03-19T14:23:26Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "I have no qualms about requiring proper gl_FragCoord support. Directing these users to a plugin with the old shader is an acceptable solution. I have to imagine that users installing new software on 12-year-old computers have faced more awkward workarounds than installing a plugin.",
+        "timestamp": "2019-03-19T15:44:52Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "According to Yandex my video card does support gl_FragCoord, and OpenGL 3.3.  So perhaps it's something else?",
+        "timestamp": "2019-03-19T20:09:48Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "@ravenshining What OS and driver are you running? Are you using the most up-to-date release from Nvidia's site?",
+        "timestamp": "2019-03-19T22:51:24Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "Debian 8+backports, using the official Nvidia drivers (not Nouveau).  I'm using the latest in the repositories, 340.106-1, but now that I check, Nvidia released a version 340.107 last summer.  It's... not trivial to use Nvidia's installer instead of apt, but I'll give it a shot.",
+        "timestamp": "2019-03-20T02:59:00Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "@ravenshining Here's a simpler plugin to see if gl_FragCoord is working:\r\n\r\n[FragCoord test.zip](https://github.com/Aleph-One-Marathon/alephone/files/2990463/FragCoord.test.zip)\r\n\r\n With git master and invincibility on, you should see a gradient effect like this:\r\n\r\n![NeCedeMalis_0012](https://user-images.githubusercontent.com/2176248/54726223-7d188c00-4b48-11e9-8941-070a470f5971.png)\r\n",
+        "timestamp": "2019-03-20T23:45:34Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "That’s a great idea for a test - I’m interested to see what comes out of it! \r\n\r\nFor reference, new glsl functionality required for this change are mod(), fract(), sign(), floor(), and of course reading gl_FragCoord. ",
+        "timestamp": "2019-03-21T00:29:26Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Thanks for breaking it down, I can put together tests on any of those until we find a smoking gun. I also remember testing one video card years ago that choked on shaders beyond a certain size; it could be each of the parts works, but it starts failing if the overall shader is too complex.",
+        "timestamp": "2019-03-21T00:36:44Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "That worked just fine :-) I even played through to the end of this scenario while invincible to be sure, as I've noticed that often the static will look okay for the first few minutes of gameplay, and then slowly become less staticy and more stripey.  On the other hand, I haven't been able to detect a pattern to when it blows out to total white.\r\n\r\n![MissedIsland_0003](https://user-images.githubusercontent.com/31712538/54730719-8694fa80-4b2e-11e9-8bc4-27380fed2f96.jpeg)\r\n![MissedIsland_0002](https://user-images.githubusercontent.com/31712538/54730730-90b6f900-4b2e-11e9-80de-db57ceab20b4.jpeg)\r\n",
+        "timestamp": "2019-03-21T02:43:05Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "I'm puzzled by what ravenshining is seeing... the FragCoords look good (no obvious corruption or banding).\r\n\r\nThere is a potential issue if tick_count gets too high due to a uint32->float conversion, but in my experiments it only causes static to stop animating (otherwise looking normal). What did the original shader-based static effect look like for you?\r\n\r\nAlso, I'm blown away that someone tried to recreate Myst island in AO.",
+        "timestamp": "2019-03-24T19:37:20Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "The previous shader effect, before \"blockier static\"?  I thought it looked fine.   Not noticeably different from the software effect or the original thousands of colours effect\r\n\r\nIt seems my memory of a dark static with almost no white was based on playing the originals in 256 colour mode, so that may be colouring my \"all the time there's too much white\" comment - here's a screenshot:\r\n![marsneedswomen](https://user-images.githubusercontent.com/31712538/54887503-f4e00280-4e37-11e9-95c6-c77f4aaba47a.png)\r\n\r\nNot that that excuses the whiteouts and banding.\r\n\r\nThat's an old map from the Map Making Contest of '97.  Unfortunately for Missed Island, the terminals don't render correctly in A1.  I've been meaning to file a bug report, but I want to gather more information and make sure my copy isn't corrupted or something as it crashes Basillisk II.",
+        "timestamp": "2019-03-24T23:28:21Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "I can’t quite put my finger on what it is, but something about that screenshot does not look right. Is that the older shader effect?",
+        "timestamp": "2019-03-25T00:14:38Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "Hah, that's the original game! Super shield looks different in 256 colors vs thousands/millions.",
+        "timestamp": "2019-03-25T00:16:42Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Wow; I have to say that doesn’t look great ( it also does not appear to be totally random),  but I don’t think I ever played it in 256 mode.  Does anybody have a screenshot of what 16 bit static looked like? ",
+        "timestamp": "2019-03-25T00:43:49Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "24-bit and 16-bit look close enough; it's only 8-bit that has to follow the palette. This screenshot was 24-bit:\r\n\r\n![](https://user-images.githubusercontent.com/3276879/54168109-5caf4a00-4443-11e9-8774-9064d55f44dd.png)\r\n",
+        "timestamp": "2019-03-25T00:47:19Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Ah ha! that looks more familiar. I’m also impressed with just how ok the 256 mode looked.\r\n\r\nSo, with a real example like this, am I correct in observing that there are only eight colors that comprise the static? The new shader effect randomizes the whole range of each channel...",
+        "timestamp": "2019-03-25T01:10:20Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "Sure, here are all the statics in the same situation (with the last one behaving correctly for once):\r\n\r\n![marsneedswomen-all](https://user-images.githubusercontent.com/31712538/54889238-b81c0780-4e47-11e9-96e3-946ac9341622.png)",
+        "timestamp": "2019-03-25T01:16:51Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Thanks for the comparison! You can see the color differences between the software and the original shader implementation.\r\n\r\nSo, the blockier example is clearly not working on your rig. With bloom off, it should look almost identical to the old shader. Something isn't being calculated right, but I can't identify what it is. \r\n\r\n",
+        "timestamp": "2019-03-25T02:35:28Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "With bloom off, it looks fine for the first five seconds after a new game is started, and only for those first few seconds.  Thereafter, the effect slowly becomes more and more banded, then more and more white, and stays that way, even across levels.\r\n\r\nThis is with your new scaling patch, but before your latest round patch, with bloom off, after starting a game and then _immediately_ cheating myself a rocket launcher and invincibility:\r\n\r\n![ElectricSheepOne_0000](https://user-images.githubusercontent.com/31712538/54893109-5c0daf00-4e58-11e9-9d36-c5597917360e.jpeg)\r\n",
+        "timestamp": "2019-03-25T03:15:59Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "Excellent! This is really helpful information! My guess is that the increasing time value is creating large numbers that some GPUs don’t want to deal with. It might be an easy fix, but I will need to think about it...",
+        "timestamp": "2019-03-25T04:14:00Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Would you mind giving this one a try, Lia? I think this is the easiest fix if the time value is indeed the culprit. I'm not sure it'll help, but we may as well start simple and work our way up.\r\n\r\n[Shader time test.zip](https://github.com/Aleph-One-Marathon/alephone/files/3004895/Shader.time.test.zip)\r\n",
+        "timestamp": "2019-03-25T18:32:12Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "Gladly!  Doing these sorts of tests for you is a lot of fun :-)\r\n\r\nWith bloom disabled, it's working perfectly now, and doesn't break down over time:\r\n![starwars_0003](https://user-images.githubusercontent.com/31712538/54968939-84f97700-4f20-11e9-8437-6c798e78e839.jpeg)\r\n\r\nWith bloom enabled, it's got a weird pattern to it right from the get-go, but it's not a bad one, it doesn't get worse over time, and it sort of shimmies up and down (or back and forth? hard to tell, it's so fast) rather than slowly crawling downwards.  I'd call this an acceptable level of weird:\r\n\r\n![starwars_0004](https://user-images.githubusercontent.com/31712538/54969030-da358880-4f20-11e9-8069-78b1c0a73899.jpeg)",
+        "timestamp": "2019-03-26T03:11:20Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Thanks! Sounds like it's working normally. The bloom column divisions slide to the left, but the colors in each column are random without a movement pattern I'm able to see.\r\n\r\nWhat that test shader is doing is just replaying the first 2 seconds of static on a loop. By immediately dividing the large time value into a smaller number, it avoids the large multiplications your GPU didn't like. That limitation would cause problems for some animation styles (you'd notice the loop if those bloom bars did slowly crawl), but for a busy random pattern or a simple animation, it's OK.\r\n\r\nJust for fun, I made a very different bloom, with a distinct animation pattern (a solid white shine moving upward). This should also work for you if I understand the problem correctly.\r\n\r\n[Alternate static bloom.zip](https://github.com/Aleph-One-Marathon/alephone/files/3008916/Alternate.static.bloom.zip)\r\n\r\n",
+        "timestamp": "2019-03-26T15:52:07Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "Ah, so are you taking the sine of game.ticks or something?  Running some further tests full-screen using this map and a timer, it takes about four seconds before it starts acting weird.\r\n\r\n[static.sceA.zip](https://github.com/Aleph-One-Marathon/alephone/files/3010729/static.sceA.zip)\r\n\r\nThis other bloom also works, although it's not as good an effect I think.  For one it doesn't play well with the alien weapon:\r\n\r\n![WideningGyre_0008](https://user-images.githubusercontent.com/31712538/55038349-a0b65900-4fc4-11e9-9bca-dcb46c4edd3d.jpeg)\r\nvs.\r\n![WideningGyre_0002](https://user-images.githubusercontent.com/31712538/55038370-b297fc00-4fc4-11e9-83f1-340a14812a38.jpeg)\r\n\r\nIt also looks bad on a wall.",
+        "timestamp": "2019-03-26T22:48:47Z"
+      },
+      {
+        "author": "TrajansRow",
+        "role": "COLLABORATOR",
+        "body": "I made a variant of @Hopper262 's time test, only one that loops every five minutes or so, and has the changes recommended by @treellama. How does this work for you, @ravenshining ?\r\n[Shader time fraction.zip](https://github.com/Aleph-One-Marathon/alephone/files/3011283/Shader.time.fraction.zip)\r\n",
+        "timestamp": "2019-03-27T02:51:18Z"
+      },
+      {
+        "author": "ravenshining",
+        "role": "CONTRIBUTOR",
+        "body": "That's looking the best yet ;-)\r\n\r\nI thought it was rather odd how the muzzzle flames of the alien weapon are ghosted in the above screenshots - then I noticed, they're entirely invisible when not invincible!  Then they reappear when bloom is disabled.  No other weapon seems to be affected!\r\n\r\nHere's a shot with your latest plugin:\r\n\r\n![starwars_0000](https://user-images.githubusercontent.com/31712538/55079570-8621c580-5040-11e9-8bf6-40be123140ef.jpeg)\r\n",
+        "timestamp": "2019-03-27T13:33:49Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "413e47e",
+        "message": "Blockier static",
+        "author": "TrajansRow",
+        "timestamp": "2019-01-08T06:03:44Z"
+      },
+      {
+        "sha": "2c0a463",
+        "message": "Enabled static bloom",
+        "author": "TrajansRow",
+        "timestamp": "2019-01-08T23:09:12Z"
+      },
+      {
+        "sha": "2d42066",
+        "message": "Slightly adjusted bloom intensity and block size.",
+        "author": "TrajansRow",
+        "timestamp": "2019-01-09T06:01:02Z"
+      },
+      {
+        "sha": "de653e4",
+        "message": "Adjust bloom so as to not overwhelm static as much.",
+        "author": "TrajansRow",
+        "timestamp": "2019-01-11T05:00:57Z"
+      },
+      {
+        "sha": "9e3bb21",
+        "message": "Bloom needed more blue.",
+        "author": "TrajansRow",
+        "timestamp": "2019-01-11T23:11:35Z"
+      }
+    ]
+  },
+  {
+    "story_id": "Aleph-One-Marathon/alephone#52",
+    "metadata": {
+      "title": "Improve mouse delta calculations (pre-action flags)",
+      "labels": [],
+      "qualities": [
+        "usability",
+        "performance"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2016-12-27T01:07:01Z",
+      "reviewers": [],
+      "changed_files": 2
+    },
+    "issue_payload": {
+      "body": "These commits clean up and make corrections to calculations that govern the input yaw and pitch values _before_ they get encoded into action flags (consequently, there is no compatibility impact).\n- Mouse velocity is no longer used (and wasn't being calculated accurately anyway). Yaw/pitch is now proportional to mouse delta (when mouse acceleration is off), scaled such that there is no perceived difference under normal framerate. The effect is that the mouse sensitivity perceived by the player is now framerate-independent, and the mouse handles better under periods of unstable framerate.\n- X/Y mouse delta limits in a single frame are almost doubled, up to implementation limits imposed by action flags. This makes it easier to make very hard, rapid turns with the mouse (up to about 44.3° yaw-wise in a single frame, up from 22.5°).\n- Vestigial remnants of a bizarre \"mouse-controlled player velocity\" feature have been removed. This feature makes the player go forward/backward in proportion to mouse Y velocity, but it has not been fully implemented since the M2 source release: 1) it doesn't have a Preferences checkbox; 2) it can't reach maximum forward speed due to incomplete/inappropriate calculations; and 3) it is completely impractical unless you're using a trackball, because you have to keep moving the mouse forward to go forward and looking up/down can only be done with the keyboard. (As a side note, I vaguely remember using this feature (and not liking it much, mainly due to the lower forward speed) in M1 or maybe just the M1 demo... is my memory faulty? Was this implemented in M1?).\n"
+    },
+    "discussion_timeline": [
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "I would like to add that mouse acceleration is not being calculated correctly at the moment, because the squaring only happens every 33 ms (on average), whereas raw mouse deltas are accumulated every 16 ms (on average). This makes the result too high, e.g. (2 + 3)^2 > 2^2 + 3^2. Either mouse acceleration should be dropped or the squaring should happen at the same time the raw mouse delta is obtained from SDL. I wasn't sure how to handle this issue so I left it alone in these commits.\n",
+        "timestamp": "2016-09-04T21:08:40Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "I'll consider these as I continue my own overhaul of the mouse code.\n",
+        "timestamp": "2016-09-04T21:30:38Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "Are you looking into increasing the precision of player orientation throughout the engine so that players can make super-fine aiming adjustments? That's been on my wish-list for the longest time. I understand that it would break compatibility and require extensive code changes. If you're not planning to do that, I'll happily look into it.\n",
+        "timestamp": "2016-09-04T22:09:18Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "I think it's more that increased precision would break compatibility **OR** require extensive code changes. If you don't care about compatibility, you can probably increase angular bits in world.h, convert facing and angular acceleration values read in from the map and physics, and be a good way along.\n\nIt's not on my own to-do list, so feel free to give it a go; it could be a really fun project. Maybe you'll even find out it's not as hard as we all thought.\n",
+        "timestamp": "2016-09-04T23:11:14Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Hey, I found out where the mouse-moving-forward code came from. Pathways into Darkness had optional mouse controls, for turning left and right, and moving forward and backward. There was no looking up and down in that engine, but I guess Bungie felt they couldn't let those extra mouse directions go unused!\n",
+        "timestamp": "2016-09-05T04:57:46Z"
+      },
+      {
+        "author": "SolraBizna",
+        "role": "CONTRIBUTOR",
+        "body": "Changing `ANGULAR_BITS` would automatically propagate to _most_ code. Some code, scattered around the engine, is hardcoded to assume 9-bit angles. Other code is \"tuned\" in such a way that it happens to work out as intended with 9-bit angles. Naturally, this would murder compatibility.\n\nIt might be possible to turn `ANGULAR_BITS` into a variable instead of a compile-time constant without murdering performance on a modern machine... the only likely casualty would be my dream of playing Aleph One on an EOMA68 laptop....\n",
+        "timestamp": "2016-09-05T18:59:26Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "+1 for the PiD history note!\n\nI'm neck neep in going through the codebase to see how best to increase the precision. Changing `ANGULAR_BITS` (and updating all code that assumes 9-bit angles, including initializations from physics/map files) is certainly one way, and it's what I'm leaning towards so far. Another strategy I'm looking at is to upgrade only the subset of code that actually needs higher precision: this would involve changing the representation (and possibly size) of a few key data members and overhauling nearly all code that references them.\n\nIndependent of those strategies, I'll need to update the encoding of angle deltas in action flags to take advantage of the higher precision without sacrificing the min/max delta limits. I think I can do that without requiring more bits by using a non-linear distribution of values clustered around 0 (kind of like floating-point values). The alternative would be to increase the size of action flags (ouch!).\n\nAs for compatibility, wouldn't it be impossible to achieve in network games? If player A fires a bullet on a precise trajectory that can't be represented by player B's engine, there's no way to recover from that, right?\n",
+        "timestamp": "2016-09-06T21:13:08Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "The network handshake includes version checks. Aleph One has changed gameplay at various times in the past and incremented the version; player B wouldn't be able to join player A's game or vice versa. Films also have a version number near the start of the file. (Interestingly, Bungie never filled it out, but Aleph One started using it a few years ago.)\n\nThese versioning mechanisms mean it's possible to make gameplay-affecting changes, or even changing the network protocol or film format. For replays you still have to support the old formats and mechanics, so breaking compatibility means more code to write and maintain, but some features are worth the burden.\n",
+        "timestamp": "2016-09-07T04:10:17Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "This change (and the mis-applied fix to #45 ) makes the mouse code much worse here. Very un-Marathon-like. I'm OK with removing vestigial code, but please consider reverting the delta limits to where they belong.",
+        "timestamp": "2017-01-18T22:09:25Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "treellama, in what way are the original limits desirable? Is it just that we want to maintain the de facto gameplay difficulty that arises from the max turn rate?\r\n\r\nAlso, just to be clear, is it only the limits you want reverted, or do you see other problems with this pull request?",
+        "timestamp": "2017-01-19T23:44:29Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "A primary focus of this project is to maintain the original gameplay, and mouse control is a fundamental part of the original gameplay. I wouldn't choose \"difficulty\" as the word to describe it, but rather \"feel\". In particular, adjusting the turn limits has the potential to alter the mouse/keyboard balance in net games which has been working well for decades.\r\n\r\nThe other changes in this request seem OK but I haven't considered them deeply. It's not obvious where the 66.0f comes from without reading the commit message, but then again the reader may not understand why there is a divide by 2 in the Bungie code. Note that you preserve the bug with the ill-considered \"mouse_acceleration\" preference where disabling it removes the *4.f that offsets said divide by 2. But that's an issue for #45 ; removing the preference, restoring the nonlinearity along with the *4.f would mean that 66.f is the correct sensitivity divisor.",
+        "timestamp": "2017-01-20T00:27:53Z"
+      },
+      {
+        "author": "SolraBizna",
+        "role": "CONTRIBUTOR",
+        "body": "Raising the limits does kinda screw those of us who try to play with the keyboard. Not that we were that well off to begin with.\r\n\r\nPreserving original behavior for those who want it is important, but if the mouse input and game loop are having a duel across time and space whose outcome randomly affects the mapping between mouse input and aiming, we can all agree that's bad, right?\r\n\r\nI'd guess that the original code running on Classic MacOS was at worst merely framerate dependent, and not also dependent on the whims of an event thread, but I have nothing to back that up. (My knowledge of the workings of ADB mice stops where the driver ends and Event Manager begins.) If so, removing the effect of thread scheduling on the inputs would then be a restoration to the classic experience. And removing the framerate dependence, so long as it preserves the 30fps experience, makes things more consistent for everyone. Win?",
+        "timestamp": "2017-01-21T05:39:19Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "I firmly dislike the fact that moving the mouse too far within a single frame causes some of that movement to be ignored, whereas if the exact same mouse movement (same duration, same distance) happened to be sampled evenly across 2 frames, it would all count. That's inconsistent mouse handling. On the other hand, I now agree that the original turn-rate limits are part of the gameplay and should not be changed (by default, at least).\r\n\r\nI have an idea:\r\n\r\n1. Add state, _desired yaw_ and _desired pitch_, that track the yaw and pitch as if there were no turn-rate limits.\r\n2. Take the difference between these variables and the current player yaw/pitch, clamp the differences to the turn-rate limits, and feed the results to action flags instead of the (clamped) mouse deltas directly.\r\n\r\nThis way, moving the mouse very quickly results in a turn that executes over multiple frames. I'll try this out and see if it's better.",
+        "timestamp": "2017-01-23T07:39:45Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "At such a low input rate, I worry it could feel boaty. Can't hurt to try it I guess. Although, I think I may depend on the turn-rate limit when aiming! I just throw the mouse in the direction I want and down, and at the right time (muscle memory?) click the button to fire a missile at the floor. So there's still a chance of throwing off that \"feel\". Keyboarders totally play this way, so I think it's fair to argue that the feel of the mouse input be preserved as well.\r\n\r\nDrifting off topic: the latency hiding code could benefit from something like this as well. Currently, if action flags must be made up for a player because they are received late, as a client there is noticeable jitter trying to fight the made-up flags the server is sending to get the pitch/yaw back to the place the player wants to aim. At the moment the server zeros out the pitch/yaw when making up missing flags, which might also not be the right behavior.\r\n\r\n(Ironically, having the ability to pitch/yaw faster would allow the client to hide latency better, by restoring the desired pitch/yaw over fewer frames! But at the cost of messing with the unintentionally balanced turn rate limits in the original, which I don't think is worth paying)\r\n\r\nAleph One's input and networking code are a 20-year series of hacks on top of hacks, with every contributor thinking he can do better. Welcome to that group!",
+        "timestamp": "2017-01-23T15:26:52Z"
+      },
+      {
+        "author": "SolraBizna",
+        "role": "CONTRIBUTOR",
+        "body": "> At such a low input rate, I worry it could feel boaty. Can't hurt to try it I guess.\r\n\r\n~Regardless of the rate at which inputs are being read, they only take effect when a tick ticks. As long as they're read at least that often, it should be fine.~ (Edit: The notification emails arrived very out of order, so I wasn't replying to what I thought I was.)\r\n\r\n> I just throw the mouse in the direction I want and down, and at the right time (muscle memory?) click the button to fire a missile at the floor.\r\n\r\nThis kind of thing is exactly why, whatever improvements are made, we need to at least keep the option to preserve the classic feel. 20+ years of muscle memory dies hard (and doesn't drop ammo).\r\n\r\nEdit:\r\n\r\n> Aleph One's input and networking code are a 20-year series of hacks on top of hacks\r\n\r\nThe remnants of the VBL-based _player movement_ code from PID haunt my nightmares...",
+        "timestamp": "2017-01-23T17:52:44Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "Oh wow, my experimental idea was a cure way worse than the disease. Mouse felt like a mattress. Made of Jell-O. I now think that any kind of (de facto) simulated mouse input beyond the immediate frame is bad.\r\n\r\nI again compared the original and current (higher) delta limits by having the the higher limits be active while the microphone key is down, and the original limits be active otherwise. The higher limits give a **noticable improvement** in mouse feel when making quick turns. Unfortunately, this is directly at odds with maintaing the original parameters of gameplay, so I am (reluctantly) in favor of **reverting** to the original limits.\r\n\r\nOut of curiosity, I furthermore compared the higher limits against **no** limits (using global variables to bypass action flags), and I couldn't tell the difference. This is because few of my mouse deltas exceeded the limits anyway, or if they did, then not by much. In other words, higher limits have diminishing benefits.",
+        "timestamp": "2017-01-23T23:32:28Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "> I again compared the original and current (higher) delta limits by having the the higher limits be active while the microphone key is down, and the original limits be active otherwise. The higher limits give a noticable improvement in mouse feel when making quick turns. Unfortunately, this is directly at odds with maintaing the original parameters of gameplay, so I am (reluctantly) in favor of reverting to the original limits.\r\n\r\nIt's tough. Newer games let you turn _as fast as you want_, and if Aleph One doesn't do that, it will turn off players used to new first person shooters. But if it does, then it won't be quite as faithful to Marathon 2. Since we only have one \"source port\", if we stray too far from that faithfulness then there is _no_ way to play the originals true to form without an emulator.\r\n\r\nWith software renderer becoming more and more difficult to support, and new players clamoring for modern mouse look, it feels like we need another source port--but, given the age of the networking, input, and rendering code, it seems pointless to base anything on the Marathon source code. A port of the engine's assets and physics to a modern engine would make much more sense.\r\n\r\nSo I keep coming back to keeping Aleph One faithful to the originals, and hoping somebody does find a way to do a faithful-but-updated recreation in a newer engine. But, I too regret being held back sometimes :)",
+        "timestamp": "2017-01-24T14:48:53Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Since there is no readily available alternative to Aleph One, I feel it's vitally important we do all we can to have our cake and eat it too. The gaming landscape is a big pond and we have few opportunities to draw in the future fans who will build that ecosystem of alternatives.\r\n\r\nCommit ed52955 adds a mouse max-speed slider. 50% limits the mouse to the speed before this pull request, and is applied when importing older preferences files. 100% allows the full representable speed, and is the default for fresh installations.\r\n\r\nSide note: in the future, I want to add a first-run choice of \"classic\" vs. \"modern\" preferences. It's much harder than it should be to get Aleph One configured to an emulation-like state, and a visible choice will make it easier for everyone to get the experience they want.\r\n",
+        "timestamp": "2017-02-05T23:43:30Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "The slider is even worse than the original patch! It still disadvantages keyboarders in net games (because what competitive player will leave it set to 50%!?) but now there's _another_ slider.",
+        "timestamp": "2017-02-06T01:12:39Z"
+      },
+      {
+        "author": "Hopper262",
+        "role": "MEMBER",
+        "body": "Yes, when virtually anyone who's played a mouse-driven FPS leaves the game in disgust, keyboarders _do_ have less of a disadvantage. I agree on that point.",
+        "timestamp": "2017-02-06T01:18:42Z"
+      },
+      {
+        "author": "SolraBizna",
+        "role": "CONTRIBUTOR",
+        "body": "I wonder how many keyboard netplayers are left. I don't count, since I don't play competitively at all anymore. And we almost certainly aren't getting any new ones...\r\n\r\nI've racked my brains over this, and I haven't thought of a way to handle this where everyone wins. Keep the limits where they are, and the 360-noscope generation† will feel like they've got a brick on their mouse. Raise them wholesale, and the keyboarders' tiny sliver of a chance against mousers becomes even tinier. Make a checkbox/slider, and we've taken another step towards becoming a Christmas tree. Make the limits MML-controlled, and we cause the creation of another plugin about which players will violently disagree between \"must-have\" or \"must-disable\"... and therefore create another reason for netgames and films to \"randomly\" desync...\r\n\r\nSigh.\r\n\r\n† \"360-noscope generation\" here defined as \"anyone born after me\" ;)",
+        "timestamp": "2017-02-08T06:26:28Z"
+      },
+      {
+        "author": "treellama",
+        "role": "MEMBER",
+        "body": "This isn't a mouse issue. How quickly the player can turn is a physics issue. Change it if you feel it's necessary, but don't make it a preference. Core game physics isn't a user preference.",
+        "timestamp": "2017-02-08T14:32:45Z"
+      },
+      {
+        "author": "SolraBizna",
+        "role": "CONTRIBUTOR",
+        "body": "Wait... this doesn't change keyboard turning speeds too, does it?",
+        "timestamp": "2017-02-13T04:30:33Z"
+      },
+      {
+        "author": "LidMop",
+        "role": "COLLABORATOR",
+        "body": "No, just mouse control. Keyboard turning uses constants loaded from the physics model data. Amusingly, this means that you can turn faster with the keyboard than the mouse if you use a custom physics model.",
+        "timestamp": "2017-02-13T18:15:49Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "d861f32",
+        "message": "Properly report 0 for mouse deltas when mouse input is off\n\nAdds missing pointer dereferences that were presumably intended when\nthese lines were originally added in commit\n197f0e0fb2e08b2f6f054636f7634264fa01eb04. Currently, 'test_mouse' is not\neven called when mouse input is inactive, so this change has no\nimmediate impact.",
+        "author": "Chris Hallock",
+        "timestamp": "2016-09-03T01:27:53Z"
+      },
+      {
+        "sha": "a6128df",
+        "message": "Improve mouse delta calculations (pre-action flags)\n\n1) Changes mouse yaw/pitch calculations to use mouse x/y deltas instead\nof mouse x/y velocities so that, when mouse acceleration is off, a given\ndelta always yields the same angle regardless of the time taken. Note\nthat the velocities were not calculated very accurately to begin with\nbecause mouse_idle only runs every 33 ms (on average). In order to\nmaintain the same mouse sensitivity perceived by the player, the deltas\nare divided by 33. Thus, the only real impact is that mouse handling\nunder periods of unstable framerate (when mouse_idle period != 33 ms)\nis more accurate.\n\n2) Cleans up the sensitivity scaling code and merges the 1/33\nmultiplier, the 1/FIXED_ONE multiplier, and a stray 1/2 multiplier into\na single factor without affecting the mouse sensitivity as perceived by\nthe player.\n\n3) Widens the x/y delta limits to the maximums currently supported by\naction flags. The limits are nearly doubled. Players who had been\nhitting these limits can now snap to new yaw/pitch angles more rapidly.\nThis change has no impact on compatibility.\n\n4) Removes the never-used (since the M2 code release) delta_velocity\nhandling in mouse_idle.",
+        "author": "Chris Hallock",
+        "timestamp": "2016-09-04T18:50:18Z"
+      },
+      {
+        "sha": "2484331",
+        "message": "Remove vestigial remnants of mouse-driven player velocity\n\nThis functionality was never used since at least the M2 source release.\nJoystick-driven player velocity is unaffected.",
+        "author": "Chris Hallock",
+        "timestamp": "2016-09-04T19:17:47Z"
+      }
+    ]
+  }
+]

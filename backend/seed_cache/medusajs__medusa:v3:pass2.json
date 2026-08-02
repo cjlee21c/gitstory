@@ -1,0 +1,498 @@
+[
+  {
+    "story_id": "medusajs/medusa#13521",
+    "metadata": {
+      "title": "fix(dashboard): replace native select Element in CountrySelect & ProvinceSelect with Select(Medusa UI).",
+      "labels": [],
+      "qualities": [
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2025-10-10T14:22:51Z",
+      "reviewers": [
+        "willbouch",
+        "cursor[bot]",
+        "fPolic",
+        "patelaryan0914"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "Opening Admin Panel /location/:locationId/edit \r\nThe Edit Form was using CountrySelect with native select Html object resulting into missmatch css in dark theme\r\n<img width=\"1136\" height=\"751\" alt=\"image\" src=\"https://github.com/user-attachments/assets/8d430e30-f9aa-473e-b2a9-a1485e13d27f\" />\r\nchanged to the Medusa Ui's select component for consistent theme changes.\r\n<img width=\"1919\" height=\"888\" alt=\"image\" src=\"https://github.com/user-attachments/assets/a9f781b6-75c4-4261-a39a-04b570bd1566\" />\r\n\r\n\r\nFIXES #13395 "
+    },
+    "discussion_timeline": [
+      {
+        "author": "changeset-bot[bot]",
+        "role": "NONE",
+        "body": "###  🦋  Changeset detected\n\nLatest commit: 6ce2fd176f4499ac156f7f07842d49f86813ae6e\n\n**The changes in this PR will be included in the next version bump.**\n\n<details><summary>This PR includes changesets to release 74 packages</summary>\n\n  | Name                               | Type  |\n| ---------------------------------- | ----- |\n| @medusajs/dashboard                | Patch |\n| @medusajs/admin-bundler            | Patch |\n| @medusajs/medusa                   | Patch |\n| @medusajs/test-utils               | Patch |\n| @medusajs/medusa-oas-cli           | Patch |\n| integration-tests-http             | Patch |\n| @medusajs/analytics                | Patch |\n| @medusajs/api-key                  | Patch |\n| @medusajs/auth                     | Patch |\n| @medusajs/caching                  | Patch |\n| @medusajs/cart                     | Patch |\n| @medusajs/currency                 | Patch |\n| @medusajs/customer                 | Patch |\n| @medusajs/file                     | Patch |\n| @medusajs/fulfillment              | Patch |\n| @medusajs/index                    | Patch |\n| @medusajs/inventory                | Patch |\n| @medusajs/link-modules             | Patch |\n| @medusajs/locking                  | Patch |\n| @medusajs/notification             | Patch |\n| @medusajs/order                    | Patch |\n| @medusajs/payment                  | Patch |\n| @medusajs/pricing                  | Patch |\n| @medusajs/product                  | Patch |\n| @medusajs/promotion                | Patch |\n| @medusajs/region                   | Patch |\n| @medusajs/sales-channel            | Patch |\n| @medusajs/settings                 | Patch |\n| @medusajs/stock-location           | Patch |\n| @medusajs/store                    | Patch |\n| @medusajs/tax                      | Patch |\n| @medusajs/user                     | Patch |\n| @medusajs/workflow-engine-inmemory | Patch |\n| @medusajs/workflow-engine-redis    | Patch |\n| @medusajs/draft-order              | Patch |\n| @medusajs/oas-github-ci            | Patch |\n| @medusajs/cache-inmemory           | Patch |\n| @medusajs/cache-redis              | Patch |\n| @medusajs/event-bus-local          | Patch |\n| @medusajs/event-bus-redis          | Patch |\n| @medusajs/analytics-local          | Patch |\n| @medusajs/analytics-posthog        | Patch |\n| @medusajs/auth-emailpass           | Patch |\n| @medusajs/auth-github              | Patch |\n| @medusajs/auth-google              | Patch |\n| @medusajs/caching-redis            | Patch |\n| @medusajs/file-local               | Patch |\n| @medusajs/file-s3                  | Patch |\n| @medusajs/fulfillment-manual       | Patch |\n| @medusajs/locking-postgres         | Patch |\n| @medusajs/locking-redis            | Patch |\n| @medusajs/notification-local       | Patch |\n| @medusajs/notification-sendgrid    | Patch |\n| @medusajs/payment-stripe           | Patch |\n| @medusajs/core-flows               | Patch |\n| @medusajs/framework                | Patch |\n| @medusajs/js-sdk                   | Patch |\n| @medusajs/modules-sdk              | Patch |\n| @medusajs/orchestration            | Patch |\n| @medusajs/types                    | Patch |\n| @medusajs/utils                    | Patch |\n| @medusajs/workflows-sdk            | Patch |\n| @medusajs/cli                      | Patch |\n| @medusajs/deps                     | Patch |\n| @medusajs/telemetry                | Patch |\n| @medusajs/admin-sdk                | Patch |\n| @medusajs/admin-shared             | Patch |\n| @medusajs/admin-vite-plugin        | Patch |\n| @medusajs/icons                    | Patch |\n| @medusajs/toolbox                  | Patch |\n| @medusajs/ui-preset                | Patch |\n| create-medusa-app                  | Patch |\n| medusa-dev-cli                     | Patch |\n| @medusajs/ui                       | Patch |\n\n</details>\n\nNot sure what this means? [Click here  to learn what changesets are](https://github.com/changesets/changesets/blob/main/docs/adding-a-changeset.md).\n\n[Click here if you're a maintainer who wants to add another changeset to this PR](https://github.com/patelaryan0914/medusa/new/fix/country-select?filename=.changeset/weak-flies-cheer.md&value=---%0A%22%40medusajs%2Fdashboard%22%3A%20patch%0A---%0A%0Afix(dashboard)%3A%20replace%20native%20select%20Element%20in%20CountrySelect%20%26%20ProvinceSelect%20with%20Select(Medusa%20UI).%0A)\n\n",
+        "timestamp": "2025-09-16T09:59:08Z"
+      },
+      {
+        "author": "vercel[bot]",
+        "role": "NONE",
+        "body": "Someone is attempting to deploy a commit to the **medusajs** Team on [Vercel](https://vercel.com).\n\nA member of the Team first needs to [authorize it](https://vercel.com/git/authorize?team=medusajs&type=github&job=%7B%22headInfo%22%3A%7B%22sha%22%3A%222fc4588180f9fb52f946e6af316f91347d345e48%22%7D%2C%22id%22%3A%22QmUip3rzvcFrDCjVWzoJsVmm4aZ81wXj2sRDkEfMZQD1sx%22%2C%22org%22%3A%22medusajs%22%2C%22prId%22%3A13521%2C%22repo%22%3A%22medusa%22%7D).\n\n",
+        "timestamp": "2025-09-16T09:59:13Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "Hi! I cannot seem to reproduce on Mac but it looks like the standard MacOS dropdown.\r\n<img width=\"2876\" height=\"1638\" alt=\"CleanShot 2025-09-16 at 09 32 51@2x\" src=\"https://github.com/user-attachments/assets/2b6300f1-8881-4403-9880-a1bb02f1d645\" />\r\n\r\nAre you on Windows? Linux? Also, that component is imported in many other pages, do you see the same issue in other places? If yes, maybe it is better fixing the CountrySelect directly so that we fix every place",
+        "timestamp": "2025-09-16T13:33:53Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "Yes i was on  Windows using Microsoft Edge i first though to fix the country select but some places it is used as fallback and some places it is used as the component it self so i though to put the select component from medusa. But still let me go through the places and fix all",
+        "timestamp": "2025-09-17T03:47:34Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "This request will fix all the Country Select Ui problem Upgraded to Medusa Ui Select Component\r\nCreate Stock Location form (Before Fix)\r\n<img width=\"1919\" height=\"970\" alt=\"image\" src=\"https://github.com/user-attachments/assets/a7c9cbfe-a1b5-42e5-b62d-d782d3c68f6b\" />\r\nCreate Stock Location form After Fix\r\n<img width=\"1919\" height=\"963\" alt=\"image\" src=\"https://github.com/user-attachments/assets/cdf61d4d-a104-4344-8b59-6d558ac6ad13\" />\r\n\r\nEdit Location Form (Before Fix)\r\n<img width=\"1919\" height=\"969\" alt=\"image\" src=\"https://github.com/user-attachments/assets/41c74fd3-22f1-423f-9227-da99f8b74d1a\" />\r\n\r\nEdit Location Form (After Fix)\r\n<img width=\"1919\" height=\"973\" alt=\"image\" src=\"https://github.com/user-attachments/assets/42eba39c-c924-450b-a3a7-9129a053c2e2\" />\r\n\r\n",
+        "timestamp": "2025-09-19T17:10:15Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks ! Can you just add a changeset in there? Will review",
+        "timestamp": "2025-09-19T17:24:00Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "Can you please check the last commit for CountrySelect component so there is different native props in the Select Component (Medusa UI kit) and the native select element its only of className. Select(Medusa Ui) doesnt allow to pass className as props other all it works fine the onBlur, name are passed in the spread operator with field.\r\n\r\nAnd this majorly fixes all the places but there are some inconsistencies while using it as in some place the Select is used directly and in fallback if countries are not available than the CountrySelect component is Used. lastly the ProvinceSelect should be also fix if this works should it be in another commit or the same commit?\r\n\r\nNow everything's fine... will add the change set. \r\n\r\nThanks for coordination really feeling confident now this experience is so valuable for me.",
+        "timestamp": "2025-09-25T06:27:37Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "> Can you please check the last commit for CountrySelect component so there is different native props in the Select Component (Medusa UI kit) and the native select element its only of className. Select(Medusa Ui) doesnt allow to pass className as props other all it works fine the onBlur, name are passed in the spread operator with field.\r\n> \r\n> And this majorly fixes all the places but there are some inconsistencies while using it as in some place the Select is used directly and in fallback if countries are not available than the CountrySelect component is Used. lastly the ProvinceSelect should be also fix if this works should it be in another commit or the same commit?\r\n> \r\n> Now everything's fine... will add the change set.\r\n> \r\n> Thanks for coordination really feeling confident now this experience is so valuable for me.\r\n\r\nProvince select component also has the same bug? I would fix in same PR if that is the case",
+        "timestamp": "2025-09-25T11:58:02Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "And have you got why we are using HTMLButtonElement instead of HTMLSelectElement because Select.Trigger under the hood uses button so if we are using the HTMLSelectElement than the ref is mismatched. \r\n\r\n\r\nYes Province selector also has the same bug would solve it in the next commit within this PR.\r\n\r\nThanks for your help.",
+        "timestamp": "2025-09-25T12:16:59Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "Province Select before fix\r\n<img width=\"1919\" height=\"894\" alt=\"Screenshot 2025-09-26 132521\" src=\"https://github.com/user-attachments/assets/845777da-472c-4ce3-9dd0-d1f357626c3c\" />\r\n\r\nProvince Select After Fix\r\n<img width=\"1919\" height=\"891\" alt=\"Screenshot 2025-09-26 134849\" src=\"https://github.com/user-attachments/assets/0a025469-ac64-4de0-bbf9-72d55026ed49\" />\r\n\r\n\r\nThis works fine checked both of them.\r\n",
+        "timestamp": "2025-09-26T09:57:24Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "Hi @patelaryan0914 can you take a look at the conflicts?",
+        "timestamp": "2025-09-29T18:23:50Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "Yup Solved the merge conflict. @willbouch ",
+        "timestamp": "2025-10-02T18:24:03Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "I tested on Mac and the hover seems to be broken.. Initially, I see the hover, but if I click elsewhere (so the select looses focus) and then open the select again, the hover does not work anymore\r\n\r\nhttps://github.com/user-attachments/assets/8fcf7a80-f995-4ec3-9f87-090e71d5b4e8\r\n\r\n",
+        "timestamp": "2025-10-03T19:29:05Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "So, the component I have used which is Medusa Select is itself has hover broken. \r\n\r\nhttps://github.com/user-attachments/assets/584c70ea-e4b9-482e-a022-494bddcf1f01\r\n\r\n",
+        "timestamp": "2025-10-04T06:39:52Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "> So, the component I have used which is Medusa Select is itself has hover broken.\r\n> \r\n>  Select.-.Medusa.UI.and.4.more.pages.-.Personal.-.Microsoft.Edge.2025-10-04.11-35-10.mp4\r\n\r\nYou are right. We can let that one slip and create an issue. Will add something in our backlog. If you want to fix that as well, it can be done in another PR :)",
+        "timestamp": "2025-10-06T12:17:18Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "@fPolic Gave it a spin locally and it looked fine. Wdyt?",
+        "timestamp": "2025-10-06T12:19:14Z"
+      },
+      {
+        "author": "patelaryan0914",
+        "role": "CONTRIBUTOR",
+        "body": "@willbouch Hello, what is my role now once? \r\ncan you let me know the further process?",
+        "timestamp": "2025-10-09T06:09:28Z"
+      },
+      {
+        "author": "willbouch",
+        "role": "CONTRIBUTOR",
+        "body": "@patelaryan0914. I'll take it from here. Thanks!",
+        "timestamp": "2025-10-09T11:45:02Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "2fc4588",
+        "message": "fix: replace CountrySelect fallback with Medusa Select",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-16T09:51:54Z"
+      },
+      {
+        "sha": "91f701d",
+        "message": "Merge branch 'develop' into fix/country-select",
+        "author": "Patel Aryan Saurabhkumar",
+        "timestamp": "2025-09-17T04:17:30Z"
+      },
+      {
+        "sha": "fbd860b",
+        "message": "Merge branch 'develop' into fix/country-select",
+        "author": "Patel Aryan Saurabhkumar",
+        "timestamp": "2025-09-19T16:56:05Z"
+      },
+      {
+        "sha": "e59f04e",
+        "message": "Country Select Component Fix to use Medusa UI Select Component",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-19T17:06:23Z"
+      },
+      {
+        "sha": "b613265",
+        "message": "Merge branch 'fix/country-select' of https://github.com/patelaryan0914/medusa into fix/country-select",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-19T17:08:17Z"
+      },
+      {
+        "sha": "c5c43de",
+        "message": "added Change set",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-19T17:44:36Z"
+      },
+      {
+        "sha": "df41bdc",
+        "message": "using the props supported by the Select",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-25T05:51:02Z"
+      },
+      {
+        "sha": "69b467e",
+        "message": "value should be lowercased if passed from the pareant component",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-25T06:11:08Z"
+      },
+      {
+        "sha": "7426f4c",
+        "message": "fix province Select with medusa UI select and added change set",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-26T09:17:33Z"
+      },
+      {
+        "sha": "b3fc605",
+        "message": "bug fix the province with providing",
+        "author": "Aryan Patel",
+        "timestamp": "2025-09-26T09:36:09Z"
+      },
+      {
+        "sha": "0407725",
+        "message": "Merge branch 'develop' into fix/country-select",
+        "author": "Patel Aryan Saurabhkumar",
+        "timestamp": "2025-10-02T18:21:27Z"
+      },
+      {
+        "sha": "f15dadd",
+        "message": "Merge branch 'develop' into fix/country-select",
+        "author": "Patel Aryan Saurabhkumar",
+        "timestamp": "2025-10-02T18:22:04Z"
+      },
+      {
+        "sha": "6ce2fd1",
+        "message": "Merge branch 'develop' into fix/country-select",
+        "author": "William Bouchard",
+        "timestamp": "2025-10-08T18:56:25Z"
+      }
+    ]
+  },
+  {
+    "story_id": "medusajs/medusa#15346",
+    "metadata": {
+      "title": "fix(product): Support non-Latin characters in product handles with Un…",
+      "labels": [
+        "type: bug",
+        "automerge",
+        "initial-approval",
+        "requires-team"
+      ],
+      "qualities": [
+        "usability",
+        "modifiability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2026-06-11T07:26:44Z",
+      "reviewers": [
+        "cursor[bot]",
+        "shahednasser"
+      ],
+      "changed_files": 5
+    },
+    "issue_payload": {
+      "body": "# Summary (final PR implementation)\r\n\r\n**What** — What changes are introduced in this PR?\r\n\r\nThis PR fixes and closes issue #14378: products with non-Latin titles (Persian, Arabic, Japanese, Chinese, Korean, Russian, etc.) cannot be created because handle generation fails.\r\n\r\n**Three specific changes:**\r\n\r\n1. **Improve `toHandle()`** to preserve Unicode letters from any language while still removing special characters (apostrophes, punctuation, etc.)\r\n2. **Update `isValidHandle()`** to be Unicode-aware with proper lowercase validation\r\n3. **Add comprehensive tests** for all scripts and edge cases\r\n\r\n**Why** — Why are these changes relevant or necessary?  \r\n\r\nCurrently, products with non-Latin titles (Persian, Arabic, Japanese, Chinese, Korean, Russian, etc.) cannot be created. The error message is:\r\n```\r\nInvalid product handle '-'. It must contain URL safe characters\r\n```\r\n\r\nRoot cause: `toHandle()` was stripping all non-ASCII characters, resulting in empty or partial handles.\r\n\r\n**How** — How have these changes been implemented?\r\n\r\n**Change 1: Improve `toHandle()` in `to-handle.ts`**\r\n- Preserves Unicode letters (`\\p{L}`) and numbers (`\\p{N}`)\r\n- Removes special characters (apostrophes, punctuation, symbols)\r\n- Replaces spaces/underscores with hyphens\r\n- Falls back to random suffix for empty results\r\n\r\n**Change 2: Update `isValidHandle()` in `is-valid-handle.ts`**\r\n- Rejects uppercase ASCII letters (maintains backward compatibility)\r\n- Accepts lowercase letters + case-less scripts (Arabic, Persian, CJK)\r\n- Validates format (no spaces, no special chars, valid hyphen placement)\r\n\r\n***Note: No change to product module*** - continues using `toHandle()`\r\n\r\n\r\n**Testing** — How have these changes been tested, or how can the reviewer test the feature?\r\n\r\n- Added unit tests for 10+ language scripts (Persian, Arabic, Japanese, Chinese, Korean, Russian, English)\r\n- Added edge case tests (empty strings, special characters only, accents)\r\n- Verified backward compatibility (Latin handles unchanged)\r\n- Verified categories/collections unchanged\r\n\r\n---\r\n\r\n## Examples\r\n\r\n```typescript\r\n// Persian\r\ntoHandle(\"کتاب فارسی\") // \"کتاب-فارسی\"\r\n\r\n// Accents preserved\r\ntoHandle(\"café\") // \"café\"\r\n\r\n// Special characters removed\r\ntoHandle(\"Women's Shoes\") // \"womens-shoes\"\r\n\r\n// Edge case fallback\r\ntoHandle(\"\") // \"product-abc123\" (random, unique)\r\n\r\n// Validation\r\nisValidHandle(\"کتاب-فارسی\") // true\r\nisValidHandle(\"Hello-World\") // false (uppercase rejected)\r\n```\r\n\r\n---\r\n\r\n## Checklist\r\n\r\nPlease ensure the following before requesting a review:\r\n\r\n- [x] I have added a **changeset** for this PR\r\n- [x] The changes are covered by relevant **tests**\r\n- [x] I have verified the code works as intended locally\r\n- [x] Verified backwards compatibility\r\n- [x] I have linked the related issue(s) if applicable\r\n\r\n---\r\n\r\n## Additional Context\r\n\r\nCloses #14378\r\n\r\nThis approach follows the established pattern of major ecommerce platforms:\r\n\r\n| Platform | Slug/Handle Approach | Unicode Support |\r\n|----------|---------------------|-----------------|\r\n| **WordPress** | `sanitize_title()` – preserves Unicode | ✅ Yes |\r\n| **WooCommerce** | UTF-8 in product permalinks | ✅ Yes |\r\n| **Shopify** | Transliterates to Latin or preserves Unicode | ✅ Yes |\r\n| **Shopware** | Full Unicode slug support | ✅ Yes |\r\n| **Medusa (Current)** | Latin-only + stripping | ❌ No |\r\n| **Medusa (This PR)** | Unicode-aware + `kebabCase` | ✅ Yes |"
+    },
+    "discussion_timeline": [
+      {
+        "author": "changeset-bot[bot]",
+        "role": "NONE",
+        "body": "###  🦋  Changeset detected\n\nLatest commit: b76e468efad3f82028b85f3a82db6f425a710b28\n\n**The changes in this PR will be included in the next version bump.**\n\n<details><summary>This PR includes changesets to release 78 packages</summary>\n\n  | Name                               | Type  |\n| ---------------------------------- | ----- |\n| @medusajs/product                  | Patch |\n| @medusajs/utils                    | Patch |\n| @medusajs/medusa                   | Patch |\n| @medusajs/event-bus-redis          | Patch |\n| @medusajs/framework                | Patch |\n| @medusajs/modules-sdk              | Patch |\n| @medusajs/orchestration            | Patch |\n| @medusajs/workflows-sdk            | Patch |\n| @medusajs/cli                      | Patch |\n| @medusajs/medusa-oas-cli           | Patch |\n| @medusajs/test-utils               | Patch |\n| integration-tests-http             | Patch |\n| @medusajs/analytics                | Patch |\n| @medusajs/api-key                  | Patch |\n| @medusajs/auth                     | Patch |\n| @medusajs/cache-inmemory           | Patch |\n| @medusajs/cache-redis              | Patch |\n| @medusajs/caching                  | Patch |\n| @medusajs/cart                     | Patch |\n| @medusajs/currency                 | Patch |\n| @medusajs/customer                 | Patch |\n| @medusajs/event-bus-local          | Patch |\n| @medusajs/file                     | Patch |\n| @medusajs/fulfillment              | Patch |\n| @medusajs/index                    | Patch |\n| @medusajs/inventory                | Patch |\n| @medusajs/link-modules             | Patch |\n| @medusajs/locking                  | Patch |\n| @medusajs/notification             | Patch |\n| @medusajs/order                    | Patch |\n| @medusajs/payment                  | Patch |\n| @medusajs/pricing                  | Patch |\n| @medusajs/promotion                | Patch |\n| @medusajs/rbac                     | Patch |\n| @medusajs/region                   | Patch |\n| @medusajs/sales-channel            | Patch |\n| @medusajs/settings                 | Patch |\n| @medusajs/stock-location           | Patch |\n| @medusajs/store                    | Patch |\n| @medusajs/tax                      | Patch |\n| @medusajs/translation              | Patch |\n| @medusajs/user                     | Patch |\n| @medusajs/workflow-engine-inmemory | Patch |\n| @medusajs/workflow-engine-redis    | Patch |\n| @medusajs/analytics-local          | Patch |\n| @medusajs/analytics-posthog        | Patch |\n| @medusajs/auth-emailpass           | Patch |\n| @medusajs/auth-github              | Patch |\n| @medusajs/auth-google              | Patch |\n| @medusajs/caching-redis            | Patch |\n| @medusajs/file-local               | Patch |\n| @medusajs/file-s3                  | Patch |\n| @medusajs/fulfillment-manual       | Patch |\n| @medusajs/locking-postgres         | Patch |\n| @medusajs/locking-redis            | Patch |\n| @medusajs/notification-local       | Patch |\n| @medusajs/notification-sendgrid    | Patch |\n| @medusajs/payment-stripe           | Patch |\n| @medusajs/draft-order              | Patch |\n| @medusajs/loyalty-plugin           | Patch |\n| @medusajs/core-flows               | Patch |\n| @medusajs/oas-github-ci            | Patch |\n| @medusajs/js-sdk                   | Patch |\n| @medusajs/types                    | Patch |\n| @medusajs/http-types-generator     | Patch |\n| @medusajs/deps                     | Patch |\n| @medusajs/telemetry                | Patch |\n| @medusajs/admin-bundler            | Patch |\n| @medusajs/admin-sdk                | Patch |\n| @medusajs/admin-shared             | Patch |\n| @medusajs/admin-vite-plugin        | Patch |\n| @medusajs/dashboard                | Patch |\n| @medusajs/icons                    | Patch |\n| @medusajs/toolbox                  | Patch |\n| @medusajs/ui-preset                | Patch |\n| create-medusa-app                  | Patch |\n| medusa-dev-cli                     | Patch |\n| @medusajs/ui                       | Patch |\n\n</details>\n\nNot sure what this means? [Click here  to learn what changesets are](https://github.com/changesets/changesets/blob/main/docs/adding-a-changeset.md).\n\n[Click here if you're a maintainer who wants to add another changeset to this PR](https://github.com/Cpidar/medusa/new/fix/improve-product-handle-slugification?filename=.changeset/major-plants-say.md&value=---%0A%22%40medusajs%2Futils%22%3A%20patch%0A---%0A%0Afix(product)%3A%20Support%20non-Latin%20characters%20in%20product%20handles%20with%20Un%E2%80%A6%0A)\n\n",
+        "timestamp": "2026-05-09T15:33:55Z"
+      },
+      {
+        "author": "vercel[bot]",
+        "role": "NONE",
+        "body": "@Cpidar is attempting to deploy a commit to the **medusajs** Team on [Vercel](https://vercel.com).\n\nA member of the Team first needs to [authorize it](https://vercel.com/git/authorize?team=medusajs&slug=medusajs&teamId=team_H9FqCbbGqSGhPs9oquyfg6Wt&type=github&job=%7B%22headInfo%22%3A%7B%22sha%22%3A%2229f8b94d64e31e32b46e0a78377ca15f28b90f50%22%7D%2C%22id%22%3A%22QmbA79Db9rYvdfyXZoanDXSgxf6moGr3aXyqcikRUQKdUM%22%2C%22org%22%3A%22medusajs%22%2C%22prId%22%3A15346%2C%22repo%22%3A%22medusa%22%7D).\n\n",
+        "timestamp": "2026-05-09T15:34:00Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nAfter reviewing this PR, we need a few things addressed before we can move forward:\n\n**Required changes:**\n- [ ] Fix the changeset message format in `.changeset/fix-product-handle-unicode.md` — the message must follow the pattern `fix(package-name1, package-name2): description`. Update it to: `fix(product, utils): Support non-Latin characters in product handles`\n- [ ] Update the existing test file `packages/core/utils/src/common/__tests__/is-valid-handle.spec.ts` to cover the new Unicode behavior (Persian, Arabic, Japanese, etc.) and protect against regressions. The test file already exists but is not included in this PR.\n- [ ] Address the unintended acceptance of uppercase Latin handles introduced by the regex change (see Potential Bugs below)\n\n**Potential Bugs:**\n\n⚠️ `packages/core/utils/src/common/validate-handle.ts` — Regex change unintentionally accepts uppercase Latin handles\n```typescript\nreturn /^[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*$/u.test(value)\n```\nThe old regex `[a-z0-9]` only matched lowercase letters. The Unicode category `\\p{L}` includes *all* letters — uppercase and lowercase alike (`\\p{Lu}` + `\\p{Ll}` + others). This means `isValidHandle(\"MyProduct\")` now returns `true` where it previously returned `false`. Since product handles are URL slugs that have historically been lowercase-only, this is a silent behavioral regression. Consider one of these fixes:\n1. Normalize the value to lowercase before validating: `value.toLowerCase()` (safe for ASCII/Cyrillic/Greek; no-op for caseless scripts like Arabic and CJK)\n2. Restrict to `[\\p{Ll}\\p{Lo}\\p{N}]` — lowercase letters (`\\p{Ll}`), letters with no case distinction (`\\p{Lo}`, which covers Arabic, Hebrew, CJK, Devanagari, etc.), and numbers\n\n**Notes:**\n- Both `packages/core/utils/src/common/validate-handle.ts` and `.changeset/fix-product-handle-unicode.md` are missing a trailing newline at end of file.\n\n_Triggered by: new PR opened_",
+        "timestamp": "2026-05-09T15:37:33Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nProgress from the previous review — all three required changes have been addressed:\n- ✅ Changeset message format corrected to `fix(product, utils): Support non-Latin characters in product handles`\n- ✅ `is-valid-handle.spec.ts` updated with comprehensive Unicode test coverage (Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases)\n- ✅ Uppercase Latin regression addressed via `.toLowerCase()` normalization before the regex test\n\nHowever, there is a new issue introduced in this commit that needs to be fixed before we can move forward:\n\n**Required changes:**\n- [ ] Fix product handle auto-generation to use the new Unicode-aware `toHandle` instead of `kebabCase` — see Potential Bugs below\n\n**Potential Bugs:**\n\n⚠️ `packages/modules/product/src/services/product-module-service.ts` — `kebabCase` doesn't strip special characters, producing invalid stored handles\n\n```typescript\nproductData.handle = kebabCase(productData.title)\n```\n\n`kebabCase` only converts camelCase transitions and spaces/underscores to hyphens — it does **not** remove special characters like `%`, `.`, `\\!`, `@`, etc. This introduces a regression for product titles that previously worked:\n\n- `\"25% OFF\"` → `kebabCase` → `\"25%-off\"` → stored as an invalid handle (`%` is not allowed)\n- `\"user.product\"` → `kebabCase` → `\"user.product\"` → stored as an invalid handle (`.` is not allowed)\n\nThe old `toHandle` stripped these characters. The **new Unicode-aware `toHandle`** from this same PR (`to-handle.ts`) also handles them correctly via `.replace(/[^\\p{L}\\p{N}\\s_-]/gu, '')`. The fix is to keep using `toHandle` in the product module service and restore the import:\n\n```typescript\n// Keep the toHandle import and use it — the rewritten toHandle in this PR\n// handles both Unicode titles and special-character titles correctly\nproductData.handle = toHandle(productData.title)\n```\n\nWith the rewritten `toHandle`, `\"کتاب فارسی\"` → `\"کتاب-فارسی\"` ✅ and `\"25% OFF\"` → `\"25-off\"` ✅.\n\n**Notes:**\n- `packages/core/utils/src/common/validate-handle.ts` and `packages/core/utils/src/common/__tests__/is-valid-handle.spec.ts` are both still missing a trailing newline at end of file (carried over from the previous review note).\n- The `\"should validate cleaned handles\"` `it` block in `to-handle.spec.ts` has its body indented at 2 spaces rather than 4 — minor style issue.\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-09T20:12:44Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "@medusa-os-bot Thank you for the feedback! I've addressed all issues:\r\n\r\n✅ **Changeset format fixed** - Updated to `fix(product, utils): Support non-Latin characters in product handles`\r\n\r\n✅ **Tests added** - Created comprehensive tests for both `toHandle` and `isValidHandle` covering:\r\n- Persian, Arabic, Japanese, Chinese, Korean, Russian scripts\r\n- Special character removal (apostrophes, punctuation)\r\n- Uppercase/lowercase handling (backward compatible)\r\n- Empty handle fallback\r\n\r\n✅ **Uppercase Latin handles fixed** - Added `.toLowerCase()` before validation to maintain backward compatibility\r\n\r\n✅ **Special characters in kebabCase** - Kept `toHandle` function (not replaced with kebabCase) but improved it to handle non-latic characters while still removing special chars like apostrophes\r\n\r\n✅ **Trailing newlines added** - Fixed formatting in changeset and validate-handle files\r\n\r\nSo now:\r\n- ✅ `toHandle` is preserved (backward compatible)\r\n- ✅ `toHandle` now properly handles Persian/Arabic/Japanese/etc. characters\r\n- ✅ `toHandle` still removes special characters (apostrophes, `!@#$%`, etc.)\r\n- ✅ `isValidHandle` is Unicode-aware with backward compatible lowercase normalization\r\n\r\nThe changes are now ready for review. All tests pass locally. Thank you for your patience with my first contribution!",
+        "timestamp": "2026-05-09T20:13:36Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "**Update:** I've reverted the product module back to using `toHandle` instead of `kebabCase`.",
+        "timestamp": "2026-05-09T20:15:06Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nGood progress on this PR — the issues raised in the previous review have been addressed:\n\n- ✅ Changeset message format corrected\n- ✅ Test coverage expanded with Unicode cases\n- ✅ Uppercase regression fixed via `.toLowerCase()` in `isValidHandle`\n\nA couple of things still need to be addressed before we can move forward:\n\n**Required changes:**\n- [ ] Replace single-quoted strings with double-quoted strings in `packages/core/utils/src/common/to-handle.ts` — Medusa uses double quotes throughout the codebase (enforced by Prettier). The replacement strings in the new `.replace()` calls all use single quotes (`'ss'`, `''`, `'-'`, etc.) and need to be updated to double quotes.\n- [ ] Update the JSDoc comment in `packages/core/utils/src/common/to-handle.ts` — the comment still says *\"Splits and remove accents from characters\"* and *\"Removes all unallowed characters\"*, but the new implementation preserves Unicode letters (including accented characters) rather than stripping them. The comment now actively contradicts the implementation.\n\n**Notes:**\n- `packages/core/utils/src/common/validate-handle.ts` and `packages/core/utils/src/common/__tests__/is-valid-handle.spec.ts` are both still missing a trailing newline at end of file.\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-09T20:16:33Z"
+      },
+      {
+        "author": "cursor[bot]",
+        "role": "NONE",
+        "body": "You have used all of your free Bugbot PR reviews.\n\nTo receive reviews on all of your PRs, visit the [Cursor dashboard](https://www.cursor.com/dashboard/bugbot) to activate Pro and start your 14-day free trial.",
+        "timestamp": "2026-05-09T21:05:10Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "@medusa-os-bot Thank you for the detailed review! I've addressed all remaining issues:\r\n\r\n✅ **Quotes fixed** - Changed all single quotes to double quotes in `to-handle.ts` to match Prettier/Medusa standards\r\n\r\n✅ **JSDoc updated** - Rewrote the comment to accurately reflect the new implementation (preserves Unicode, removes special chars, fallback behavior)\r\n\r\n✅ **Uppercase handling fixed** - Removed `.toLowerCase()` from `isValidHandle` and now explicitly reject uppercase ASCII letters (A-Z). This ensures:\r\n- Backward compatibility (uppercase handles were invalid before)\r\n- No case-sensitive duplicate issues with the unique database index\r\n- Auto-generated handles from `toHandle` are always lowercase, so this maintains consistency\r\n\r\n✅ **Test added** - Added test case for uppercase rejection\r\n\r\n✅ **Test fix pushed:** Updated `to-handle.spec.ts` to expect fallback handles for edge cases (`\"\"`, `\"-\"`, `\"   \"`, `\"___\"`, `\"@#$%\"`).\r\n\r\nThe fallback behavior is intentional - it guarantees every product gets a valid, unique handle rather than failing validation. This matches how WordPress, Shopify, and other platforms handle edge cases.\r\n\r\nAll tests now pass locally. ✅\r\n\r\nThe PR should now be ready for final review. Thank you for your patience and thorough feedback on my first contribution!\r\n",
+        "timestamp": "2026-05-09T21:07:24Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nGood progress on this PR — most of the previously raised issues have now been resolved:\n\n- ✅ Changeset message format corrected\n- ✅ Test coverage expanded with comprehensive Unicode cases\n- ✅ Uppercase ASCII regression fixed via early `[A-Z]` rejection in `isValidHandle`\n- ✅ Product module service reverted to `toHandle` (not `kebabCase`)\n- ✅ String literals in `to-handle.ts` converted to double quotes\n- ✅ Trailing newline added to `validate-handle.ts`\n\nOne required change remains before we can move forward:\n\n**Required changes:**\n- [ ] Fix the inaccurate JSDoc comment in `packages/core/utils/src/common/to-handle.ts` — the bullet point *\"Normalizes Unicode characters and removes diacritics (accents)\"* and the `@example` line `toHandle(\"café\") // \"cafe\"` both contradict the actual implementation. The new `toHandle` does **not** perform NFD normalization or strip diacritics — `é` is a Unicode letter (`\\p{L}`) and is preserved. The actual output of `toHandle(\"café\")` is `\"café\"`, not `\"cafe\"`. This is confirmed by the test cases you added (`{ input: \"café-resume\", output: \"café-resume\" }`). Please update the JSDoc to accurately describe the new behavior.\n\n**Notes:**\n- `packages/core/utils/src/common/__tests__/is-valid-handle.spec.ts` is still missing a trailing newline at end of file (carried over from previous reviews).\n- The main `expectations` array in `is-valid-handle.spec.ts` contains a duplicate block — the *\"English / Latin - valid cases\"* section (hello-world, my-article-123, a-1, 123, 123-456, café-resume) appears twice. Not blocking, but worth cleaning up.\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-09T21:09:22Z"
+      },
+      {
+        "author": "cursor[bot]",
+        "role": "NONE",
+        "body": "You have used all of your free Bugbot PR reviews.\n\nTo receive reviews on all of your PRs, visit the [Cursor dashboard](https://www.cursor.com/dashboard/bugbot) to activate Pro and start your 14-day free trial.",
+        "timestamp": "2026-05-10T11:38:03Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "@medusa-os-bot Thank you for the precise review! I've fixed the remaining issues:\r\n\r\n✅ **JSDoc corrected** - Updated to accurately describe that `toHandle` preserves accented characters (é, ñ, ü, etc.) rather than stripping them.\r\n\r\n✅ **Trailing newline added** - Added to `is-valid-handle.spec.ts`\r\n\r\n✅ **Duplicate test block removed** - Cleaned up the duplicate \"English / Latin - valid cases\" section\r\n\r\nThe documentation now accurately reflects the implementation. Ready for final review!\r\n",
+        "timestamp": "2026-05-10T11:38:44Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nGood progress — all items from the previous review have been addressed:\n\n- ✅ Changeset message format corrected\n- ✅ JSDoc in `to-handle.ts` accurately describes the new behavior (diacritics bullet and `café → \"cafe\"` example removed)\n- ✅ Test coverage expanded with comprehensive Unicode cases\n- ✅ Trailing newline in `is-valid-handle.spec.ts` and duplicate test block resolved\n\nOne small convention issue remains before we can move forward:\n\n**Required changes:**\n- [ ] Restore the trailing comma after `toHandle` in the import list in `packages/modules/product/src/services/product-module-service.ts` — Medusa enforces ES5 trailing commas (via Prettier). The current PR state has `toHandle` but it should be `toHandle,`\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-10T11:42:35Z"
+      },
+      {
+        "author": "cursor[bot]",
+        "role": "NONE",
+        "body": "You have used all of your free Bugbot PR reviews.\n\nTo receive reviews on all of your PRs, visit the [Cursor dashboard](https://www.cursor.com/dashboard/bugbot) to activate Pro and start your 14-day free trial.",
+        "timestamp": "2026-05-10T12:36:05Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "\r\nI've fixed the remaining issue: Restore the trailing comma after toHandle in the import list.\r\n\r\n",
+        "timestamp": "2026-05-10T12:42:18Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nGood progress since the last review — all previously raised issues have been addressed:\n\n- ✅ Changeset format correct (`fix(product, utils): ...`)\n- ✅ JSDoc in `to-handle.ts` accurately describes the new behavior (accented characters preserved, not stripped)\n- ✅ Comprehensive Unicode test coverage across many scripts\n- ✅ Uppercase ASCII rejection correctly handled in `isValidHandle`\n- ✅ `product-module-service.ts` trailing comma issue resolved (file reverted cleanly)\n- ✅ Trailing newline and duplicate test block in `is-valid-handle.spec.ts` resolved\n\nOne convention issue remains before we can move forward:\n\n**Required changes:**\n- [ ] Add the missing trailing comma after the last item in the `expectations` array in `packages/core/utils/src/common/__tests__/is-valid-handle.spec.ts` — Medusa enforces ES5 trailing commas (via Prettier). The last entry currently reads:\n```typescript\n{ input: \"我的-产品\", isValid: true }\n```\nIt should be:\n```typescript\n{ input: \"我的-产品\", isValid: true },\n```\n\n**Notes:**\n- The `toHandle` function body in `packages/core/utils/src/common/to-handle.ts` has an extra blank line after the opening `{` and before the closing `}`. These are typically not present in Medusa utility functions and can be removed.\n- `toHandle` now includes `Math.random()` in its fallback path, making it non-deterministic for empty/special-character inputs. This is intentional per the test cases, but worth being aware of if any callers unit-test that path — they will need regex matching rather than exact string comparison.\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-10T12:43:06Z"
+      },
+      {
+        "author": "cursor[bot]",
+        "role": "NONE",
+        "body": "You have used all of your free Bugbot PR reviews.\n\nTo receive reviews on all of your PRs, visit the [Cursor dashboard](https://www.cursor.com/dashboard/bugbot) to activate Pro and start your 14-day free trial.",
+        "timestamp": "2026-05-11T15:30:03Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "@medusa-os-bot Formatting fixes applied:\r\n\r\n✅ Added trailing comma to last array item in test expectations\r\n✅ Removed extra blank lines in toHandle function body\r\n\r\nThe PR should now meet all Medusa code style conventions. \r\n\r\nThank you for the thorough review - these formatting details are noted for future contributions.\r\n\r\nRegarding the non-deterministic fallback: Yes, this is intentional to ensure unique handles for edge cases. Any tests for that path should use regex matching (e.g., `/^product-[a-z0-9]{6}$/`) rather than exact string comparison, as documented in the test file.\r\n\r\nReady for final review! 🚀",
+        "timestamp": "2026-05-11T15:30:18Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\! 🎉\n\nGood progress through this review cycle — all items from the previous review have been addressed:\n\n- ✅ Trailing comma added to last item in `is-valid-handle.spec.ts` expectations array\n- ✅ Extra blank lines in `toHandle` function body removed\n- ✅ Changeset message format correct (`fix(product, utils): ...`)\n- ✅ JSDoc in `to-handle.ts` accurately describes the new behavior (Unicode letters preserved, not stripped)\n- ✅ Comprehensive Unicode test coverage (Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases)\n- ✅ Uppercase ASCII rejection correctly handled in `isValidHandle` via `[A-Z]` early check\n- ✅ String literals in `to-handle.ts` use double quotes\n- ✅ Trailing newlines in place\n\nAfter an initial review, this PR looks good to us. The fix is well-scoped: `toHandle` now preserves Unicode letters via `\\p{L}` instead of stripping them through NFD normalization, and `isValidHandle` validates using `\\p{Ll}` + `\\p{Lo}` + `\\p{N}` to correctly accept non-Latin scripts while rejecting uppercase and special characters. The approach aligns with how categories and collections already behave.\n\n**Notes (non-blocking):**\n- The inline `//` comments in `to-handle.ts` (e.g., `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) explain *what* the code does rather than *why*, which goes against Medusa's convention of only commenting non-obvious intent. Worth cleaning up in a follow-up, but not blocking.\n\nA team member will do a final review before this is merged. We appreciate your patience through the iterations\\!\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-05-11T15:35:24Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nReviewed the PR following the description update — no code changes were introduced, so the previous assessment stands.\n\nAll required changes from prior review cycles have been addressed:\n\n✅ Changeset message format correct (`fix(product, utils): ...`)\n✅ `toHandle` updated to preserve Unicode letters via `\\p{L}` instead of stripping via NFD normalization\n✅ `isValidHandle` updated to accept Unicode letters (`\\p{Ll}`, `\\p{Lo}`) and numbers (`\\p{N}`), with an explicit early rejection of uppercase ASCII (`[A-Z]`)\n✅ JSDoc in `to-handle.ts` accurately describes the new behavior (diacritics/accented characters preserved, not stripped)\n✅ Comprehensive test coverage across Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases\n✅ String literals use double quotes throughout\n✅ Trailing commas and trailing newlines in place\n✅ Linked to verified issue #14378\n\n**Notes (non-blocking):**\n- The inline `//` comments in `packages/core/utils/src/common/to-handle.ts` (e.g. `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) describe *what* each line does rather than *why*, which is Medusa's convention to avoid. Worth cleaning up in a follow-up but not blocking.\n\nA team member will do a final review before this is merged. We appreciate your patience through the review iterations\\!\n\n_Triggered by: PR description updated_",
+        "timestamp": "2026-05-11T19:29:03Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nReviewed the PR following the description update — no code changes were introduced, so the previous assessment stands.\n\nAll required changes from prior review cycles have been addressed:\n\n✅ Changeset message format correct (`fix(product, utils): Support non-Latin characters in product handles`)\n✅ `toHandle` updated to preserve Unicode letters via `\\p{L}` instead of stripping via NFD normalization\n✅ `isValidHandle` updated to accept Unicode letters (`\\p{Ll}`, `\\p{Lo}`) and numbers (`\\p{N}`), with an explicit early rejection of uppercase ASCII (`[A-Z]`)\n✅ JSDoc in `to-handle.ts` accurately describes the new behavior (accented characters preserved, not stripped)\n✅ Comprehensive test coverage across Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases\n✅ String literals use double quotes throughout\n✅ Trailing commas and trailing newlines in place\n✅ Linked to verified issue #14378\n\n**Notes (non-blocking):**\n- The inline `//` comments in `packages/core/utils/src/common/to-handle.ts` (e.g. `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) describe *what* each line does rather than *why*, which is Medusa's convention to avoid. Worth cleaning up in a follow-up but not blocking.\n\nA team member will do a final review before this is merged. We appreciate your patience through the review iterations\\!\n\n_Triggered by: PR description updated_",
+        "timestamp": "2026-05-11T19:32:10Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nReviewed the PR following the latest description update — no code changes were introduced since the last review, so the previous assessment stands.\n\nAll items from prior review cycles remain resolved:\n\n✅ Changeset message format correct (`fix(product, utils): ...`)\n✅ `toHandle` rewritten to preserve Unicode letters via `\\p{L}` instead of stripping via NFD normalization\n✅ `isValidHandle` updated with `\\p{Ll}`, `\\p{Lo}`, `\\p{N}` validation and explicit uppercase ASCII rejection\n✅ Comprehensive test coverage (Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, edge cases)\n✅ Double quotes throughout, trailing commas and trailing newlines in place\n✅ Linked to verified issue #14378\n\n**Notes (non-blocking):**\n- The PR description in **\"Change 1\"** still references replacing `toHandle` with `kebabCase` in `product-module-service.ts`, and **\"Change 3\"** references removing the `toHandle` import — but the actual implementation rewrites `toHandle` itself in `to-handle.ts` to support Unicode, without touching the product module service. Consider updating the description to reflect the current approach for accuracy.\n- The inline `//` comments in `packages/core/utils/src/common/to-handle.ts` (e.g. `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) describe *what* each line does rather than *why* — Medusa's convention is to only comment non-obvious intent. Not blocking, but worth a follow-up cleanup.\n\nA team member will do a final review before this is merged. We appreciate your patience through the review iterations\\!\n\n_Triggered by: PR description updated_",
+        "timestamp": "2026-05-11T19:34:16Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\! 🎉\n\nReviewed the PR following the description update — the note from the previous review has been resolved:\n\n- ✅ PR description updated to accurately reflect the implementation (Change 1 now correctly states \"Improve `toHandle()`\", and includes the note that the product module service is unchanged)\n\nAll previously verified items remain in place:\n\n✅ Changeset format correct (`fix(product, utils): Support non-Latin characters in product handles`)\n✅ `toHandle` rewritten to preserve Unicode letters via `\\p{L}` instead of stripping via NFD normalization\n✅ `isValidHandle` updated with `\\p{Ll}`, `\\p{Lo}`, `\\p{N}` validation and explicit uppercase ASCII rejection\n✅ Comprehensive test coverage (Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases)\n✅ Double quotes throughout, trailing commas and trailing newlines in place\n✅ Linked to verified issue #14378\n\n**Notes (non-blocking):**\n- The inline `//` comments in `packages/core/utils/src/common/to-handle.ts` (e.g. `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) describe *what* each line does rather than *why* — Medusa's convention is to only comment non-obvious intent. Worth a follow-up cleanup, but not blocking.\n\nA team member will do a final review before this is merged. We appreciate your patience through the review iterations\\!\n\n_Triggered by: PR description updated_",
+        "timestamp": "2026-05-12T06:58:32Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nReviewed the PR following the latest description update — the description now accurately reflects the current implementation (rewrites `toHandle` in-place for Unicode support, updates `isValidHandle`, and adds tests, with no change to the product module service). This addresses the previously mentioned note about the description referencing the old `kebabCase` approach.\n\nAll items from prior review cycles remain resolved:\n\n✅ Changeset message format correct (`fix(product, utils): Support non-Latin characters in product handles`)\n✅ `toHandle` rewritten to preserve Unicode letters via `\\p{L}` instead of stripping via NFD normalization\n✅ `isValidHandle` updated with `\\p{Ll}`, `\\p{Lo}`, `\\p{N}` validation and explicit uppercase ASCII rejection\n✅ Comprehensive test coverage (Persian, Arabic, Hebrew, Japanese, Chinese, Korean, Russian, Greek, and edge cases)\n✅ Double quotes throughout, trailing commas and trailing newlines in place\n✅ PR description now accurately reflects the implementation\n✅ Linked to verified issue #14378\n\n**Notes (non-blocking):**\n- The inline `//` comments in `packages/core/utils/src/common/to-handle.ts` (e.g. `// Normalize to lowercase`, `// Replace spaces and underscores with single hyphens`) describe *what* each line does rather than *why* — Medusa's convention is to only comment non-obvious intent. Worth cleaning up in a follow-up but not blocking.\n\nA team member will do a final review before this is merged. We appreciate your patience through the review iterations\\!\n\n_Triggered by: PR description updated_",
+        "timestamp": "2026-05-12T06:59:20Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "Could you please clarify the lint errors? I'm not seeing the exact issue from the comment alone or in my IDE. What rule is being violated? \r\nThank you for your patience with my first contribution! 🙏",
+        "timestamp": "2026-05-28T07:15:54Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "> Thank you for your contribution! Works as expected, but had some minor comments\r\n\r\nI can't see the exact lint error from CI. Based on common lint patterns, I've made these changes:\r\n\r\n- Removed inline comments in `to-handle.ts`\r\n- Added empty line before line 13 in `to-handle.ts`\r\n- Changed `validate-handle.ts` line 27 to use optional chaining: `if (!value?.length) return false` + added empty line\r\n- Changed `to-handle.spec.ts` line 209 to `handles.forEach((handle) => {`\r\n\r\nIf this doesn't resolve it, please share the specific error message. Thanks!\r\n",
+        "timestamp": "2026-06-04T05:21:34Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nProgress since the last review — the previously-noted inline `//` comments in `to-handle.ts` have been removed. 👍\n\nTo answer your question about the lint error: it is a **Prettier** failure (the repo uses Prettier 2.8.8, which strips blank lines at the start of a block). Both modified source files have a blank line — with trailing whitespace — immediately after the opening `{`, so `prettier --check` reports them as unformatted:\n\n`packages/core/utils/src/common/to-handle.ts`\n```typescript\nexport const toHandle = (value: string): string => {\n                                    // <- blank line here fails Prettier\n  let handle = value\n```\n\n`packages/core/utils/src/common/validate-handle.ts`\n```typescript\nexport const isValidHandle = (value: string): boolean => {\n                                    // <- blank line here fails Prettier\n  if (\\!value?.length) return false\n```\n\nYour IDE may not surface it if format-on-save is not enabled, which is likely why it is not obvious locally.\n\n**Required changes:**\n- [ ] Remove the blank line (and trailing whitespace) immediately after the opening `{` in both `packages/core/utils/src/common/to-handle.ts` and `packages/core/utils/src/common/validate-handle.ts`. Running the repo Prettier (e.g. `yarn prettier --write packages/core/utils/src/common/to-handle.ts packages/core/utils/src/common/validate-handle.ts`) will fix it and get CI green.\n\nEverything else from prior reviews remains resolved. Once the formatting passes, this is ready for a team member final review.\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-06-04T05:24:02Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "Prettier formatting applied to all files (`yarn prettier --write`).\r\n\r\n- Removed blank lines after `{`\r\n- Removed trailing whitespace\r\n- Standardized indentation\r\n\r\nCI should pass now.",
+        "timestamp": "2026-06-05T08:46:43Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thank you for your contribution, @Cpidar\\!\n\nThe formatting issue from the last review is resolved — Prettier no longer flags the blank line after the opening `{` in `to-handle.ts` and `validate-handle.ts`. 👍\n\nWhile re-reviewing the Unicode handling, I found a correctness gap that should be addressed before we move forward.\n\n**Required changes:**\n- [ ] Align the character classes in `toHandle` and `isValidHandle` so that every handle `toHandle` produces is accepted by `isValidHandle` — see Potential Bugs below.\n\n**Potential Bugs:**\n\n⚠️ **`packages/core/utils/src/common/to-handle.ts` / `validate-handle.ts`** — `toHandle` can produce handles that `isValidHandle` rejects, re-introducing the exact error this PR fixes (for common Japanese titles).\n\n`toHandle` keeps any character in `\\p{L}`:\n```typescript\n.replace(/[^\\p{L}\\p{N}\\s_-]/gu, \"\")\n```\nbut `isValidHandle` only accepts `\\p{Ll}` + `\\p{Lo}` + `\\p{N}`:\n```typescript\nreturn /^[\\p{Ll}\\p{Lo}\\p{N}]+(?:-[\\p{Ll}\\p{Lo}\\p{N}]+)*$/u.test(value)\n```\n\n`\\p{L}` also includes **modifier letters** (`\\p{Lm}`), which `\\p{Ll}`/`\\p{Lo}` do not. Two very common Japanese characters fall into `\\p{Lm}`:\n- `ー` (U+30FC, prolonged sound mark) — used in loanwords like `ラーメン`, `コーヒー`, `サーバー`\n- `々` (U+3005, iteration mark) — used in `様々`, `人々`, `時々`\n\nSo `toHandle(\"ラーメン\")` returns `\"ラーメン\"` (the `ー` is preserved), but `isValidHandle(\"ラーメン\")` returns `false`.\n\nThis matters because auto-generated handles are validated. In `product-module-service.ts` → `createProducts_`, `normalizeCreateProductInput` sets `productData.handle = toHandle(productData.title)` first, then `validateProductCreatePayload` → `validateProductPayload` runs `isValidHandle(productData.handle)`. Creating a product titled `ラーメン` therefore still throws:\n\n```\nInvalid product handle 'ラーメン'. It must contain URL safe characters\n```\n\nwhich is the very failure mode this PR is meant to fix for non-Latin titles.\n\nSuggested fix: make the two functions agree on the allowed set. The simplest option is to include modifier letters in the validation class:\n```typescript\nreturn /^[\\p{Ll}\\p{Lo}\\p{Lm}\\p{N}]+(?:-[\\p{Ll}\\p{Lo}\\p{Lm}\\p{N}]+)*$/u.test(value)\n```\n(Alternatively, strip `\\p{Lm}` in `toHandle` instead — but preserving these characters is more correct for Japanese/Chinese.) Please also add a test case covering this (e.g. `ラーメン` and `様々`) and assert the invariant `isValidHandle(toHandle(title)) === true` so the two stay in sync.\n\nEverything else from prior reviews remains resolved (changeset format, comprehensive Unicode tests, uppercase ASCII rejection, double quotes, trailing commas/newlines, accurate JSDoc).\n\n_Triggered by: new commit pushed_",
+        "timestamp": "2026-06-05T08:54:26Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "**Fix applied:**\r\n\r\n✅ Added `\\p{Lm}` (modifier letters) to `isValidHandle` regex\r\n\r\nThis allows Japanese prolonged sound mark `ー` (U+30FC) and iteration mark `々` (U+3005) to pass validation.\r\n\r\n**Changes made:**\r\n\r\n| File | Change |\r\n|------|--------|\r\n| `validate-handle.ts` | Added `\\p{Lm}` to character class |\r\n| `to-handle.spec.ts` | Added invariant test + Japanese test cases |\r\n\r\n**New test cases added:**\r\n- `ラーメン` (ramen)\r\n- `様々` (various)\r\n- `コーヒー` (coffee)\r\n- `サーバー` (server)\r\n- `人々` (people)\r\n- `時々` (sometimes)\r\n\r\n**Invariant test added:**\r\n```typescript\r\nexpect(isValidHandle(toHandle(title))).toBe(true)\r\n",
+        "timestamp": "2026-06-06T14:59:47Z"
+      },
+      {
+        "author": "medusa-os-bot[bot]",
+        "role": "NONE",
+        "body": "Thanks for the contribution! Initial automated review looks good.\n\nRe-review: the previously-flagged bug (toHandle kept modifier letters like Japanese ー/々 that isValidHandle rejected) is resolved — isValidHandle now allows \\p{Lm} and an isValidHandle(toHandle(title)) invariant test was added. No blocking issues remain. Two non-blocking notes for the team: (1) toHandle dropped the old NFD normalization, so NFD vs NFC input can yield different handles (combining marks are stripped, café→cafe) though both stay valid — consider normalizing to NFC; (2) accented Latin is now preserved (café→café) instead of transliterated, a behavior change on a core util used wide\n\n_Triggered by: new commit pushed_\n",
+        "timestamp": "2026-06-06T15:00:21Z"
+      },
+      {
+        "author": "Cpidar",
+        "role": "CONTRIBUTOR",
+        "body": "Thank you for the review and guidance! 🙏\r\nLooking forward to contributing more to Medusa in the future!",
+        "timestamp": "2026-06-13T12:15:10Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "29f8b94",
+        "message": "fix(product): Support non-Latin characters in product handles with Unicode validation\n\nPROBLEM:\nProducts with non-Latin titles (Persian, Arabic, Japanese, Chinese, Korean,\nRussian, etc.) cannot be created because auto-generated handles fail validation:\n\"Invalid product handle '-'. It must contain URL safe characters\"\n\nRoot cause analysis revealed inconsistency in the codebase:\n- Products use `toHandle()` → strips non-ASCII characters → empty/partial handle\n- Categories use `kebabCase()` → preserves Unicode characters → works correctly\n- Collections use `kebabCase()` → preserves Unicode characters → works correctly\n\nSOLUTION:\n1. Replace `toHandle(title)` with `kebabCase(title)` in product creation\n   - Aligns products with categories and collections behavior\n   - Uses existing, tested slugification logic\n\n2. Update `isValidHandle()` to support Unicode letters\n   - New regex: `/^[\\p{L}\\p{N}]+(?:-[\\p{L}\\p{N}]+)*$/u`\n   - Allows any letter from any language while maintaining security\n   - Still rejects spaces, special characters, leading/trailing hyphens\n\n3. Remove unused `toHandle` import from product module\n\nIMPACT:\n- ✅ Persian: \"کتاب-فارسی\" → valid\n- ✅ Arabic: \"الكتاب-العربي\" → valid\n- ✅ Japanese: \"私の-製品\" → valid\n- ✅ Chinese: \"我的-产品\" → valid\n- ✅ Korean: \"나의-제품\" → valid\n- ✅ Russian: \"мой-продукт\" → valid\n- ✅ English: \"my-product\" → valid (backward compatible)\n- ❌ \"my product\" → invalid (space)\n- ❌ \"product@\" → invalid (special char)\n\nINDUSTRY STANDARD:\nThis approach mirrors WordPress/WooCommerce which support UTF-8 in slugs\nrather than forcing Latin-only characters. Modern ecommerce platforms\nrecognize that URLs can safely contain Unicode characters.\n\nCloses #14378",
+        "author": "Cpidar",
+        "timestamp": "2026-05-09T14:53:09Z"
+      },
+      {
+        "sha": "60eff38",
+        "message": "fix(utils): Improve toHandle and isValidHandle for non-Latin scripts\n\n- Update toHandle to preserve Persian/Arabic/Japanese/Chinese/Korean characters\n- Remove special characters (apostrophes, punctuation) while keeping Unicode letters\n- Add lowercase conversion\n- Update isValidHandle with Unicode-aware regex\n- Add comprehensive tests for all scripts and edge cases\n- Fix changeset format to follow required pattern\n\nCloses #14378",
+        "author": "Cpidar",
+        "timestamp": "2026-05-09T20:07:09Z"
+      },
+      {
+        "sha": "0cb9f26",
+        "message": "fix(product): Restore toHandle function for product handle generation\nThe previous change replaced toHandle with kebabCase, which caused\nregressions with special characters (apostrophes, punctuation).\n\nNow toHandle has been improved to handle Persian/Arabic/Japanese/etc.\nwhile still removing special characters. Keeping toHandle ensures\nbackward compatibility and proper sanitization.\"",
+        "author": "Cpidar",
+        "timestamp": "2026-05-09T20:13:59Z"
+      },
+      {
+        "sha": "ec77fb6",
+        "message": "fix(utils): Address PR review feedback and improve the functionality of toHandle and isValidHandle\n\n- Replace single quotes with double quotes in replace() calls\n- Update JSDoc comments to match new implementation\n- Add explicit check for uppercase ASCII letters (A-Z)\n- Remove .toLowerCase() to maintain consistency with auto-generated handles\n- Update regex to use \\p{Ll}\\p{Lo} instead of \\p{L} for precision\n- Add test for uppercase rejection to prevent case-sensitive duplicate issues\n- Update JSDoc examples to show uppercase rejection behavior\n- Generate random fallback handles (e.g., 'product-abc123') instead of empty strings. This ensures every product gets a valid, unique handle and prevents\ndatabase constraint violations.\"\n- Update toHandle tests to expect fallback behavior",
+        "author": "Cpidar",
+        "timestamp": "2026-05-09T21:07:21Z"
+      },
+      {
+        "sha": "daa032e",
+        "message": "docs(utils): Fix JSDoc to accurately describe toHandle behavior\n\n- Remove incorrect claim about accent removal (preserves é, ñ, ü, etc.)\n- Add trailing newline to test file\n- Remove duplicate test block in isValidHandle tests\"",
+        "author": "Cpidar",
+        "timestamp": "2026-05-10T11:40:39Z"
+      },
+      {
+        "sha": "2981314",
+        "message": "fix(product): Address PR review feedback :\n- restore the trailing comma after toHandle in the import list",
+        "author": "Cpidar",
+        "timestamp": "2026-05-10T12:38:34Z"
+      },
+      {
+        "sha": "1e5cfca",
+        "message": "style(utils): Fix formatting issues per Medusa conventions\n\n- Add trailing comma to last item in expectations array\n- Remove extra blank lines in toHandle function body",
+        "author": "Cpidar",
+        "timestamp": "2026-05-11T15:32:05Z"
+      },
+      {
+        "sha": "35ccdcf",
+        "message": "style: Fix potential lint issues based on common patterns\n\n- Remove inline comments in to-handle.ts\n- Add empty line before line 13\n- Use optional chaining in validate-handle.ts\n- Add parentheses in arrow function",
+        "author": "Cpidar",
+        "timestamp": "2026-06-04T05:15:09Z"
+      },
+      {
+        "sha": "2630950",
+        "message": "style: Apply Prettier formatting across all changed files\n\n- Run npx prettier --write on all modified files\n- Remove blank lines after opening braces (Prettier 2.8.8 standard)\n- Remove trailing whitespace\n- Standardize indentation and line breaks\n\nThis resolves the Prettier CI failures reported by maintainers.\n\nFiles formatted:\n- packages/core/utils/src/common/to-handle.ts\n- packages/core/utils/src/common/validate-handle.ts\n- packages/core/utils/src/common/__tests__/to-handle.spec.ts\n- packages/modules/product/src/services/product-module-service.ts",
+        "author": "Cpidar",
+        "timestamp": "2026-06-05T08:42:39Z"
+      },
+      {
+        "sha": "b76e468",
+        "message": "fix(utils): Include modifier letters (\\\\p{Lm}) in isValidHandle\n\nJapanese prolonged sound mark (ー) and iteration mark (々) are in the\n\\\\p{Lm} (modifier letter) Unicode category.\n\n- toHandle preserves these characters (\\\\p{L} includes \\\\p{Lm})\n- isValidHandle previously rejected them (only \\\\p{Ll} + \\\\p{Lo})\n\nThis caused auto-generated handles for Japanese titles like 'ラーメン'\nto fail validation.\n\nChanges:\n- Add \\\\p{Lm} to isValidHandle regex\n- Add invariant test ensuring isValidHandle(toHandle(title)) === true\n- Add Japanese test cases for ー and 々\n\nNow common Japanese words work correctly.",
+        "author": "Cpidar",
+        "timestamp": "2026-06-06T14:56:43Z"
+      }
+    ]
+  }
+]

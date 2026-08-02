@@ -1,0 +1,371 @@
+[
+  {
+    "story_id": "OpenRA/OpenRA#20398",
+    "metadata": {
+      "title": "AutoCarryall can receive manual order and auto action can be turn on/off by condition",
+      "labels": [],
+      "qualities": [
+        "modifiability",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2023-08-18T17:47:48Z",
+      "reviewers": [
+        "Leo512bit",
+        "PunkPun",
+        "dnqbob"
+      ],
+      "changed_files": 4
+    },
+    "issue_payload": {
+      "body": "### Summary\r\n![carryall-esc-showcase](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif)\r\n(1). Autocarryall can receive manual order, make a controllable carryall (unlike the one in D2k) with AutoCarryall easier to manipulate for player.\r\n\r\n\r\n![carryall2-showcase](https://user-images.githubusercontent.com/13763394/197808115-33d43cb3-1832-403b-91f8-f4b04f76e650.gif)\r\n (2). Autocarryall's auto action can be turn on/off by condition, make (1) even easier to manipulate. In test case, you can use \"Deploy\" to disable and enable the auto action of TS carryall (when they has no passenger).\r\n\r\nThe change here is mainly to make `AutoCarryall` work like `AutoTarget`-- even if actor can automatically find their own target, player can still order them to attack elsewhere, and you can change to \"HoldFire\" for a better micromanage on you own.\r\n\r\n### Side effect\r\nNo side effect currently. The carryall in D2K cannot be selected so they are just like before, unless you find bugs or some unexpected behaviors due to this PR.\r\n\r\n### Some thoughts\r\nI think we can change D2K carryall into my testcase and make it selectable, they are hard to use currently with full auto action."
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Plus: I think when there is a high possibility that the creator of `Carryall` wants to cover some function of `AutoCarryall` and they messed up until now. I clear some of them but don't know if it is the correct way.\r\n\r\nPlus 2: AutoCarryall cannot carry AutoCarryable manually (only allow automatically), is it a bug or feature? I consider it a bug in this PR and fix it.",
+        "timestamp": "2022-10-26T08:42:08Z"
+      },
+      {
+        "author": "abcdefg30",
+        "role": "MEMBER",
+        "body": "> Plus 2: AutoCarryall cannot carry AutoCarryable manually (only allow automatically), is it a bug or feature? I consider it a bug in this PR and fix it.\r\n\r\n`AutoCarryall` has `auto` in its name, why should it carry things manually? What is the problem with making `Carryall` and `AutoCarryall` conditionable and enabling/disabling those two traits depending on which behaviour is required?",
+        "timestamp": "2022-10-26T10:19:48Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> AutoCarryall has auto in its name, why should it carry things manually? What is the problem with making Carryall and AutoCarryall conditionable and enabling/disabling those two traits depending on which behaviour is required?\r\n\r\nBecause in our mod (third-party) we require that when switch to `AutoCarryall`, it can still be ordered by player to carry things if required, not just stay still and refuse to go, which makes our players feel strange about it.  They would prefer `AutoCarryall` works like `AutoTarget` in this case -- even if actor can automatically find their own target, player can still order them to attack elsewhere.",
+        "timestamp": "2022-10-26T11:50:12Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "So I concern that if it is due to somewhere else in OpenRA need `AutoCarryall` to be like this. This PR does not affect the D2k Carryall, though, for this actor ~~`RejectsOrders`~~ cannot be selected.",
+        "timestamp": "2022-10-26T11:59:29Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "![carryall-esc-showcase](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif)\r\nOur players mentioned an usecase on this: if harvester get ambushed right on the place to harvest (like there is creeps/sandworm passes by) with a carryall, the most user-friendly way is that you can manually order carryall to pick up the harvester and make a run of it, instead of switching to normal Carryall first.\r\n\r\n`AutoCarryall` in present version of OpenRA doesn't support it, `AutoCarryall` cannot pick up passenger when player manually order it. ",
+        "timestamp": "2022-10-26T13:19:51Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": ">  What is the problem with making `Carryall` and `AutoCarryall` conditionable and enabling/disabling those two traits depending on which behaviour is required?\r\n\r\nIn addition, we cannot have multiple Carryall trait due to this:\r\n![Screenshot_20221027_010229_com huawei browser_edit_27940079116569](https://user-images.githubusercontent.com/13763394/198091099-b20b3ce2-6e16-40bd-a35d-d3f56c0d2e9a.jpg)\r\n\r\nAutoCarryall is also a Carryall trait.\r\n\r\nMaking the Carryall from an unconditional trait to a conditional trait will lead to some problem\r\n1. how to dealing with reserved or locked carryable actor when the Carryall trait is disabled. \r\n2. how to deal with already carried actor which tied to a disabled Carryall trait.\r\n\r\nIn conclusion, making Carryall conditional will result in a refactoring with nasty edge cases.\r\n\r\n",
+        "timestamp": "2022-10-26T17:08:06Z"
+      },
+      {
+        "author": "abcdefg30",
+        "role": "MEMBER",
+        "body": "> Because in our mod (third-party) we require that when switch to `AutoCarryall`, it can still be ordered by player to carry things if required, not just stay still and refuse to go, which makes our players feel strange about it. They would prefer `AutoCarryall` works like `AutoTarget` in this case -- even if actor can automatically find their own target, player can still order them to attack elsewhere.\r\n\r\nOk, that makes sense to me. I expected a switch to entail the carryall landing and dropping off cargo, but this is more meant as controllable unit that usually does its own thing (just like harvesters automatically search for resources but can still be ordered).",
+        "timestamp": "2022-10-26T21:07:50Z"
+      },
+      {
+        "author": "PunkPun",
+        "role": "MEMBER",
+        "body": "When you give a pickup order to a carryall while it is moving to pickup the harvester, it doesn't cancel the activity queue. The unit you ordered to pick up will be moved to the place where the carryall was moving in the first place and dropped of there\r\n\r\n\r\nhttps://user-images.githubusercontent.com/37534529/202507062-76230861-5058-4f74-bf8b-d3be7259b22f.mov\r\n\r\n",
+        "timestamp": "2022-11-17T12:20:12Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> When you give a pickup order to a carryall while it is moving to pickup the harvester, it doesn't cancel the activity queue. The unit you ordered to pick up will be moved to the place where the carryall was moving in the first place and dropped of there\r\n\r\nYes, so we cancel the activity queued?\r\n\r\n~~Although we can use a stop command on this situation~~",
+        "timestamp": "2022-11-17T12:50:30Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Should be fixed now.",
+        "timestamp": "2022-12-12T02:57:44Z"
+      },
+      {
+        "author": "PunkPun",
+        "role": "MEMBER",
+        "body": "This PR now clashes with #20534 and #20490. I'm thinking it would be worth waiting for those to be merged before going forward with this",
+        "timestamp": "2022-12-12T09:39:02Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "you can merge those PRs first. I will handle the conflicts.",
+        "timestamp": "2022-12-12T11:34:38Z"
+      },
+      {
+        "author": "PunkPun",
+        "role": "MEMBER",
+        "body": "As #20534 and #20490 were merge we can refocus on this PR",
+        "timestamp": "2023-08-13T15:49:13Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "rebased",
+        "timestamp": "2023-08-13T17:43:00Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Anyway I have changed this to convention version.",
+        "timestamp": "2023-08-14T14:55:22Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Changed to convention version @PunkPun ",
+        "timestamp": "2023-08-15T12:29:52Z"
+      },
+      {
+        "author": "PunkPun",
+        "role": "MEMBER",
+        "body": "[Changelog](https://github.com/OpenRA/OpenRA/wiki/Changelog-(bleed)/_compare/f2930cc096b41343e5a42e2c7588ca95b6a3e8c6...4761e47f125ebff9302070b6602bd923a2e15eb3)",
+        "timestamp": "2023-08-18T17:50:52Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "> ### Summary\r\n> \r\n> ![carryall-esc-showcase](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif) [ ![carryall-esc-showcase](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif) ](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif) [ ](https://user-images.githubusercontent.com/13763394/198034144-d9bf9946-5793-44d8-9f7c-1cb1d5d252e5.gif)\r\n> \r\n\r\n\r\n@dnqbob pls can you post yaml from example above? Im trying to recreate AUTO/MANUAL  decoration from your example but I stuck.\r\n\r\nheres my yaml that dont work:\r\n[controlableCarryall.yaml.txt](https://github.com/OpenRA/OpenRA/files/14164149/controlableCarryall.yaml.txt)\r\n",
+        "timestamp": "2024-02-05T10:16:32Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "@Porenutak https://github.com/dnqbob/OpenRA/commit/729832d2f630c24f810ee3707250cec85bbde114\r\n\r\nNoted that due to some recently change you cannot use mouse click to deploy because GrantConditionOnDeploy conflict with Unload, but you can try pressing [F].\r\n\r\nI think maybe add a autotarget and using stance will be a better idea, \r\nor you can code a new GrantConditionOnDeploy that override carryall's Unload only when carryall has no cargo.",
+        "timestamp": "2024-02-29T09:14:01Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "Or probably if AutoCarryall grant condition to itself if its on. \r\nThe point is that player must know if the carryall is on auto mode or not. Its not obvious if you just looks at it. Definitly not in heat of battle.",
+        "timestamp": "2024-02-29T09:26:31Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Yep, so the problem is the image is not showing? I suggest to use `WithTextDecoration` in my example.",
+        "timestamp": "2024-02-29T09:38:46Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "But how to trigger WithTextDecoration with condition when GrantConditionOnDeploy dont work? Is there any other way?",
+        "timestamp": "2024-02-29T10:00:31Z"
+      },
+      {
+        "author": "PunkPun",
+        "role": "MEMBER",
+        "body": "stances use conditions afaik",
+        "timestamp": "2024-02-29T11:00:31Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> But how to trigger WithTextDecoration with condition when GrantConditionOnDeploy dont work? Is there any other way?\r\n\r\nMy example code works.\r\n![1](https://github.com/OpenRA/OpenRA/assets/13763394/d1d280ed-4edc-4cb4-9721-db97e22f9b42)\r\n",
+        "timestamp": "2024-02-29T11:23:46Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "I don't see any problem in your code, could you try use my example code in your mod?\r\n\r\n> Is there any other way?\r\n\r\nYou can use stances in `AutoTarget`, which will requre you to bind a fake weapon, or maybe we can fix this deploy key override issue @PunkPun.",
+        "timestamp": "2024-02-29T11:29:24Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "If I select carryall and for example order it to move elsewhere it go there and stay idle. That mean carryall switch from auto mode to manual because he no longer automaticly transports Harvesters or anything else. But the Auto text is still visible. This will confuse people. Because they will think carryall is on auto mode but its not, it just flying idle with harvester.\r\n\r\n\r\nhttps://github.com/OpenRA/OpenRA/assets/100044015/44cf4a48-c68d-4975-8cb3-5cef96bbd0a7\r\n\r\n\r\n",
+        "timestamp": "2024-02-29T12:54:34Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Maybe add \r\n```\r\n\tRejectsOrder@AutoCarryall:\r\n\t\tRequiresCondition: !manual\r\n\t\tExcept: GrantConditionOnDeploy ## Use 'SetUnitStance' if you use AutoTarget\r\n\t\tRemoveOrders: true\r\n```\r\n\r\nwhich will make AutoCarryall only recieve `GrantConditionOnDeploy/SetUnitStance` order when at auto mode, rejects all other orders. \r\n\r\nIf you want text is compeletely sync with current carryall behavior.",
+        "timestamp": "2024-02-29T13:12:53Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "thx, this work, but overide issue with GrantConditionOnDeploy still remain.\r\n\r\n\r\n> Use 'SetUnitStance' if you use AutoTarget\r\n\r\nIm missing something. How are stances related to this issue? \r\nAlso cant found any info for `SetUnitStance` in dokumentation or in autotarget trait",
+        "timestamp": "2024-02-29T13:37:30Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> Im missing something. How are stances related to this issue?\r\n\r\nWell becuase of overide issue with GrantConditionOnDeploy, if you need an alternative way to on switching AutoCarryall you can try add `AutoTarget` to the actor and player will use \r\n![image](https://github.com/OpenRA/OpenRA/assets/13763394/4eeded5a-150c-48e4-8c22-60f967f00f3e)\r\nto turn on/off the AutoCarryall. For example, you can add:\r\n```\r\nAutoTarget:\r\n\t\tHoldFireCondition: manual\r\n\t\tReturnFireCondition: manual\r\n\t\tInitialStance: HoldFire\r\n```\r\nSo switch carryall to `HoldFire` or `ReturnFire` in this case will enable manual mode, otherwise automatic mode.\r\n\r\n",
+        "timestamp": "2024-02-29T15:19:23Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> Also cant found any info for SetUnitStance in dokumentation or in autotarget trait\r\n\r\nSee line 213 in AutoTarget.cs. If you really going to use `AutoTarget` then you should RejectsOrder Except the order 'SetUnitStance', or you can never set the stance in automatic mode.",
+        "timestamp": "2024-02-29T15:23:02Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Compared with `GrantConditionOnDeploy`, using `AutoTarget` is very hacky but solve the problem of collision between unload order and deploy order.",
+        "timestamp": "2024-02-29T15:25:08Z"
+      },
+      {
+        "author": "Porenutak",
+        "role": "CONTRIBUTOR",
+        "body": "Thanks for advice, I will try it.",
+        "timestamp": "2024-02-29T15:38:59Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "27d3f98",
+        "message": "Auto carry action can be controlled by condition",
+        "author": "dnqbob",
+        "timestamp": "2022-10-25T12:03:00Z"
+      }
+    ]
+  },
+  {
+    "story_id": "OpenRA/OpenRA#19089",
+    "metadata": {
+      "title": "Fix Contrail solid delay of 4 &color fix",
+      "labels": [
+        "PR: Needs +2"
+      ],
+      "qualities": [
+        "modifiability",
+        "performance",
+        "usability"
+      ]
+    },
+    "pr_metadata": {
+      "merged_at": "2021-12-16T22:48:03Z",
+      "reviewers": [
+        "anvilvapre",
+        "pchote",
+        "dnqbob"
+      ],
+      "changed_files": 1
+    },
+    "issue_payload": {
+      "body": "fix #19084\r\n\r\nMake contrail work for both projectile and aircraft with smoothest behavior ~~without solid delays~~ reduce solid delay to 1. \r\n\r\nAnd make color fade away with only alpha, not becoming white first."
+    },
+    "discussion_timeline": [
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Turned to draft, I should still smooth from tail direction",
+        "timestamp": "2021-01-26T00:24:34Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "OK,  it is cool now",
+        "timestamp": "2021-01-26T02:01:46Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "@reaperrr",
+        "timestamp": "2021-01-26T02:12:35Z"
+      },
+      {
+        "author": "reaperrr",
+        "role": "CONTRIBUTOR",
+        "body": "Contrails are still invisible when `renderLength == 1` (kind of makes sense, as `Index` will always return the same `WPos` if there's only one in the array, and `i < renderLength` will never be true either in that case).\r\nNot supporting a length of 1 feels wrong though (from a modder perspective), so I'd suggest something like this to support it:\r\n![length1-suggestion](https://user-images.githubusercontent.com/2857877/105913522-3f7ec700-602d-11eb-9b38-fef5698514f6.png)\r\n\r\nThere might be a more elegant solution, this is just the best I could come up with.",
+        "timestamp": "2021-01-26T22:25:52Z"
+      },
+      {
+        "author": "pchote",
+        "role": "MEMBER",
+        "body": ">  Not supporting a length of 1 feels wrong though (from a modder perspective), so I'd suggest something like this to support it:\r\n\r\nThat sounds like a naming/definition issue: you need two points to define a line, so the shortest option exposed to the modder as length 1 should be when there is two points.",
+        "timestamp": "2021-01-26T22:29:45Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> Not supporting a length of 1 feels wrong though (from a modder perspective), so I'd suggest something like this to support it:\r\n> ![length1-suggestion](https://user-images.githubusercontent.com/2857877/105913522-3f7ec700-602d-11eb-9b38-fef5698514f6.png)\r\n> \r\n> There might be a more elegant solution, this is just the best I could come up with.\r\n\r\nGood point, ~~but I think probably we can put it later~~ ~~Fixed in second commit~~ but I think probably we can put it later\r\n\r\n1. I really need someone relatively fully check/test the this fix. I don't know if this version has some wrong/strange rendering at certain condition, and if this fix is proper for missile projectile. (While I was fixing&understanding this part, I got many strange rendering results from color to contrail position, don't know if there is still any)\r\n\r\n2. Don't want to make my fix here too big, and that makes test time and merge time longer.\r\n\r\nupdate:\r\n3. tried to solve and make it point instead of segment based but failed, and it is more complicated than I think, so **plz put it later, maybe we can have better idea**",
+        "timestamp": "2021-01-26T23:27:06Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "And probably we should directly add 1 to all length when contrail is created after this PR?\r\n\r\nNow as you can see if renderlength == 2, the Render() will only renders 1 length, which is also buggy.",
+        "timestamp": "2021-01-26T23:30:34Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "@pchote I suddenly worry that, will .Net executes the \r\n```\r\n(renderLength - i) * 1000 / renderLength * color.A / 1000\r\n```\r\nby the order from left to right and don't optimize *1000 and /1000?",
+        "timestamp": "2021-01-28T02:06:17Z"
+      },
+      {
+        "author": "abcdefg30",
+        "role": "MEMBER",
+        "body": "Those likely shouldn't be optimized to avoid big rounding errors?",
+        "timestamp": "2021-01-28T18:58:37Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "> Those likely shouldn't be optimized to avoid big rounding errors?\r\n\r\nyes. although it performs like it won't optimize it.\r\n\r\nUpdate: \r\nuse << 10 to solve this bug and increase performance.",
+        "timestamp": "2021-01-28T22:47:25Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "And we can now use this contrail as high speed bullet line\r\n![F](https://user-images.githubusercontent.com/13763394/108358304-8a08f300-7229-11eb-84e4-083a52e4068c.gif)\r\n",
+        "timestamp": "2021-02-18T12:40:36Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "OK since we worry about storage and time cost so I use a simple and stupid way.",
+        "timestamp": "2021-03-28T07:59:07Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "fix comment",
+        "timestamp": "2021-03-28T10:28:26Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "So should I mark the conversation as solved or the reviewer? ",
+        "timestamp": "2021-03-29T14:03:31Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "![Flash](https://user-images.githubusercontent.com/13763394/127834493-8717c959-e323-4e3d-9501-314fe28cebb8.gif)\r\nWe can also add a contrail for teleport unit (Note: just add a contrail trait with length=2 and lower Zoffset, this contrail only appears when teleport)\r\nThis will make Chrono Tank looks nicer, since it is now don't flash the entire screen like that in original ra1.",
+        "timestamp": "2021-08-02T09:02:24Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "Just rebase",
+        "timestamp": "2021-08-03T00:07:45Z"
+      },
+      {
+        "author": "dnqbob",
+        "role": "CONTRIBUTOR",
+        "body": "I guess I also need a rebase",
+        "timestamp": "2021-12-02T13:34:13Z"
+      },
+      {
+        "author": "abcdefg30",
+        "role": "MEMBER",
+        "body": "[Changelog](https://github.com/OpenRA/OpenRA/wiki/Changelog-(bleed)/_compare/d40247b1d27a8886766c6e9708741aba641110d1...6e1e4a0fe91a58000327b02d536161d669c3b053)",
+        "timestamp": "2021-12-16T22:59:09Z"
+      }
+    ],
+    "commit_history": [
+      {
+        "sha": "02288eb",
+        "message": "Contrail smooth&color fix",
+        "author": "dnqbob",
+        "timestamp": "2021-01-25T23:59:49Z"
+      }
+    ]
+  }
+]

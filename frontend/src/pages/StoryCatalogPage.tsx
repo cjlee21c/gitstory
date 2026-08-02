@@ -11,8 +11,15 @@ interface RepoStories {
   status: "mining" | "ready" | "error";
   stories: StorySummary[] | null;
   counts: Record<string, number> | null;
+  // Explains a focus that matched nothing, when `stories` is the fallback set.
+  notice: string | null;
   error: string | null;
 }
+
+// The stories API returns every match; this is how many of each repo's we show
+// before the "show more" toggle. Per repo rather than per feed, so one repo
+// can't crowd the others out when several are selected.
+const VISIBLE_PER_REPO = 4;
 
 export function StoryCatalogPage() {
   const [params, setSearchParams] = useSearchParams();
@@ -31,6 +38,10 @@ export function StoryCatalogPage() {
   // must re-read stories without re-mining.
   const minedRef = useRef<Set<string>>(new Set());
 
+  // Expanding is pure render — every story is already in `groups`, so this
+  // fires no request.
+  const [showAll, setShowAll] = useState(false);
+
   const reposKey = repos.join(",");
   const qualitiesKey = qualities.join(",");
 
@@ -42,7 +53,7 @@ export function StoryCatalogPage() {
       Object.fromEntries(
         repos.map((repo) => [
           repo,
-          { repo, status: "mining" as const, stories: null, counts: null, error: null },
+          { repo, status: "mining" as const, stories: null, counts: null, notice: null, error: null },
         ]),
       ),
     );
@@ -62,6 +73,7 @@ export function StoryCatalogPage() {
                 status: "ready",
                 stories: res.stories,
                 counts: res.quality_counts,
+                notice: res.notice,
                 error: null,
               },
             }));
@@ -75,6 +87,7 @@ export function StoryCatalogPage() {
                 status: "error",
                 stories: null,
                 counts: null,
+                notice: null,
                 error: err.message,
               },
             }));
@@ -103,7 +116,12 @@ export function StoryCatalogPage() {
           if (cancelled) return;
           setGroups((prev) => ({
             ...prev,
-            [repo]: { ...prev[repo], stories: res.stories, counts: res.quality_counts },
+            [repo]: {
+              ...prev[repo],
+              stories: res.stories,
+              counts: res.quality_counts,
+              notice: res.notice,
+            },
           }));
         },
         () => {},
@@ -114,6 +132,12 @@ export function StoryCatalogPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qualitiesKey]);
+
+  // A new filter or repo set is a new list — collapse back to the preview so
+  // the user isn't dropped into the middle of results they didn't ask to expand.
+  useEffect(() => {
+    setShowAll(false);
+  }, [qualitiesKey, reposKey]);
 
   // Toggling a quality just rewrites the URL param; the effect re-fetches
   // (a free read-time, cache-hit call — no tokens).
@@ -159,6 +183,18 @@ export function StoryCatalogPage() {
   const storyCount = orderedGroups.reduce((n, g) => n + (g.stories?.length ?? 0), 0);
   const mining = orderedGroups.filter((g) => g.status === "mining");
   const settled = orderedGroups.filter((g) => g.status !== "mining");
+
+  // How many of `storyCount` the collapsed feed renders. Counted the same way
+  // the feed slices — per repo — so the two can't disagree. Comparing the two
+  // totals (rather than storyCount against the cap) is what keeps this right
+  // for several repos: three repos of three stories each is nine stories with
+  // nothing hidden, and no toggle should appear.
+  const collapsedCount = orderedGroups.reduce(
+    (n, g) => n + Math.min(VISIBLE_PER_REPO, g.stories?.length ?? 0),
+    0,
+  );
+  const expandable = storyCount > collapsedCount;
+  const visibleCount = showAll ? storyCount : collapsedCount;
 
   // Merge per-repo label counts so each chip shows total available stories for
   // that quality across the selected repos.
@@ -210,10 +246,16 @@ export function StoryCatalogPage() {
                   key={q.id}
                   className={`catalog-chip${active ? " active" : ""}${count === 0 && !active ? " empty" : ""}`}
                   onClick={() => toggleQuality(q.id)}
-                  // Counts are still accumulating while repos mine, so a zero
-                  // there means "not known yet", not "none exist".
-                  disabled={count === 0 && !active && mining.length === 0}
-                  title={count === 0 && mining.length === 0 ? "No stories carry this quality" : undefined}
+                  // Deliberately still clickable at zero: the API answers an
+                  // empty focus with a fallback set plus an explanation, which
+                  // teaches more than a dead control. The dimmed `empty` style
+                  // is the hint. Counts also keep accumulating while repos
+                  // mine, so a zero there can just mean "not known yet".
+                  title={
+                    count === 0 && mining.length === 0
+                      ? "No stories here carry this quality — we'll show related ones instead"
+                      : undefined
+                  }
                 >
                   {q.label} ({count})
                 </button>
@@ -251,6 +293,18 @@ export function StoryCatalogPage() {
               ),
           )}
 
+          {/* One per repo: a focus with no matches falls back to that repo's
+              other stories, which reads as a broken filter unless we say so.
+              Same treatment as the discovery page's widened-search notice. */}
+          {orderedGroups.map(
+            (g) =>
+              g.notice && (
+                <div key={`${g.repo}-notice`} className="warn-card discover-notice">
+                  {g.notice}
+                </div>
+              ),
+          )}
+
           {loading ? (
             <div className="story-feed" aria-busy="true">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -262,10 +316,19 @@ export function StoryCatalogPage() {
             </div>
           ) : (
             <>
+              {/* Counts come from the chips' full set, so say plainly how much
+                  of it is on screen — otherwise "Usability (6)" above four
+                  cards reads as a bug. */}
+              {expandable && (
+                <p className="catalog-meta">
+                  Showing {visibleCount} of {storyCount} stories
+                </p>
+              )}
+
               <div className="story-feed">
                 {orderedGroups.flatMap(
                   (g) =>
-                    g.stories?.map((s) => (
+                    (showAll ? g.stories : g.stories?.slice(0, VISIBLE_PER_REPO))?.map((s) => (
                       <StoryCard
                         key={s.story_id}
                         story={s}
@@ -283,6 +346,14 @@ export function StoryCatalogPage() {
                   </div>
                 ))}
               </div>
+
+              {expandable && (
+                <div className="catalog-more">
+                  <button className="btn-sm ghost" onClick={() => setShowAll((v) => !v)}>
+                    {showAll ? "Show fewer ↑" : `Show ${storyCount - collapsedCount} more ↓`}
+                  </button>
+                </div>
+              )}
 
               {storyCount === 0 && mining.length === 0 && (
                 <p className="catalog-empty">

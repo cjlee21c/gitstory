@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { discoverRepos } from "../api/client";
-import type { DiscoverFilters, RepoRecommendation } from "../api/types";
+import type { DiscoverFilters, DiscoverResponse } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
 import { RepoCard } from "../components/RepoCard";
+import { useStudent } from "../context/StudentContext";
 import { DOMAINS, QUALITIES } from "../filters";
 
 const MAX_SELECTED = 3;
@@ -24,8 +25,9 @@ export function RepoDiscoveryPage() {
   const [params] = useSearchParams();
   const filters = filtersFromParams(params);
   const navigate = useNavigate();
+  const { studentId } = useStudent();
 
-  const [repos, setRepos] = useState<RepoRecommendation[] | null>(null);
+  const [result, setResult] = useState<DiscoverResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [qualities, setQualities] = useState<string[]>([]);
@@ -33,11 +35,13 @@ export function RepoDiscoveryPage() {
   const filterKey = params.toString();
   useEffect(() => {
     if (!filters) return;
-    setRepos(null);
+    setResult(null);
     setError(null);
     setSelected([]);
-    discoverRepos(filters)
-      .then(setRepos)
+    // studentId only rotates which repos come back, so it stays out of the
+    // effect deps — naming yourself shouldn't re-run a search already on screen.
+    discoverRepos({ ...filters, student_id: studentId || null })
+      .then(setResult)
       .catch((e: Error) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
@@ -88,7 +92,8 @@ export function RepoDiscoveryPage() {
   const domainLabel = DOMAINS.find((d) => d.id === filters.domain)?.label ?? filters.domain;
   const heading = filters.keyword ? `${domainLabel}: "${filters.keyword}"` : domainLabel;
   const count = selected.length;
-  const loading = !repos && !error;
+  const loading = !result && !error;
+  const repos = result?.repos;
 
   const primaryLabel =
     count === 0
@@ -111,6 +116,11 @@ export function RepoDiscoveryPage() {
           </section>
 
           {error && <div className="warn-card">{error}</div>}
+
+          {/* Some filter combinations match almost nothing on GitHub — healthcare
+              over 10k stars is a single repo. Discovery widens the search rather
+              than showing a near-empty page, and says so here. */}
+          {result?.notice && <div className="warn-card discover-notice">{result.notice}</div>}
 
           {loading ? (
             <div className="repo-grid" aria-busy="true">
