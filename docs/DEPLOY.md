@@ -1,8 +1,8 @@
 # GitStories 배포 가이드 (Stage 1)
 
 수업용 배포. 백엔드는 Render(항상 켜짐), 프론트엔드는 Cloudflare Pages 또는 Vercel(무료).
-접근은 **공용 반 코드 1개**로 막는다 — `ACCESS_CODE` 환경변수와 대조하며, 이걸 바꿔서
-재배포하면 즉시 코드가 무효화된다.
+접근 제한은 없다 — 링크를 아는 사람은 누구나 쓸 수 있으므로, 예산 방어선은 Anthropic
+선불 크레딧(자동 충전 OFF) 하나뿐이다.
 
 ---
 
@@ -10,7 +10,6 @@
 
 - [ ] **Anthropic 콘솔 → 월 spend limit + 알림 설정.** 이것이 실제 예산 방어선이다.
 - [ ] **GitHub 토큰 만료일 확인** (classic PAT 기본 만료 시 앱 전체 정지). 최소 배포 기간 + 여유.
-- [ ] 학생에게 나눠줄 **접근 코드** 하나 정하기 (예: `cs101-fall`).
 
 ---
 
@@ -28,7 +27,6 @@
    |---|---|
    | `GITHUB_TOKEN` | GitHub PAT |
    | `ANTHROPIC_API_KEY` | Anthropic 키 |
-   | `ACCESS_CODE` | 학생에게 줄 반 코드 |
    | `CORS_ORIGINS` | (2단계 후 채움 — 프론트 URL) |
    | `DB_PATH` | `/data/gitstory.db` |
    | `CACHE_DIR` | `/data/.cache` |
@@ -69,8 +67,7 @@
 
 ## 운영 노트
 
-- **코드 유출 시**: Render `ACCESS_CODE` 변경 → 재배포(약 1분) → 학생에게 새 코드 공지.
 - **중간 수정 반영**: main에 push하면 Render/Pages가 자동 재배포 (Auto-Deploy 켜둘 것).
 - **캐시 주의**: `.cache`가 디스크에 보존되므로 워크스페이스 프롬프트를 바꾸면 기존 캐시가
   그대로 서빙됨 → 새로 생성하려면 해당 요청을 `force=true`로 부르거나 디스크 캐시 삭제.
-- **로컬 실행**: `backend/.env`에 `ACCESS_CODE`가 있어야 서버가 뜬다 (현재 `test123`).
+- **로컬 실행**: `backend/.env`에 `GITHUB_TOKEN`, `ANTHROPIC_API_KEY`가 있어야 서버가 뜬다.

@@ -1,16 +1,13 @@
 import os
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import routes_answers, routes_auth, routes_discover, routes_library, routes_repos, routes_stories
-from app.api.deps import require_access_code
+from app.api import routes_answers, routes_discover, routes_library, routes_repos, routes_stories
 from app.db import create_db_and_tables
 from app.storage.seed import seed_cache_if_needed
 
-# App-wide access-code gate: every route requires the X-Access-Code header
-# except the open paths listed in deps._OPEN_PATHS (health check, docs).
-app = FastAPI(title="GitStories API", dependencies=[Depends(require_access_code)])
+app = FastAPI(title="GitStories API")
 
 
 @app.on_event("startup")
@@ -38,7 +35,6 @@ app.include_router(routes_answers.router)
 app.include_router(routes_stories.router)
 app.include_router(routes_discover.router)
 app.include_router(routes_library.router)
-app.include_router(routes_auth.router)
 
 
 @app.get("/health")

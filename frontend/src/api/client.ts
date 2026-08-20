@@ -1,4 +1,3 @@
-import { UNAUTHORIZED_EVENT, clearAccessCode, getAccessCode } from "./access";
 import type {
   AnswerRequest,
   DiscoverFilters,
@@ -20,30 +19,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "X-Access-Code": getAccessCode(),
       ...init?.headers,
     },
   });
   if (!res.ok) {
-    // A 401 means the access code is missing/invalid (e.g. it was rotated
-    // mid-deploy). Drop it and signal the app to re-prompt for a code.
-    if (res.status === 401) {
-      clearAccessCode();
-      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
-    }
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail ?? `Request failed: ${res.status}`);
   }
   return res.json();
-}
-
-// Validates a code against the backend gate (GET /auth/check). Returns true
-// only on 200; used by the access gate before storing the code.
-export async function checkAccessCode(code: string): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/auth/check`, {
-    headers: { "X-Access-Code": code },
-  });
-  return res.ok;
 }
 
 export function discoverRepos(filters: DiscoverFilters): Promise<DiscoverResponse> {

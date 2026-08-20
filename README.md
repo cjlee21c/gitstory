@@ -45,19 +45,16 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a file `backend/.env` with these three variables:
+Create a file `backend/.env` with these two variables:
 
 ```env
 GITHUB_TOKEN=ghp_your_token_here
 ANTHROPIC_API_KEY=sk-ant-your_key_here
-ACCESS_CODE=choose-any-code
 ```
 
 - `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` — your own keys.
-- `ACCESS_CODE` — any value you like. The web app asks for this code before it lets anyone
-  in, so pick something and remember it.
 
-> All three are required — the server won't start if any is missing.
+> Both are required — the server won't start if either is missing.
 
 Run the backend:
 
@@ -86,8 +83,7 @@ by default. If your backend runs somewhere else, set `VITE_API_BASE_URL` (e.g. i
 ## 4. Use it
 
 1. Open **http://localhost:5173**.
-2. Enter the `ACCESS_CODE` you set in `backend/.env`.
-3. **Browse Library** for ready-made stories, or **Find Repositories** to discover and mine
+2. **Browse Library** for ready-made stories, or **Find Repositories** to discover and mine
    new ones by domain and popularity.
 
 ---
