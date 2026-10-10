@@ -97,7 +97,6 @@ def _gate_candidate(candidate):
         response = client.messages.create(
             model=SEMANTIC_GATE_MODEL,
             max_tokens=GATE_MAX_TOKENS,
-            temperature=0,
             output_config={"format": {"type": "json_schema", "schema": GATE_OUTPUT_SCHEMA}},
             messages=[{"role": "user", "content": prompt}],
         )

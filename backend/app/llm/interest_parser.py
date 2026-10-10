@@ -25,7 +25,6 @@ def _run_keyword_prompt(prompt: str) -> list[str]:
     response = client.messages.create(
         model=SEMANTIC_GATE_MODEL,
         max_tokens=100,
-        temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
     log_usage("keyword", SEMANTIC_GATE_MODEL, response.usage.input_tokens, response.usage.output_tokens)

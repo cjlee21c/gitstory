@@ -41,7 +41,6 @@ def classify_repos_domains(repos: list[dict]) -> dict[str, str]:
     response = client.messages.create(
         model=SEMANTIC_GATE_MODEL,
         max_tokens=1024,
-        temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
     usage = response.usage

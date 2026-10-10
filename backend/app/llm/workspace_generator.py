@@ -142,7 +142,6 @@ def _generate(bundle: dict, prompt_template: str, phase: str, required_beat: str
         response = client.messages.create(
             model=WORKSPACE_GEN_MODEL,
             max_tokens=4000,
-            temperature=0,
             messages=[{"role": "user", "content": message}],
         )
         usage = response.usage

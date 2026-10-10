@@ -117,7 +117,6 @@ def rank_and_summarize(
     response = client.messages.create(
         model=SEMANTIC_GATE_MODEL,
         max_tokens=2048,
-        temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
     usage = response.usage
@@ -173,7 +172,6 @@ def fill_summaries(interest: str, pool: list[dict], candidates: list[dict]) -> l
     response = client.messages.create(
         model=SEMANTIC_GATE_MODEL,
         max_tokens=2048,
-        temperature=0,
         messages=[{"role": "user", "content": prompt}],
     )
     usage = response.usage

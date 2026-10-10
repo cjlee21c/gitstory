@@ -1,7 +1,10 @@
-fastapi
-uvicorn
-anthropic
-requests
-python-dotenv
-pydantic
-sqlmodel
+# Pinned by major version. These were all unpinned until a redeploy pulled
+# anthropic 1.x, which removed Messages.create(temperature=...) and took the
+# whole discovery/library path down with a 500 while the code was unchanged.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+anthropic>=1,<2
+requests>=2.31,<3
+python-dotenv>=1,<2
+pydantic>=2,<3
+sqlmodel>=0.0.22,<0.1
