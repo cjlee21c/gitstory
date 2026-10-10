@@ -1,13 +1,32 @@
+import hmac
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from app import config
 from app.db import get_session
 from app.models.db_models import Answer, User
 
 router = APIRouter(tags=["answers"])
+
+
+def require_teacher(x_teacher_token: str | None = Header(default=None)) -> None:
+    """Gate for the roster-wide answers read, which returns every student's
+    reflection for a story. Students POST their own answer without a token;
+    only reading the whole class's needs one.
+
+    Fails closed: with TEACHER_TOKEN unset there is no value a caller could
+    present, so the endpoint stays shut instead of reopening if the env var is
+    missed on a deploy. Compared in constant time, like any other secret.
+    """
+    if not config.TEACHER_TOKEN:
+        raise HTTPException(status_code=403, detail="Answers export is disabled")
+    if x_teacher_token is None or not hmac.compare_digest(
+        x_teacher_token, config.TEACHER_TOKEN
+    ):
+        raise HTTPException(status_code=403, detail="Invalid or missing teacher token")
 
 
 class AnswerRequest(BaseModel):
@@ -50,7 +69,10 @@ def save_answer(story_id: str, body: AnswerRequest, session: Session = Depends(g
     return {"status": "saved"}
 
 
-@router.get("/stories/{story_id:path}/answers")
+@router.get(
+    "/stories/{story_id:path}/answers",
+    dependencies=[Depends(require_teacher)],
+)
 def list_answers(story_id: str, session: Session = Depends(get_session)):
     rows = session.exec(
         select(Answer, User).join(User, Answer.user_id == User.id).where(Answer.story_id == story_id)

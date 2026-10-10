@@ -27,9 +27,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# routes_answers before routes_stories: the answers routes live under
-# /stories/{id}/answers, and routes_stories' greedy /{story_id:path} catch-all
-# would otherwise swallow them.
+# routes_answers stays before routes_stories: both mount under /stories, and
+# registering the narrower paths first means a greedy /{story_id:path} route
+# added to routes_stories later can't swallow them.
 app.include_router(routes_repos.router)
 app.include_router(routes_answers.router)
 app.include_router(routes_stories.router)

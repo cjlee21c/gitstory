@@ -8,7 +8,7 @@ from app.llm.workspace_generator import (
     generate_workspace_part1,
     generate_workspace_part2,
 )
-from app.models.schemas import StoryBundle, WorkspaceContent
+from app.models.schemas import WorkspaceContent
 from app.pipeline.orchestrator import pass2_cache_key
 from app.storage import cache
 
@@ -87,8 +87,3 @@ def get_workspace(story_id: str, force: bool = False, part: int | None = None):
     p1 = _get_or_generate(story_id, ":p1", generate_workspace_part1, force)
     p2 = _get_or_generate(story_id, ":p2", generate_workspace_part2, force)
     return {"story_id": story_id, "beats": [*p1["beats"], *p2["beats"]]}
-
-
-@router.get("/{story_id:path}", response_model=StoryBundle)
-def get_story(story_id: str):
-    return _get_bundle_or_404(story_id)
