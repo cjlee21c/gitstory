@@ -545,6 +545,21 @@ hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 .role-badge.role-maintainer { color: #1e40af; background: #e6effe; }
 .role-badge.role-contributor { color: #6d28d9; background: #f0ecff; }
 
+/* Pseudonym initials in place of a profile photo. Tinted to match the role
+   badge, so maintainer and contributor still read apart at a glance. The
+   selectors carry .beat-viewpoint to outrank the plain .avatar background. */
+.beat-viewpoint .avatar-alias {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+.beat-viewpoint .avatar-alias.role-maintainer { color: #1e40af; background: #e6effe; }
+.beat-viewpoint .avatar-alias.role-contributor { color: #6d28d9; background: #f0ecff; }
+
 .beat-viewpoint .bubble-body {
   margin: 0;
   background: var(--ws-bubble);

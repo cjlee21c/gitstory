@@ -32,9 +32,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — glouvigny",
+      "title": "Position A — Maintainer B",
       "body": "The protocol guarantees event ordering and delivers raw events to the application; merging or consolidating state is explicitly the application's responsibility. Exposing conflict-resolution metadata would blur the boundary between protocol and application concerns, and the protocol should not attempt to abstract away CRDT semantics that the app must ultimately handle itself.",
-      "author": "glouvigny",
+      "author": "Maintainer B",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[13]",
@@ -46,9 +46,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — 90dy",
+      "title": "Position B — Maintainer A",
       "body": "The application needs to know when and where concurrent events were reconciled in order to correctly replay its own logic on top of the distributed log. Without explicit conflict-resolution signals from the protocol, the application must independently implement a CRDT ordering algorithm, duplicating complex logic that the protocol layer already possesses.",
-      "author": "90dy",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[3]",

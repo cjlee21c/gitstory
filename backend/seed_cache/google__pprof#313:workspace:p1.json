@@ -29,9 +29,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — aalexand",
+      "title": "Position A — Maintainer A",
       "body": "The maintainer wanted tests added before merging, pointing to existing patterns in the codebase as a model. When CI failures emerged, they suggested permanently skipping the new Mac tests in CI and committing to fix the infrastructure separately, prioritizing getting the core fix merged without being blocked by environment inconsistencies.",
-      "author": "aalexand",
+      "author": "Maintainer A",
       "author_role": "COLLABORATOR",
       "source_refs": [
         "discussion_timeline[1]",
@@ -43,9 +43,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — Timmmm",
+      "title": "Position B — Contributor A",
       "body": "The contributor argued that the tests were genuinely valuable — they had already caught real bugs — but that CI failures stemmed from deeper toolchain issues in pprof itself, such as incorrect symbolizer fallback behavior. They documented these as separate problems rather than blocking the PR, and pushed back mildly on some review nits while accepting the overall direction.",
-      "author": "Timmmm",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[7]",

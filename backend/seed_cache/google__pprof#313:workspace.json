@@ -30,9 +30,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — aalexand",
+      "title": "Position A — Maintainer A",
       "body": "The project collaborator acknowledged the fix was a necessary improvement and was willing to accept it as-is, but pushed for a test to accompany it — specifically a test modeled on existing patterns in the codebase, using a small pre-compiled binary checked into the test data directory, and skipped on non-Mac platforms. When the tests failed on CI, the collaborator diagnosed the likely cause as a difference in available symbolizer tools between the CI environment and the contributor's machine, and ultimately proposed a pragmatic resolution: keep the test code in place but mark the Mac-specific test as permanently skipped for now, with the collaborator committing to investigate enabling it properly later. Throughout the review, the collaborator also left minor style and error-message nit comments, which they acknowledged were getting detailed.",
-      "author": "aalexand",
+      "author": "Maintainer A",
       "author_role": "COLLABORATOR",
       "source_refs": [
         "discussion_timeline[1]",
@@ -46,9 +46,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — Timmmm",
+      "title": "Position B — Contributor A",
       "body": "The external contributor agreed to add tests and did so, but the process uncovered several additional bugs in the surrounding code — including a crash on a nil input and a systematic off-by-one error in parsing tool output — which were fixed as part of the same pull request. When CI failures appeared, the contributor investigated and traced the root cause to the CI environment relying on a differently-named symbolizer binary rather than the one the contributor's Mac used, and noted this pointed to yet another pre-existing bug in tool discovery. The contributor was transparent about uncertainty regarding some of the existing test logic they had adapted, and raised a separate question about whether an existing symbol-matching function had correct semantics. On style nits, the contributor pushed back slightly on exact wording suggestions while still honoring the spirit of the feedback.",
-      "author": "Timmmm",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[2]",

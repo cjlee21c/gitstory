@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — Axel-CH",
-      "body": "Axel-CH, the PR author, initially took a broad approach: unlock as many processing paths as possible simultaneously, including exit evaluation, stoploss handling, and position adjustment, all while open orders exist. When the repeated-replacement problem was raised, Axel-CH proposed using an order tag as a semantic key — if the strategy returns the same tag, the bot would recognize the order as unchanged and skip replacement. Later, after discussion, Axel-CH converged on using the order's direction and amount as a simpler equivalence check to decide whether a pending order should be replaced or left alone, avoiding the need for strategies to change their return signatures. Axel-CH also raised a practical concern about whether the amount stored on an order object reflects what the user requested versus what the exchange actually accepted, since exchange rounding could cause the equivalence check to always fail.",
-      "author": "Axel-CH",
+      "title": "Position A — Contributor A",
+      "body": "Contributor A, the PR author, initially took a broad approach: unlock as many processing paths as possible simultaneously, including exit evaluation, stoploss handling, and position adjustment, all while open orders exist. When the repeated-replacement problem was raised, Contributor A proposed using an order tag as a semantic key — if the strategy returns the same tag, the bot would recognize the order as unchanged and skip replacement. Later, after discussion, Contributor A converged on using the order's direction and amount as a simpler equivalence check to decide whether a pending order should be replaced or left alone, avoiding the need for strategies to change their return signatures. Contributor A also raised a practical concern about whether the amount stored on an order object reflects what the user requested versus what the exchange actually accepted, since exchange rounding could cause the equivalence check to always fail.",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[2]",
@@ -44,9 +44,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — xmatthias",
-      "body": "xmatthias, a project member, pushed back on the broad initial approach, arguing that the PR was making things far more complicated than necessary and was creeping toward scope it should not touch. His preferred framing was to focus narrowly: the bot should allow exit signals to be evaluated and acted upon even when an open order exists, but the `adjust_trade_position` callback should remain gated behind an open-order check for now, to be addressed separately. On the repeated-replacement problem, he rejected the order-tag idea as too breaking — it would require every strategy author to change their callback return values, which could be a large and disruptive change. Instead, he favored a simpler internal mechanism comparing direction and amount to detect whether a replacement was actually needed, keeping the strategy interface unchanged. He also directly contributed test fixes to the branch to help move it forward.",
-      "author": "xmatthias",
+      "title": "Position B — Maintainer A",
+      "body": "Maintainer A, a project member, pushed back on the broad initial approach, arguing that the PR was making things far more complicated than necessary and was creeping toward scope it should not touch. His preferred framing was to focus narrowly: the bot should allow exit signals to be evaluated and acted upon even when an open order exists, but the `adjust_trade_position` callback should remain gated behind an open-order check for now, to be addressed separately. On the repeated-replacement problem, he rejected the order-tag idea as too breaking — it would require every strategy author to change their callback return values, which could be a large and disruptive change. Instead, he favored a simpler internal mechanism comparing direction and amount to detect whether a replacement was actually needed, keeping the strategy interface unchanged. He also directly contributed test fixes to the branch to help move it forward.",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[1]",
@@ -69,7 +69,7 @@
       "type": "decision",
       "order": 6,
       "title": "Merged: Narrow Unlock with Internal Order Equivalence Check",
-      "body": "The PR was merged on January 18, 2025, after roughly nine months of iteration. The final approach followed xmatthias's narrower framing: exit processing — including signal evaluation, stoploss handling, and cancellation of conflicting open orders before executing an exit — was unlocked for trades that have an open order. The `adjust_trade_position` callback was explicitly kept out of scope for this PR, to be handled separately. The repeated-replacement problem was resolved by an internal equivalence check based on order direction and amount, avoiding any change to the strategy callback interface. xmatthias directly contributed several test fixes to the branch before merge, and the final diff touched ten files. The coverage impact was a small decrease of about 0.1 percentage points.",
+      "body": "The PR was merged on January 18, 2025, after roughly nine months of iteration. The final approach followed Maintainer A's narrower framing: exit processing — including signal evaluation, stoploss handling, and cancellation of conflicting open orders before executing an exit — was unlocked for trades that have an open order. The `adjust_trade_position` callback was explicitly kept out of scope for this PR, to be handled separately. The repeated-replacement problem was resolved by an internal equivalence check based on order direction and amount, avoiding any change to the strategy callback interface. Maintainer A directly contributed several test fixes to the branch before merge, and the final diff touched ten files. The coverage impact was a small decrease of about 0.1 percentage points.",
       "source_refs": [
         "pr_metadata.merged_at",
         "discussion_timeline[7]",
@@ -86,7 +86,7 @@
       "lessons": [
         "Unlocking a previously blocked code path rarely has a single clean edge — it tends to expose a chain of secondary interactions (here: what happens to pending orders, what happens to adjustment callbacks) that must each be consciously scoped in or out of the change.",
         "When a proposed solution to an edge case (order tags as semantic keys) would require every downstream user to change their interface, the cost of that breakage usually outweighs the elegance of the solution; an internal equivalence heuristic that preserves the existing interface is often the right tradeoff.",
-        "Long-running PRs benefit from maintainers contributing directly to the branch rather than only reviewing — xmatthias's direct test commits helped unblock the PR after months of stall, demonstrating that collaborative authorship can be more effective than review-only feedback cycles."
+        "Long-running PRs benefit from maintainers contributing directly to the branch rather than only reviewing — Maintainer A's direct test commits helped unblock the PR after months of stall, demonstrating that collaborative authorship can be more effective than review-only feedback cycles."
       ]
     }
   ]

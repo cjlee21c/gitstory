@@ -8,6 +8,7 @@ from app.llm.workspace_generator import (
     generate_workspace_part1,
     generate_workspace_part2,
 )
+from app import privacy
 from app.models.schemas import WorkspaceContent
 from app.pipeline.orchestrator import pass2_cache_key
 from app.storage import cache
@@ -67,7 +68,9 @@ def _get_or_generate(story_id: str, suffix: str, gen_fn: Callable[[dict], Worksp
 
         bundle = _get_bundle_or_404(story_id)
         workspace = gen_fn(bundle)
-        payload = workspace.model_dump()
+        # Net for a model that echoed a real login back despite being given
+        # aliases. Done before the write so a cache hit needs no scrubbing.
+        payload = privacy.scrub_workspace(workspace.model_dump(), bundle)
         cache.set(workspace_key, payload)
         return payload
 

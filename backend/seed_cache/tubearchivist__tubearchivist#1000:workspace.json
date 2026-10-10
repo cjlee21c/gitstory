@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — joshrivers",
+      "title": "Position A — Contributor A",
       "body": "The contributor argued for pragmatic inclusion of supporting artifacts during development, including diagnostic logging and a dedicated test harness compose file. The logging was useful for validating the auth flow end-to-end, and a checked-in test harness would give future contributors — and the maintainer — a quick way to determine whether a reported auth problem was a code defect or a user configuration issue. However, the contributor held these positions loosely and was open to stripping them if the maintainer preferred a leaner repository. The contributor's primary goal was getting the core feature — configurable LDAP user promotion — merged and usable.",
-      "author": "joshrivers",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[0]",
@@ -42,9 +42,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — bbilly1",
+      "title": "Position B — Maintainer A",
       "body": "The project maintainer emphasized that maintainability must be the top priority, especially for a feature the maintainer will not personally exercise. Keeping the repository free of duplicate or overlapping compose files reduces ongoing maintenance surface. Diagnostic logging belongs on personal development branches, not in production code. The maintainer was willing to trust the contributor and the broader community on the correctness of the auth logic itself, but wanted the merged artifact to be as minimal and clean as possible — well-documented, non-interfering with standard password authentication, and not carrying development scaffolding into the main branch.",
-      "author": "bbilly1",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[1]",

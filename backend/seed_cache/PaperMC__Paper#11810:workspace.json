@@ -6,7 +6,7 @@
       "type": "context",
       "order": 1,
       "title": "Filling a Gap in the Player Item-Drop API",
-      "body": "The Bukkit and Paper APIs exposed only a very limited way for plugins to make a player drop items: a single method that dropped the currently held item, with a boolean controlling whether the whole stack or just one unit was dropped. Developers who needed anything beyond that — dropping from a specific inventory slot, dropping from equipment slots like the offhand or armor, or dropping a precise quantity — had to reach into internal server code or copy-paste its implementation. This pull request, authored by Strokkur424, aimed to close that gap by exposing the underlying server logic through a proper, stable API surface on the HumanEntity interface.",
+      "body": "The Bukkit and Paper APIs exposed only a very limited way for plugins to make a player drop items: a single method that dropped the currently held item, with a boolean controlling whether the whole stack or just one unit was dropped. Developers who needed anything beyond that — dropping from a specific inventory slot, dropping from equipment slots like the offhand or armor, or dropping a precise quantity — had to reach into internal server code or copy-paste its implementation. This pull request, authored by Maintainer B, aimed to close that gap by exposing the underlying server logic through a proper, stable API surface on the HumanEntity interface.",
       "source_refs": [
         "issue_payload.body",
         "discussion_timeline[0]"
@@ -30,9 +30,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — SoSeDiK",
-      "body": "SoSeDiK argued for a minimal, composable design: one method that accepts an arbitrary ItemStack (plus a boolean for trajectory and an optional pre-spawn callback), with no coupling to the player's inventory at all. The caller would be responsible for fetching the item from whatever slot they cared about and for reducing its quantity afterward — a trivial one-liner. This approach, SoSeDiK contended, mirrors patterns already established elsewhere in the API, avoids the combinatorial explosion of slot-selector overloads, and gives callers more control (including the ability to drop items that do not originate from the inventory). SoSeDiK also raised a practical concern: if the callback runs after the item entity is already in the world, it cannot truly intercept the spawn, which is a meaningful limitation compared to how similar world-level drop methods work.",
-      "author": "SoSeDiK",
+      "title": "Position A — Contributor A",
+      "body": "Contributor A argued for a minimal, composable design: one method that accepts an arbitrary ItemStack (plus a boolean for trajectory and an optional pre-spawn callback), with no coupling to the player's inventory at all. The caller would be responsible for fetching the item from whatever slot they cared about and for reducing its quantity afterward — a trivial one-liner. This approach, Contributor A contended, mirrors patterns already established elsewhere in the API, avoids the combinatorial explosion of slot-selector overloads, and gives callers more control (including the ability to drop items that do not originate from the inventory). Contributor A also raised a practical concern: if the callback runs after the item entity is already in the world, it cannot truly intercept the spawn, which is a meaningful limitation compared to how similar world-level drop methods work.",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[2]",
@@ -46,9 +46,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — Strokkur424 (with Machine-Maker)",
-      "body": "Strokkur424 maintained that the primary use-case is simulating vanilla player behaviour — dropping a specific quantity from a specific inventory slot — and that coupling the method to the inventory is a feature, not a limitation, because it handles the quantity reduction automatically and prevents accidental duplication. Accepting a raw ItemStack and leaving inventory management to the caller adds cognitive overhead and error surface for the common case. Machine-Maker reinforced this by noting that an ItemStack-based approach would require multiple defensive copies of the stack, whereas slot-based methods need only one. Both acknowledged that an arbitrary-stack variant had merit as an additional method, but insisted the slot-based methods should remain as the primary surface. The group converged on a middle ground: keep slot-based methods as the core, add an ItemStack-based method that explicitly makes a defensive copy (so it never implicitly removes inventory items), replace the separate 'Randomly' method family with a boolean parameter to halve the method count, and keep null-defaulting overloads so callers are not forced to pass null for the callback.",
-      "author": "Strokkur424",
+      "title": "Position B — Maintainer B (with Maintainer C)",
+      "body": "Maintainer B maintained that the primary use-case is simulating vanilla player behaviour — dropping a specific quantity from a specific inventory slot — and that coupling the method to the inventory is a feature, not a limitation, because it handles the quantity reduction automatically and prevents accidental duplication. Accepting a raw ItemStack and leaving inventory management to the caller adds cognitive overhead and error surface for the common case. Maintainer C reinforced this by noting that an ItemStack-based approach would require multiple defensive copies of the stack, whereas slot-based methods need only one. Both acknowledged that an arbitrary-stack variant had merit as an additional method, but insisted the slot-based methods should remain as the primary surface. The group converged on a middle ground: keep slot-based methods as the core, add an ItemStack-based method that explicitly makes a defensive copy (so it never implicitly removes inventory items), replace the separate 'Randomly' method family with a boolean parameter to halve the method count, and keep null-defaulting overloads so callers are not forced to pass null for the callback.",
+      "author": "Maintainer B",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[4]",
@@ -73,7 +73,7 @@
       "type": "decision",
       "order": 6,
       "title": "Merged: Slot-Based Core with an ItemStack Escape Hatch and Halved Method Count",
-      "body": "The PR was merged on 28 December 2024. The final shape reflected the convergence reached in the last days of discussion. The method family was built around slot selectors (both integer indices and equipment-slot enumerations) with an explicit quantity parameter, a boolean controlling throw trajectory (replacing the separate 'Randomly' method family and cutting the count roughly in half), and a nullable post-spawn callback. A separate method accepting an arbitrary ItemStack was included but documented to make a defensive copy, making it explicit that it does not remove anything from the inventory. Null-defaulting convenience overloads were retained so callers who do not need the callback are not forced to pass null. The existing boolean-based drop method was deprecated in favour of the new slot-based equivalents. A Paper team member (lynxplay, credited in the final commits as Bjarne Koll) performed a final cleanup pass on documentation and internal structure before the merge.",
+      "body": "The PR was merged on 28 December 2024. The final shape reflected the convergence reached in the last days of discussion. The method family was built around slot selectors (both integer indices and equipment-slot enumerations) with an explicit quantity parameter, a boolean controlling throw trajectory (replacing the separate 'Randomly' method family and cutting the count roughly in half), and a nullable post-spawn callback. A separate method accepting an arbitrary ItemStack was included but documented to make a defensive copy, making it explicit that it does not remove anything from the inventory. Null-defaulting convenience overloads were retained so callers who do not need the callback are not forced to pass null. The existing boolean-based drop method was deprecated in favour of the new slot-based equivalents. A Paper team member (Reviewer B, credited in the final commits as a contributor) performed a final cleanup pass on documentation and internal structure before the merge.",
       "source_refs": [
         "pr_metadata.merged_at",
         "commit_history",

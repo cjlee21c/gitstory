@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — pavel-mironchik",
+      "title": "Position A — Contributor A",
       "body": "The nullable column was likely introduced deliberately to support document types that have no due date concept. Making it non-null would break existing data migrations and force modules to supply a meaningless placeholder date just to satisfy the constraint, which is a semantic hack rather than a real fix.",
-      "author": "pavel-mironchik",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[0]",
@@ -42,9 +42,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — burakcakirel",
+      "title": "Position B — Contributor B",
       "body": "The non-null constraint is the correct long-term rule for invoices and bills, and the nullable state was an oversight. The migration script can be updated to handle legacy records, and modules without a due date can supply a sentinel value through a hidden field to satisfy validation without changing the schema design.",
-      "author": "burakcakirel",
+      "author": "Contributor B",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[1]",

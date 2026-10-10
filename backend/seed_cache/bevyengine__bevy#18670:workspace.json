@@ -29,9 +29,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — chescock",
-      "body": "chescock raised the concern that any approach requiring atomic operations in the core allocation and free paths would be a hard blocker, because the efficiency of batch entity spawning today comes entirely from having exclusive mutable access and using plain memory operations. When early benchmarks appeared to show a significant regression in batch spawning, chescock suggested that the only viable path forward might be the earlier version-6 approach: maintaining a separate queue of pre-reserved entity IDs that remote threads can draw from, with the queue being refilled during the world's flush phase. This design keeps the hot path free of atomics entirely, at the cost of occasionally forcing remote threads to block or wait when the queue runs dry. The implicit argument is that a modest, bounded wait for remote threads is a more acceptable tradeoff than a permanent performance tax on every local entity allocation.",
-      "author": "chescock",
+      "title": "Position A — Contributor A",
+      "body": "Contributor A raised the concern that any approach requiring atomic operations in the core allocation and free paths would be a hard blocker, because the efficiency of batch entity spawning today comes entirely from having exclusive mutable access and using plain memory operations. When early benchmarks appeared to show a significant regression in batch spawning, Contributor A suggested that the only viable path forward might be the earlier version-6 approach: maintaining a separate queue of pre-reserved entity IDs that remote threads can draw from, with the queue being refilled during the world's flush phase. This design keeps the hot path free of atomics entirely, at the cost of occasionally forcing remote threads to block or wait when the queue runs dry. The implicit argument is that a modest, bounded wait for remote threads is a more acceptable tradeoff than a permanent performance tax on every local entity allocation.",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[0]"
@@ -41,9 +41,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — ElliottjPierce",
-      "body": "ElliottjPierce, the PR author, argued that the version-6 queue-based approach is fundamentally flawed for the asset use case because it cannot guarantee that remote threads never block. If the pre-filled queue runs dry between flush cycles, a remote thread either has to block and wait for the next flush, allocate a brand-new entity index that can never be reclaimed (effectively a memory leak), or stall asset loading while waiting for the main thread. None of these outcomes are acceptable for a system that is supposed to be completely non-blocking. The pinned-chunk free-list design in version 9 avoids all of these problems: remote allocation uses a compare-and-swap operation that either succeeds immediately or retries, and it never needs to wait for the main thread. The performance cost of atomics in the free path is real but bounded, and the overall entity workflow — which includes much more than just the allocator — sees only modest regression. Furthermore, the new design actually improves some operations by decoupling allocation from spawning, enabling better cache behavior, and opening the door to future optimizations like never flushing at all.",
-      "author": "ElliottjPierce",
+      "title": "Position B — Contributor B",
+      "body": "Contributor B, the PR author, argued that the version-6 queue-based approach is fundamentally flawed for the asset use case because it cannot guarantee that remote threads never block. If the pre-filled queue runs dry between flush cycles, a remote thread either has to block and wait for the next flush, allocate a brand-new entity index that can never be reclaimed (effectively a memory leak), or stall asset loading while waiting for the main thread. None of these outcomes are acceptable for a system that is supposed to be completely non-blocking. The pinned-chunk free-list design in version 9 avoids all of these problems: remote allocation uses a compare-and-swap operation that either succeeds immediately or retries, and it never needs to wait for the main thread. The performance cost of atomics in the free path is real but bounded, and the overall entity workflow — which includes much more than just the allocator — sees only modest regression. Furthermore, the new design actually improves some operations by decoupling allocation from spawning, enabling better cache behavior, and opening the door to future optimizations like never flushing at all.",
+      "author": "Contributor B",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[1]",

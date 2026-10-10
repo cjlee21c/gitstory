@@ -30,9 +30,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — darkfrog26",
+      "title": "Position A — Outside Commenter A",
       "body": "The contributor's initial instinct was to attach measurement as an instance method on TextStyle, since the style object already encapsulates all the parameters that affect how text is rendered and sized. When reviewers pushed back, the contributor was open to moving the function but raised a practical concern: the measurement logic internally depends on several intermediate values — line data, font properties, maximum line width — that are also needed by the rendering pipeline. Simply returning a bounding rectangle would discard that information. The contributor proposed either returning a richer result object or finding a way to share that data. The contributor also added clone and equals methods to the result type, reasoning that consumers comparing or copying measurement results would find them useful. After reviewer feedback, the contributor acknowledged that a dedicated class capturing all measurement outputs was the right abstraction, and that the clone and equals methods were unnecessary overhead.",
-      "author": "darkfrog26",
+      "author": "Outside Commenter A",
       "author_role": "NONE",
       "source_refs": [
         "discussion_timeline[0]",
@@ -46,9 +46,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — bigtimebuddy",
+      "title": "Position B — Maintainer B",
       "body": "The core team member pushed the design toward a standalone, dedicated class rather than a method bolted onto an existing object. The argument was that measurement is a distinct concern from style configuration, and grouping all measurement outputs — including intermediate rendering data — into a single named type would make the API cleaner and more discoverable. This reviewer also flagged that any new public type needs to be explicitly exported from the library's core module to be usable by consumers, a detail the contributor had missed. On the clone and equals methods, the reviewer was skeptical: these methods were not used internally, added public API surface that would need to be maintained, and could be replaced by general-purpose utilities if a consumer truly needed them. The reviewer also asked for validation against existing live examples to ensure nothing regressed.",
-      "author": "bigtimebuddy",
+      "author": "Maintainer B",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[7]",

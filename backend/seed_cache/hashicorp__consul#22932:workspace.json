@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — suresh-hashicorp",
+      "title": "Position A — Contributor A",
       "body": "A contributor from within the HashiCorp ecosystem reviewed the deployment output and found it looked correct. However, they were not fully comfortable signing off on a major framework version upgrade without input from the team that owns the documentation website day-to-day. Their position was essentially: the surface-level evidence is encouraging, but the risk of a major version bump warrants a domain expert's confirmation before the change is considered safe to merge. They explicitly reached out to the docs team to ask whether upgrading the framework's major version was harmless in this context, signaling that technical correctness alone was not sufficient — organizational ownership and expertise should also be consulted.",
-      "author": "suresh-hashicorp",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[0]"
@@ -40,9 +40,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — hc-github-team-consul-core",
+      "title": "Position B — Maintainer A",
       "body": "The automated backport system maintained by the Consul core team took a different kind of position: process compliance. After the PR was merged, the automation repeatedly flagged that the change had not been backported to all required stable release branches. The system's implicit argument is that security fixes of this nature should propagate to all supported versions, not just the main branch. The repeated automated reminders — spanning weeks and then months — highlight a structural concern: merging a security fix to the primary branch without completing the backport work leaves older supported versions still exposed. This is a process and release-management viewpoint rather than a technical one, but it reflects a real architectural principle about how security remediations should be handled across a versioned product.",
-      "author": "hc-github-team-consul-core",
+      "author": "Maintainer A",
       "author_role": "COLLABORATOR",
       "source_refs": [
         "discussion_timeline[1]",

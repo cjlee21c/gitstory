@@ -27,9 +27,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — FunnyDevs",
+      "title": "Position A — Outside Commenter A",
       "body": "The contributor offered their implementations to the broader community and signaled openness to the maintainer deciding how to host them, implicitly suggesting the maintainer could create a dedicated companion repository similar to existing satellite projects.",
-      "author": "FunnyDevs",
+      "author": "Outside Commenter A",
       "author_role": "NONE",
       "source_refs": [
         "discussion_timeline[2]",
@@ -40,9 +40,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — pedroSG94",
+      "title": "Position B — Maintainer A",
       "body": "The maintainer favored forking rather than re-hosting, reasoning that the code belongs to its author and should remain under their stewardship. The maintainer committed to referencing the external repository in documentation rather than absorbing it into the project.",
-      "author": "pedroSG94",
+      "author": "Maintainer A",
       "author_role": "OWNER",
       "source_refs": [
         "discussion_timeline[3]"

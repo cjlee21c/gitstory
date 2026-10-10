@@ -2,6 +2,7 @@ import json
 
 from pydantic import ValidationError
 
+from app import privacy
 from app.llm.client import WORKSPACE_GEN_MODEL, client
 from app.llm.json_utils import extract_json
 from app.llm.usage import log_usage
@@ -24,15 +25,16 @@ Required JSON shape (return exactly these beat "type" values, in this order):
   "beats": [
     {{"beat_id": "b1", "type": "context", "order": 1, "title": "...", "body": "...", "source_refs": ["issue_payload.body"]}},
     {{"beat_id": "b2", "type": "dilemma", "order": 2, "title": "...", "body": "...", "source_refs": [...]}},
-    {{"beat_id": "b3", "type": "viewpoint", "order": 3, "title": "Position A — <real github login>", "body": "...", "author": "<login>", "author_role": "<association from data>", "source_refs": [...]}},
-    {{"beat_id": "b4", "type": "viewpoint", "order": 4, "title": "Position B — <real github login>", "body": "...", "author": "<login>", "author_role": "<association>", "source_refs": [...]}},
+    {{"beat_id": "b3", "type": "viewpoint", "order": 3, "title": "Position A — <participant alias>", "body": "...", "author": "<alias, copied exactly from the data>", "author_role": "<association from data>", "source_refs": [...]}},
+    {{"beat_id": "b4", "type": "viewpoint", "order": 4, "title": "Position B — <participant alias>", "body": "...", "author": "<alias, copied exactly>", "author_role": "<association>", "source_refs": [...]}},
     {{"beat_id": "b5", "type": "checkpoint", "order": 5, "question": "...", "format": "reflection", "must_precede_decision": true}}
   ]
 }}
 
 Rules:
 - BE CONCISE. Every "body" must be at most 3 sentences (~60 words). Every "question" is one sentence (~30 words). Pack meaning densely; never pad, repeat, or restate. Brevity is a hard requirement, not a preference.
-- Use 2-3 "viewpoint" beats representing REAL, DISTINCT positions actually argued by REAL participants in the data. Use their actual GitHub logins and author_association values. Never invent a person or a position nobody took.
+- Use 2-3 "viewpoint" beats representing REAL, DISTINCT positions actually argued by participants in the data. Use their author_association values as given. Never invent a person or a position nobody took.
+- Participants are already pseudonymized in the data ("Maintainer A", "Contributor B", …). Refer to them ONLY by that alias, copied exactly, everywhere — in "author", in titles, and in prose. Never write a real name, a GitHub handle, or any other invented name for a person.
 - The "checkpoint" question asks the student what THEY would decide. It MUST NOT reveal, assume, or hint at the actual outcome.
 - NEVER mention specific code, diffs, syntax, file names, or line numbers anywhere. Describe the engineering tradeoffs, reasoning, and arguments only, in plain prose.
 - "source_refs" should name which raw fields informed that beat, e.g. "discussion_timeline[3]", "issue_payload.body".
@@ -61,6 +63,7 @@ Required JSON shape (return exactly these beat "type" values, in this order):
 Rules:
 - BE CONCISE. The "body" must be at most 3 sentences (~60 words). Each item in "lessons" is one sentence (~20 words). Pack meaning densely; never pad, repeat, or restate. Brevity is a hard requirement, not a preference.
 - The "decision" beat must accurately describe what ACTUALLY happened — cross-check against commit_history and pr_metadata.merged_at. Do not invent an outcome.
+- Participants are already pseudonymized in the data ("Maintainer A", "Contributor B", …). Refer to them ONLY by that alias, copied exactly. Never write a real name, a GitHub handle, or any other invented name for a person.
 - Provide exactly 3 "lessons".
 - NEVER mention specific code, diffs, syntax, file names, or line numbers anywhere. Describe the engineering tradeoffs, reasoning, and arguments only, in plain prose.
 - "source_refs" should name which raw fields informed that beat, e.g. "commit_history", "discussion_timeline[3]".
@@ -106,6 +109,9 @@ def _sample_comments(comments: list, cap: int = DISCUSSION_COMMENT_CAP) -> list:
 
 
 def _build_raw_data(bundle: dict) -> str:
+    # Pseudonymize first: everything below this line — and so everything that
+    # leaves for the Anthropic API — carries aliases, never a real identity.
+    bundle = privacy.pseudonymize_bundle(bundle)
     sampled = _sample_comments(bundle["discussion_timeline"])
     compact = {
         "metadata": bundle["metadata"],

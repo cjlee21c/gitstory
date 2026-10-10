@@ -27,9 +27,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — D4ryl00",
-      "body": "D4ryl00 argued that a small buffer on the signaling channel is justified because the events triggering it are rare in practice, and a buffer prevents the key-registration handler from blocking when no consumer is actively reading. The caller can always supply a context timeout to bound the wait, making a built-in timeout redundant.",
-      "author": "D4ryl00",
+      "title": "Position A — Contributor A",
+      "body": "Contributor A argued that a small buffer on the signaling channel is justified because the events triggering it are rare in practice, and a buffer prevents the key-registration handler from blocking when no consumer is actively reading. The caller can always supply a context timeout to bound the wait, making a built-in timeout redundant.",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[9]",
@@ -43,7 +43,7 @@
       "order": 4,
       "title": "Position B — moul",
       "body": "moul pushed back that combining \"I know only one message will ever be sent\" with \"the channel might not be read\" in the same design is inherently fragile. He preferred an unbuffered channel where possible, and favored each API call owning its own timeout limit rather than relying on callers to set one correctly.",
-      "author": "moul",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[10]",

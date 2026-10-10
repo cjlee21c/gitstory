@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — arthuro555",
+      "title": "Position A — Contributor A",
       "body": "The contributor argued in favor of initially keeping fluent method chaining for consistency with Howler.js, reasoning that users familiar with the underlying library would find the API intuitive. However, after the owner's pushback, the contributor agreed to drop the overloaded methods in favor of explicit getters and setters. The contributor also raised a concern about memory safety: if the internal sound class were treated as a public API, users could instantiate it directly in JavaScript events without the sound manager ever cleaning it up, creating potential memory leaks. The contributor felt the public API boundary should be drawn carefully to avoid exposing implementation details that could be misused. The contributor also flagged that switching from overloaded methods to getters/setters was a real breaking change for JavaScript-savvy game developers.",
-      "author": "arthuro555",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[2]",
@@ -42,9 +42,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — 4ian",
+      "title": "Position B — Maintainer A",
       "body": "The project owner was skeptical of fluent/magic method patterns, arguing that explicit getter and setter methods are not meaningfully more verbose, are far easier to statically type (especially important given the ongoing TypeScript migration), and are friendlier to JavaScript engine optimization. On the question of whether the internal sound class should be a public API, the owner took a pragmatic stance: the team gets to decide what is and is not public, and if something is considered an implementation detail, it simply should not be exposed. If advanced users truly needed direct access to the underlying Howler object, an explicit accessor could be added later on demand rather than designing the whole API around that edge case. The owner also emphasized the value of real-world testing before merging, suggesting a beta period to catch regressions.",
-      "author": "4ian",
+      "author": "Maintainer A",
       "author_role": "OWNER",
       "source_refs": [
         "discussion_timeline[2]",

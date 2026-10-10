@@ -6,7 +6,7 @@
       "type": "context",
       "order": 1,
       "title": "A Native Base64 API Arrives in the Browser Platform",
-      "body": "An ES2026 stage-proposal introduces a native, browser-implemented base64 encoding and decoding API directly on typed arrays. A contributor (kzhsw) proposes integrating this into Babylon.js's string utilities module. The motivation is straightforward: benchmarks shared on the Babylon.js forum show the native API is measurably faster than the existing pure-JavaScript implementation, particularly for payloads around 1 MB and above. The PR aims to transparently swap in the faster path when the native API is available, while falling back to the existing JavaScript implementation for environments that do not yet support it.",
+      "body": "An ES2026 stage-proposal introduces a native, browser-implemented base64 encoding and decoding API directly on typed arrays. A contributor (Contributor A) proposes integrating this into Babylon.js's string utilities module. The motivation is straightforward: benchmarks shared on the Babylon.js forum show the native API is measurably faster than the existing pure-JavaScript implementation, particularly for payloads around 1 MB and above. The PR aims to transparently swap in the faster path when the native API is available, while falling back to the existing JavaScript implementation for environments that do not yet support it.",
       "source_refs": [
         "issue_payload.body",
         "commit_history[0]",
@@ -30,9 +30,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — kzhsw",
+      "title": "Position A — Contributor A",
       "body": "The original contributor argues that the polyfill-detection logic is important for correctness: if a user's environment has shimmed the native API with a JavaScript polyfill, using that shim would not deliver the performance benefit the feature is designed for, and could even introduce subtle behavioral differences. The initial approach therefore explicitly checks at module load time whether the API is genuinely native, excluding known polyfill signatures from core-js and es-shims. The contributor also initially uses a global type declaration pattern to inform TypeScript about the new API's types, which is a common approach for augmenting the global environment.",
-      "author": "kzhsw",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "commit_history[0]",
@@ -44,9 +44,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — ryantrem and RaananW",
+      "title": "Position B — Maintainer D and Maintainer C",
       "body": "Core team members push back on several of the implementation choices. On polyfill detection: they argue that Babylon.js should not be in the business of second-guessing whether a user's environment is 'native enough.' If a user has deliberately polyfilled the API, that is their choice, and the library should simply trust the presence of the API rather than trying to detect its provenance. This simplifies the code and avoids a fragile dependency on the internal signatures of third-party polyfill libraries. On type declarations: the global augmentation approach breaks at least one internal build target, so the team requests moving declarations to a dedicated type definition file instead. On module-level side effects: a reviewer flags that running feature detection eagerly at module load time harms tree-shaking, because bundlers cannot statically eliminate the module if it has observable side effects; the fix is to move the check inside the function call path.",
-      "author": "ryantrem",
+      "author": "Maintainer D",
       "author_role": "MEMBER",
       "source_refs": [
         "commit_history[7]",

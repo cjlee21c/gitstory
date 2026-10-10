@@ -6,7 +6,7 @@
       "type": "context",
       "order": 1,
       "title": "A New Minecraft Feature Needs an API",
-      "body": "Minecraft 1.20.3 introduced the ability to customize how score numbers are displayed on scoreboards — players could now replace the raw integer with blank space, a styled number, or an entirely custom text component. Paper, as a server platform, had no API exposing this capability to plugin developers. A contributor named davidmayr opened a pull request to fill that gap, proposing a clean Adventure-based API that would let plugins set a number format on an entire scoreboard objective or on individual score entries. The initial design used serialization through the Gson component serializer to convert between Adventure's style model and Mojang's internal representation.",
+      "body": "Minecraft 1.20.3 introduced the ability to customize how score numbers are displayed on scoreboards — players could now replace the raw integer with blank space, a styled number, or an entirely custom text component. Paper, as a server platform, had no API exposing this capability to plugin developers. A contributor named Contributor B opened a pull request to fill that gap, proposing a clean Adventure-based API that would let plugins set a number format on an entire scoreboard objective or on individual score entries. The initial design used serialization through the Gson component serializer to convert between Adventure's style model and Mojang's internal representation.",
       "source_refs": [
         "issue_payload.body",
         "commit_history",
@@ -33,9 +33,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — Machine-Maker",
-      "body": "Machine-Maker argued strongly for hiding implementation details behind interfaces rather than exposing record types directly in the public API. The reasoning was twofold: documentation quality and future flexibility. Interfaces allow javadoc to be written separately for factory methods and for the type's own accessors, making the API easier to understand. More importantly, if a record's constructor is public, any future change to its parameters forces the project to maintain old constructors indefinitely or break binary compatibility — a maintenance burden illustrated by painful precedents elsewhere in the codebase. The preferred pattern was to make the concrete record implementations package-private, expose only interfaces to plugin authors, and provide static factory methods on the base interface for construction. On the reset question, Machine-Maker preferred a dedicated clear method over accepting null in the setter, and opposed adding a special reset type to the sealed hierarchy.",
-      "author": "Machine-Maker",
+      "title": "Position A — Maintainer B",
+      "body": "Maintainer B argued strongly for hiding implementation details behind interfaces rather than exposing record types directly in the public API. The reasoning was twofold: documentation quality and future flexibility. Interfaces allow javadoc to be written separately for factory methods and for the type's own accessors, making the API easier to understand. More importantly, if a record's constructor is public, any future change to its parameters forces the project to maintain old constructors indefinitely or break binary compatibility — a maintenance burden illustrated by painful precedents elsewhere in the codebase. The preferred pattern was to make the concrete record implementations package-private, expose only interfaces to plugin authors, and provide static factory methods on the base interface for construction. On the reset question, Maintainer B preferred a dedicated clear method over accepting null in the setter, and opposed adding a special reset type to the sealed hierarchy.",
+      "author": "Maintainer B",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[6]",
@@ -46,9 +46,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — jpenilla",
-      "body": "jpenilla focused on the conversion layer between Adventure's type system and Mojang's internal representation. Rather than round-tripping through a JSON serializer, Paper already maintained its own codecs specifically designed for lossless conversion between Adventure objects and Minecraft's native formats. Using those codecs would be more correct, more consistent with the rest of the codebase, and would avoid any edge cases introduced by an extra serialization step. jpenilla also pointed out that the conversion utilities should live in the centralized Paper Adventure utility class alongside similar conversion methods, rather than being scattered across the new feature's implementation.",
-      "author": "jpenilla",
+      "title": "Position B — Maintainer A",
+      "body": "Maintainer A focused on the conversion layer between Adventure's type system and Mojang's internal representation. Rather than round-tripping through a JSON serializer, Paper already maintained its own codecs specifically designed for lossless conversion between Adventure objects and Minecraft's native formats. Using those codecs would be more correct, more consistent with the rest of the codebase, and would avoid any edge cases introduced by an extra serialization step. Maintainer A also pointed out that the conversion utilities should live in the centralized Paper Adventure utility class alongside similar conversion methods, rather than being scattered across the new feature's implementation.",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[3]"

@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — aikar",
-      "body": "Aikar argued the feature was mature enough for production use, citing no reported data loss and a priority-queue design that minimizes main-thread blocking by promoting urgent tasks to the front of the work queue. He acknowledged remaining edge cases—particularly around entities created during generation—but treated them as post-merge polish rather than blockers. Iterative beta builds addressed each reported crash quickly.",
-      "author": "aikar",
+      "title": "Position A — Maintainer A",
+      "body": "Maintainer A argued the feature was mature enough for production use, citing no reported data loss and a priority-queue design that minimizes main-thread blocking by promoting urgent tasks to the front of the work queue. He acknowledged remaining edge cases—particularly around entities created during generation—but treated them as post-merge polish rather than blockers. Iterative beta builds addressed each reported crash quickly.",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[7]",
@@ -42,9 +42,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — egg82",
-      "body": "egg82 identified a reproducible memory leak under sustained bulk chunk generation, suggesting the async infrastructure had resource-management problems that could destabilize servers under real workloads. This raised the question of whether the feature's concurrency model was sound enough for merge, or whether it needed deeper fixes before being shipped to all Paper users.",
-      "author": "egg82",
+      "title": "Position B — Contributor A",
+      "body": "Contributor A identified a reproducible memory leak under sustained bulk chunk generation, suggesting the async infrastructure had resource-management problems that could destabilize servers under real workloads. This raised the question of whether the feature's concurrency model was sound enough for merge, or whether it needed deeper fixes before being shipped to all Paper users.",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[5]"

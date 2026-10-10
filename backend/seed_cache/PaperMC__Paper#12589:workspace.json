@@ -32,9 +32,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — Owen1212055",
-      "body": "Owen1212055, a project member, argued that the check should still encourage administrators to upgrade even when they are on the latest build for their current Minecraft version. The reasoning was that being 'latest' on an older Minecraft version is not a desirable end state — administrators running, say, the newest build of a version that is two releases behind should still be nudged toward the current Minecraft release. Simply going silent when the API reports 'latest build' would remove a meaningful signal. The implication was that the messaging needed to distinguish between 'you are fully up to date' and 'you are on the best available build for an outdated version,' and that the latter case still warranted some form of advisory output.",
-      "author": "Owen1212055",
+      "title": "Position A — Maintainer A",
+      "body": "Maintainer A, a project member, argued that the check should still encourage administrators to upgrade even when they are on the latest build for their current Minecraft version. The reasoning was that being 'latest' on an older Minecraft version is not a desirable end state — administrators running, say, the newest build of a version that is two releases behind should still be nudged toward the current Minecraft release. Simply going silent when the API reports 'latest build' would remove a meaningful signal. The implication was that the messaging needed to distinguish between 'you are fully up to date' and 'you are on the best available build for an outdated version,' and that the latter case still warranted some form of advisory output.",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[0]"
@@ -44,9 +44,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — MiniDigger",
-      "body": "MiniDigger, also a project member, weighed in late in the review cycle and took a pragmatic stance on the opt-out mechanism. Rather than relying solely on the JVM system property that the contributor had already implemented, MiniDigger added a configuration-file option as well, reasoning that config files are the natural home for server operator preferences and are easier to manage in many deployment environments than JVM flags. MiniDigger also raised a forward-looking concern: the check was hardcoded to query only the stable release channel, but operators running test servers or those who want early visibility into beta or alpha builds might reasonably want to be notified about those channels too. MiniDigger acknowledged this was out of scope for the current PR but flagged it as a natural follow-on, framing it as a future enhancement rather than a blocker.",
-      "author": "MiniDigger",
+      "title": "Position B — Maintainer C",
+      "body": "Maintainer C, also a project member, weighed in late in the review cycle and took a pragmatic stance on the opt-out mechanism. Rather than relying solely on the JVM system property that the contributor had already implemented, Maintainer C added a configuration-file option as well, reasoning that config files are the natural home for server operator preferences and are easier to manage in many deployment environments than JVM flags. Maintainer C also raised a forward-looking concern: the check was hardcoded to query only the stable release channel, but operators running test servers or those who want early visibility into beta or alpha builds might reasonably want to be notified about those channels too. Maintainer C acknowledged this was out of scope for the current PR but flagged it as a natural follow-on, framing it as a future enhancement rather than a blocker.",
+      "author": "Maintainer C",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[22]"
@@ -65,7 +65,7 @@
       "type": "decision",
       "order": 6,
       "title": "Merged: API-Driven Check with Nuanced Messaging and Dual Opt-Out",
-      "body": "The pull request was merged on January 2, 2026, after roughly seven months of iterative refinement across multiple Minecraft version rebases. The final design queries the Fill v3 API asynchronously after server startup and classifies the result into distinct states, each producing a tailored message: a server that is behind on both build number and Minecraft version gets the most urgent warning; one that is behind only on build number gets a moderate warning; one that is on the latest build for its version but a newer Minecraft version exists gets an informational notice (addressing Owen1212055's concern that silence would be misleading); and a fully up-to-date server produces no output. The opt-out was implemented as both a JVM system property and a configuration-file entry, satisfying both scripted and manually configured deployment styles. The API migration to Fill v3 was completed, including a properly formatted User-Agent header. MiniDigger's suggestion about making the monitored release channel configurable was acknowledged but deferred as a future enhancement. The PR touched five files and went through numerous rounds of formatting fixes, logic cleanups, and rebases before landing.",
+      "body": "The pull request was merged on January 2, 2026, after roughly seven months of iterative refinement across multiple Minecraft version rebases. The final design queries the Fill v3 API asynchronously after server startup and classifies the result into distinct states, each producing a tailored message: a server that is behind on both build number and Minecraft version gets the most urgent warning; one that is behind only on build number gets a moderate warning; one that is on the latest build for its version but a newer Minecraft version exists gets an informational notice (addressing Maintainer A's concern that silence would be misleading); and a fully up-to-date server produces no output. The opt-out was implemented as both a JVM system property and a configuration-file entry, satisfying both scripted and manually configured deployment styles. The API migration to Fill v3 was completed, including a properly formatted User-Agent header. Maintainer C's suggestion about making the monitored release channel configurable was acknowledged but deferred as a future enhancement. The PR touched five files and went through numerous rounds of formatting fixes, logic cleanups, and rebases before landing.",
       "source_refs": [
         "pr_metadata.merged_at",
         "discussion_timeline[22]",

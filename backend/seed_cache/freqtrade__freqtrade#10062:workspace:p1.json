@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — xmatthias",
+      "title": "Position A — Maintainer A",
       "body": "The maintainer argues the PR should stay narrowly scoped: unblock exit signals but avoid also unblocking position-adjustment callbacks without a guard, because doing so causes the bot to replace an unfilled adjustment order on every cycle. He proposes using order direction and amount as a fingerprint to detect a \"similar\" open order and skip replacement.",
-      "author": "xmatthias",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[1]",
@@ -42,9 +42,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — Axel-CH",
+      "title": "Position B — Contributor A",
       "body": "The contributor initially proposed using an order tag as the deduplication key so strategies could explicitly signal intent, but accepted that this would be a breaking change requiring updates to every strategy. He then converged toward using direction and amount as an automatic similarity check, while flagging uncertainty about whether the exchange-reported amount always matches the user-requested amount.",
-      "author": "Axel-CH",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[5]",

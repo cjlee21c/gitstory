@@ -28,9 +28,9 @@
       "beat_id": "b3",
       "type": "viewpoint",
       "order": 3,
-      "title": "Position A — zeroepoch",
+      "title": "Position A — Contributor A",
       "body": "The contributor who submitted the fix acknowledged that the change would not work with an older version of Steam, but argued this is acceptable in practice because Steam updates continuously and users rarely stay on old versions. They also noted that detecting the argument count at runtime and branching on it should be feasible — the presence or absence of the extra separator arguments would make the two layouts distinguishable — but admitted they no longer had the environment available to test such an approach. Their primary motivation was ensuring the fix was not lost and that others would not have to rediscover the same root cause independently.",
-      "author": "zeroepoch",
+      "author": "Contributor A",
       "author_role": "CONTRIBUTOR",
       "source_refs": [
         "discussion_timeline[2]",
@@ -41,9 +41,9 @@
       "beat_id": "b4",
       "type": "viewpoint",
       "order": 4,
-      "title": "Position B — ManlyMarco",
+      "title": "Position B — Maintainer A",
       "body": "A project member pushed back on simply dropping support for the old Steam argument layout. They pointed out that Steam's offline mode allows users to remain on an older version indefinitely without any forced update, and that BepInEx itself works fully offline, making this a realistic scenario. They suggested the script could be made to detect how many arguments it received and branch between the old and new layouts accordingly, avoiding a hard break for users on older Steam builds. They also requested that whatever solution is adopted include explanatory comments documenting the argument layout, to make future maintenance easier.",
-      "author": "ManlyMarco",
+      "author": "Maintainer A",
       "author_role": "MEMBER",
       "source_refs": [
         "discussion_timeline[3]"
