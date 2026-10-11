@@ -11,3 +11,16 @@ backend/*.db
 frontend/node_modules/
 frontend/dist/
 backend/logs/
+
+# Virtualenvs — 93MB of vendored packages were committed here, and the shebangs
+# and pyvenv.cfg inside them carry the absolute path of whoever created them.
+backend/venv/
+venv/
+.venv/
+
+# Editor/agent state, machine-local
+.claude/
+.DS_Store
+
+# Local test answers written by the running app
+backend/answers/

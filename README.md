@@ -28,7 +28,7 @@ The app has two parts: a **FastAPI backend** (`backend/`) and a **React + Vite f
 ## 1. Clone
 
 ```bash
-git clone https://github.com/cjlee21c/gitstory.git
+git clone <repository-url>
 cd gitstory
 ```
 
