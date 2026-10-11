@@ -1,4 +1,6 @@
 import type { RepoRecommendation } from "../api/types";
+import { repoUrl } from "../github";
+import { GitHubLink } from "./GitHubLink";
 
 interface Props {
   repo: RepoRecommendation;
@@ -41,6 +43,7 @@ export function RepoCard({ repo, selected, disabled, onToggle }: Props) {
           <path d="M8 0a8 8 0 0 0-2.5 15.6c.4.1.5-.2.5-.4v-1.4c-2 .4-2.5-.5-2.7-1-.1-.3-.5-1-.9-1.2-.3-.2-.7-.6 0-.6.6 0 1 .6 1.2.8.7 1.2 1.9.9 2.3.7.1-.5.3-.9.5-1.1-1.8-.2-3.6-.9-3.6-4 0-.9.3-1.6.8-2.1-.1-.2-.4-1 .1-2.1 0 0 .7-.2 2.2.8a7.4 7.4 0 0 1 4 0c1.5-1 2.2-.8 2.2-.8.5 1.1.2 1.9.1 2.1.5.5.8 1.2.8 2.1 0 3.1-1.8 3.8-3.6 4 .3.3.6.8.6 1.6v2.3c0 .2.1.5.5.4A8 8 0 0 0 8 0Z"/>
         </svg>
         <h3 className="repo-name">{repo.repo}</h3>
+        <GitHubLink href={repoUrl(repo.repo)} label="GitHub" className="gh-link-card" />
       </div>
 
       {(repo.language || typeof repo.stars === "number") && (

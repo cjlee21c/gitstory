@@ -1212,3 +1212,76 @@ a.landing-logo { cursor: pointer; }
   .lib-card, .lib-card .story-cta { transition: none; }
 }
 
+
+/* ── GitHub links ─────────────────────────────────────────────────────────
+   Outbound links to the repo a story came from, and (after the checkpoint)
+   to the pull request itself. See frontend/src/github.ts. */
+.gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  border: 1px solid var(--warm-border, #e2e2e2);
+  border-radius: 99px;
+  padding: 4px 11px;
+  background: white;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.gh-link:hover { border-color: var(--accent); color: var(--accent); }
+.gh-link-out { font-size: 11px; opacity: 0.7; }
+
+/* Inside a clickable card: pushed to the trailing edge, and quiet until
+   hovered so it doesn't compete with the card's own call to action. */
+.gh-link-card {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  font-size: 12px;
+}
+
+/* Selected repo links under the catalog hero. */
+.catalog-repo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* Workspace header sits on the green gradient, so the chip goes translucent
+   instead of white. */
+.gh-link-ws {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-color: var(--ws-line);
+  color: var(--warm-muted);
+}
+.gh-link-ws:hover { background: white; border-color: var(--ws-ink); color: var(--ws-ink); }
+
+/* The "read the original" block, shown only after the checkpoint. */
+.ws-source {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--ws-line);
+}
+.ws-source h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+  color: var(--ws-ink);
+}
+.ws-source p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--warm-muted);
+  margin: 0 0 14px;
+  max-width: 62ch;
+}
+
+/* .lib-count already claims the free space; a second margin-left:auto would
+   split it and strand the link mid-row. */
+.lib-card-head .gh-link-card { margin-left: 0; }

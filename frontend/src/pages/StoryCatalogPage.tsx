@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { listStories, runPipelineOnce } from "../api/client";
 import type { StorySummary } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
+import { GitHubLink } from "../components/GitHubLink";
 import { StoryCard } from "../components/StoryCard";
+import { repoUrl } from "../github";
 import { QUALITIES } from "../filters";
 
 interface RepoStories {
@@ -229,6 +231,14 @@ export function StoryCatalogPage() {
             <span className="step-capsule yellow">Step 3 of 3</span>
             <h1>{headline}</h1>
             <p>Choose a story below to dive into the background, the debate, and the code.</p>
+            {/* The repo itself is safe to open at any point — it gives away
+                nothing about how a story ends, and seeing what the project
+                actually is helps a student pick one. */}
+            <div className="catalog-repo-links">
+              {repos.map((repo) => (
+                <GitHubLink key={repo} href={repoUrl(repo)} label={repo} />
+              ))}
+            </div>
           </section>
 
           <div className="catalog-chips">

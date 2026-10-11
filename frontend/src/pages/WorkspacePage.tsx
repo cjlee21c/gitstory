@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getWorkspacePart } from "../api/client";
 import type { Beat, ViewpointBeat, ViewpointOption, WorkspaceContent } from "../api/types";
+import { GitHubLink } from "../components/GitHubLink";
 import { BeatRenderer } from "../components/workspace/BeatRenderer";
 import { StoryProgress } from "../components/workspace/StoryProgress";
 import { useStudent } from "../context/StudentContext";
+import { repoUrl, storyUrl } from "../github";
 
 const STEP_NAMES = ["Background", "The Problem", "The Debate", "Your Take", "What Happened", "Key Lessons"];
 
@@ -133,6 +135,7 @@ export function WorkspacePage() {
   // repo and PR number rather than showing a bare id.
   const [repoName, prNumber] = storyId.split("#");
   const storyLabel = prNumber ? `${repoName} #${prNumber}` : storyId;
+  const sourceUrl = storyUrl(storyId);
 
   if (!storyId) {
     return (
@@ -248,6 +251,10 @@ export function WorkspacePage() {
         <div className="workspace-header-top">
           <button className="btn-back" onClick={() => navigate(-1)}>← Back</button>
           <span className="workspace-title">{storyTitle}</span>
+          {/* The repo, not the pull request: this is on screen from the first
+              step, and the PR page states the outcome the student has not been
+              asked about yet. The PR link waits for the checkpoint, below. */}
+          <GitHubLink href={repoUrl(repoName)} label={repoName} className="gh-link-ws" />
         </div>
         <StoryProgress
           steps={STEP_NAMES}
@@ -281,6 +288,23 @@ export function WorkspacePage() {
                 onCheckpointSubmit={handleCheckpointSubmit}
               />
             ))
+          )}
+
+          {/* Steps 4-5 are reachable only once the checkpoint is answered
+              (unlockedUpTo), so gating on the step number is the same gate.
+              Offering the real discussion earlier would let a student read the
+              outcome on GitHub instead of committing to a view of their own —
+              which is the one thing this workspace is built to make them do. */}
+          {currentStep >= 4 && sourceUrl && (
+            <aside className="ws-source">
+              <h2>Read the original discussion</h2>
+              <p>
+                This story was written from a real, merged pull request. Now that you have
+                taken your own position and seen how it was settled, compare it against the
+                thread itself — the participants are named there.
+              </p>
+              <GitHubLink href={sourceUrl} label={`${repoName} #${prNumber}`} />
+            </aside>
           )}
         </div>
       </div>

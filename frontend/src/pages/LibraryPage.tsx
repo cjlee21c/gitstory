@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { getLibrary } from "../api/client";
 import type { LibraryEntry } from "../api/types";
 import { AppHeader } from "../components/AppHeader";
+import { GitHubLink } from "../components/GitHubLink";
+import { repoUrl } from "../github";
 import { DOMAIN_ICONS, DOMAINS, QUALITY_TONE } from "../filters";
 
 const OTHER = "_other";
@@ -43,6 +45,7 @@ function LibCard({ entry, onOpen }: { entry: LibraryEntry; onOpen: () => void })
         <span className="lib-count">
           {entry.stories.length} stor{entry.stories.length === 1 ? "y" : "ies"}
         </span>
+        <GitHubLink href={repoUrl(entry.repo)} label="GitHub" className="gh-link-card" />
       </div>
 
       {entry.description && <p className="lib-desc">{entry.description}</p>}
