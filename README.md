@@ -95,7 +95,4 @@ by default. If your backend runs somewhere else, set `VITE_API_BASE_URL` (e.g. i
 - **Anthropic API key** — create one at [console.anthropic.com](https://console.anthropic.com).
   Generating stories consumes API credits, so keep an eye on your usage.
 
-## Deploying online
 
-To host GitStories on the internet (instead of running it locally), see
-[`docs/DEPLOY.md`](docs/DEPLOY.md).
